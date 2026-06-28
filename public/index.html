@@ -98,6 +98,11 @@ a:hover { text-decoration: underline; }
 }
 .content-area.markdown th { background: var(--surface); }
 .content-area.markdown hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+.csv-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.csv-table th, .csv-table td { border: 1px solid var(--border); padding: 4px 8px; text-align: left; white-space: nowrap; }
+.csv-table th { background: var(--surface); position: sticky; top: 0; z-index: 1; font-weight: 600; }
+.csv-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.csv-table tr:hover { background: var(--hover); }
 .empty-state {
   display: flex; flex-direction: column; align-items: center;
   justify-content: center; height: 100%; color: var(--text-muted);
@@ -197,6 +202,47 @@ async function apiFetch(path, opts = {}) {
 
 function escapeHtml(s) {
   const d = document.createElement('div'); d.textContent = s; return d.innerHTML;
+}
+
+function renderCsvTable(csvText) {
+  const rows = csvText.split('\n').filter(r => r.trim());
+  if (!rows.length) return '<div class="empty-state"><p>空のCSV</p></div>';
+  const headers = parseCsvRow(rows[0]);
+  let html = '<div style="overflow-x:auto;max-height:100%;"><table class="csv-table"><thead><tr>';
+  for (const h of headers) html += '<th>' + escapeHtml(h) + '</th>';
+  html += '</tr></thead><tbody>';
+  for (let i = 1; i < rows.length; i++) {
+    const cols = parseCsvRow(rows[i]);
+    html += '<tr>';
+    for (let j = 0; j < cols.length; j++) {
+      const val = cols[j];
+      const isNum = /^[\d,]+(\.[\d]+)?$/.test(val) && !isNaN(parseFloat(val.replace(/,/g, '')));
+      html += '<td' + (isNum ? ' class="num"' : '') + '>' + escapeHtml(val) + '</td>';
+    }
+    for (let j = cols.length; j < headers.length; j++) html += '<td></td>';
+    html += '</tr>';
+  }
+  return html + '</tbody></table></div>';
+}
+
+function parseCsvRow(row) {
+  const result = [];
+  let cur = '', inQuote = false;
+  for (let i = 0; i < row.length; i++) {
+    const c = row[i];
+    if (inQuote) {
+      if (c === '"') {
+        if (i + 1 < row.length && row[i + 1] === '"') { cur += '"'; i++; }
+        else inQuote = false;
+      } else cur += c;
+    } else {
+      if (c === '"') inQuote = true;
+      else if (c === ',') { result.push(cur); cur = ''; }
+      else cur += c;
+    }
+  }
+  result.push(cur);
+  return result;
 }
 
 function getFileUrl(path) {
@@ -377,12 +423,12 @@ async function loadContent(path, name) {
     const data = await apiFetch('/raw/' + path);
     if (ext === 'csv') {
       content.className = 'content-area';
-      content.innerHTML = '<pre class="text-view">' + escapeHtml(data.content) + '</pre>';
+      content.innerHTML = renderCsvTable(data.content);
     } else {
       content.className = 'content-area text-view';
       content.innerHTML = escapeHtml(data.content);
     }
-    showToolbar(path, 'text');
+    showToolbar(path, ext === 'csv' ? 'csv' : 'text');
   } catch (e) { content.innerHTML = `<div class="empty-state"><p>${escapeHtml(e.message)}</p></div>`; }
 }
 

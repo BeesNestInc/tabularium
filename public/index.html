@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wiki</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/themes/prism.min.css">
+<style>
+:root {
+  --bg: #ffffff;
+  --sidebar-bg: #f5f6fa;
+  --surface: #eef0f5;
+  --border: #d0d4de;
+  --text: #1a1a2e;
+  --text-muted: #6b7280;
+  --primary: #2563eb;
+  --accent: #7c4dff;
+  --hover: #e2e4eb;
+  --font: 'Hiragino Sans', 'BIZ UDPGothic', sans-serif;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px; }
+a { color: var(--primary); text-decoration: none; }
+a:hover { text-decoration: underline; }
+.app { display: flex; height: 100vh; }
+.sidebar {
+  width: 300px; min-width: 200px; resize: horizontal; overflow: auto;
+  background: var(--sidebar-bg); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+}
+.sidebar-header {
+  padding: 12px 16px; border-bottom: 1px solid var(--border);
+  font-weight: bold; font-size: 15px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.sidebar-header .btn-icon {
+  background: none; border: none; color: var(--text-muted); cursor: pointer;
+  font-size: 18px; padding: 2px 6px; border-radius: 4px;
+}
+.sidebar-header .btn-icon:hover { color: var(--text); background: var(--hover); }
+.tree { flex: 1; overflow-y: auto; padding: 8px 0; }
+.tree ul { list-style: none; padding-left: 18px; }
+.tree > ul { padding-left: 0; }
+.tree li { position: relative; }
+.tree-item {
+  display: flex; align-items: center; padding: 3px 12px 3px 8px;
+  cursor: pointer; border-radius: 0; white-space: nowrap;
+  user-select: none; min-height: 28px;
+}
+.tree-item:hover { background: var(--hover); }
+.tree-item.active { background: var(--surface); color: var(--primary); }
+.tree-item .icon { width: 18px; text-align: center; margin-right: 4px; flex-shrink: 0; }
+.tree-item .name { overflow: hidden; text-overflow: ellipsis; }
+.tree-item .chevron { width: 16px; text-align: center; flex-shrink: 0; font-size: 10px; color: var(--text-muted); transition: transform .15s; }
+.tree-item .chevron.open { transform: rotate(90deg); }
+.main {
+  flex: 1; display: flex; flex-direction: column; overflow: hidden;
+}
+.toolbar {
+  padding: 8px 16px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px;
+  background: var(--sidebar-bg); flex-shrink: 0;
+}
+.toolbar .breadcrumb { flex: 1; font-size: 12px; color: var(--text-muted); }
+.toolbar .breadcrumb span { color: var(--text); }
+.toolbar button {
+  background: var(--surface); border: 1px solid var(--border);
+  color: var(--text); padding: 4px 12px; border-radius: 4px;
+  cursor: pointer; font-size: 12px;
+}
+.toolbar button:hover { background: var(--hover); }
+.content-area { flex: 1; overflow-y: auto; padding: 24px 32px; }
+.content-area.markdown {
+  line-height: 1.8; max-width: 900px; margin: 0 auto;
+}
+.content-area.markdown h1 { font-size: 1.8em; margin: 0 0 16px; border-bottom: 2px solid var(--primary); padding-bottom: 8px; }
+.content-area.markdown h2 { font-size: 1.4em; margin: 24px 0 12px; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
+.content-area.markdown h3 { font-size: 1.2em; margin: 20px 0 8px; }
+.content-area.markdown p { margin: 0 0 12px; }
+.content-area.markdown code {
+  background: var(--surface); padding: 2px 6px; border-radius: 3px;
+  font-size: 0.9em;
+}
+.content-area.markdown pre { margin: 16px 0; border-radius: 6px; overflow-x: auto; }
+.content-area.markdown pre code { background: none; padding: 0; }
+.content-area.markdown blockquote {
+  border-left: 3px solid var(--primary); padding: 8px 16px;
+  margin: 16px 0; background: var(--surface); border-radius: 0 4px 4px 0;
+}
+.content-area.markdown ul, .content-area.markdown ol { padding-left: 24px; margin: 8px 0; }
+.content-area.markdown li { margin: 4px 0; }
+.content-area.markdown img { max-width: 100%; border-radius: 6px; margin: 16px 0; }
+.content-area.markdown table {
+  width: 100%; border-collapse: collapse; margin: 16px 0;
+}
+.content-area.markdown th, .content-area.markdown td {
+  border: 1px solid var(--border); padding: 8px 12px; text-align: left;
+}
+.content-area.markdown th { background: var(--surface); }
+.content-area.markdown hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+.empty-state {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; height: 100%; color: var(--text-muted);
+}
+.empty-state h2 { font-size: 1.5em; margin-bottom: 8px; }
+.empty-state p { font-size: 0.9em; }
+.edit-pane { display: flex; height: 100%; }
+.edit-pane textarea {
+  flex: 1; background: #fafbfc; color: var(--text); border: none;
+  padding: 16px; font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 13px; line-height: 1.6; resize: none; outline: none;
+}
+.edit-pane .preview {
+  flex: 1; overflow-y: auto; padding: 16px 24px;
+  border-left: 1px solid var(--border);
+}
+.image-view { display: flex; align-items: center; justify-content: center; height: 100%; }
+.image-view img { max-width: 90%; max-height: 90vh; object-fit: contain; }
+.text-view { white-space: pre-wrap; font-family: 'Consolas', 'Monaco', monospace; font-size: 13px; line-height: 1.6; }
+.context-menu {
+  position: fixed; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 6px; padding: 4px 0; min-width: 160px;
+  z-index: 1000; box-shadow: 0 8px 24px rgba(0,0,0,.4);
+}
+.context-menu div {
+  padding: 6px 16px; cursor: pointer; font-size: 13px;
+}
+.context-menu div:hover { background: var(--hover); color: var(--primary); }
+.context-menu .sep {
+  border-top: 1px solid var(--border); margin: 4px 0; padding: 0;
+}
+.hidden { display: none !important; }
+.toast {
+  position: fixed; bottom: 24px; right: 24px;
+  background: var(--surface); border: 1px solid var(--border);
+  padding: 10px 20px; border-radius: 6px; font-size: 13px;
+  box-shadow: 0 4px 12px rgba(0,0,0,.3); z-index: 9999;
+  opacity: 0; transition: opacity .3s;
+}
+.toast.show { opacity: 1; }
+.loading { text-align: center; padding: 48px; color: var(--text-muted); }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <span>Wiki</span>
+      <div>
+        <button class="btn-icon" onclick="refreshTree()" title="更新">&#x21bb;</button>
+        <button class="btn-icon" onclick="createFile()" title="新規ファイル">+</button>
+      </div>
+    </div>
+    <div class="tree" id="tree"></div>
+  </aside>
+  <div class="main">
+    <div class="toolbar" id="toolbar">
+      <div class="breadcrumb" id="breadcrumb"></div>
+      <button id="editBtn" class="hidden" onclick="toggleEdit()">&#x270e; 編集</button>
+      <button id="saveBtn" class="hidden" onclick="saveFile()">&#x1f4be; 保存</button>
+      <button id="cancelBtn" class="hidden" onclick="cancelEdit()">&#x2716; 戻す</button>
+      <button id="deleteBtn" class="hidden" onclick="deleteFile()">&#x1f5d1; 削除</button>
+    </div>
+    <div class="content-area" id="content"></div>
+  </div>
+</div>
+<div class="context-menu hidden" id="contextMenu"></div>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.30.0/plugins/autoloader/prism-autoloader.min.js"></script>
+<script>
+const API = '/api/knowledge';
+let state = { tree: [], currentPath: null, currentType: null, editMode: false, originalContent: false };
+let selectedLi = null;
+let suppressPopstate = false;
+
+const $ = id => document.getElementById(id);
+
+const toast = (msg) => {
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+};
+
+async function apiFetch(path, opts = {}) {
+  const res = await fetch(API + path, {
+    headers: { 'Content-Type': 'application/json' },
+    ...opts,
+  });
+  if (!res.ok) { const err = await res.json().catch(() => ({ error: res.statusText })); throw new Error(err.error || res.statusText); }
+  return res.json();
+}
+
+function escapeHtml(s) {
+  const d = document.createElement('div'); d.textContent = s; return d.innerHTML;
+}
+
+function getFileUrl(path) {
+  return '/knowledge/' + path;
+}
+
+function getPathFromUrl() {
+  const p = window.location.pathname;
+  if (p.startsWith('/knowledge/')) return decodeURIComponent(p.slice('/knowledge/'.length));
+  return null;
+}
+
+function updateUrl(path, replace) {
+  const url = path ? getFileUrl(path) : '/knowledge/';
+  if (replace) {
+    history.replaceState({ path }, '', url);
+  } else {
+    history.pushState({ path }, '', url);
+  }
+  document.title = path ? path.split('/').pop() + ' - Wiki' : 'Wiki';
+}
+
+function findTreeNode(path, nodes) {
+  for (const n of nodes) {
+    if (n.path === path) return n;
+    if (n.children) {
+      const found = findTreeNode(path, n.children);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+function findTreeElement(path) {
+  const items = document.querySelectorAll('.tree-item');
+  for (const item of items) {
+    if (item.dataset.path === path) return item;
+  }
+  return null;
+}
+
+function revealInTree(path) {
+  const parts = path.split('/');
+  for (let i = 1; i < parts.length; i++) {
+    const dir = parts.slice(0, i).join('/');
+    const item = findTreeElement(dir);
+    if (item) {
+      const li = item.closest('li');
+      if (li) {
+        const ul = li.querySelector('ul');
+        if (ul) ul.style.display = '';
+        const chevron = item.querySelector('.chevron');
+        if (chevron) chevron.classList.add('open');
+      }
+    }
+  }
+}
+
+async function refreshTree() {
+  try {
+    const data = await apiFetch('');
+    state.tree = data.tree;
+    renderTree();
+    return data.tree;
+  } catch (e) { toast('更新エラー: ' + e.message); }
+}
+
+function renderTree() {
+  const ul = document.createElement('ul');
+  buildTreeNodes(state.tree, ul);
+  const tree = $('tree');
+  tree.innerHTML = '';
+  tree.appendChild(ul);
+}
+
+function buildTreeNodes(nodes, ul) {
+  for (const node of nodes) {
+    const li = document.createElement('li');
+    const div = document.createElement('div');
+    div.className = 'tree-item';
+    div.dataset.path = node.path;
+
+    if (node.type === 'directory') {
+      const chevron = document.createElement('span');
+      chevron.className = 'chevron';
+      chevron.textContent = '\u25b6';
+      div.appendChild(chevron);
+      const icon = document.createElement('span');
+      icon.className = 'icon';
+      icon.textContent = '\ud83d\udcc1';
+      div.appendChild(icon);
+      const name = document.createElement('span');
+      name.className = 'name';
+      name.textContent = node.name;
+      div.appendChild(name);
+
+      div.onclick = (e) => { e.stopPropagation(); toggleDir(li, div); };
+      div.oncontextmenu = (e) => { e.preventDefault(); showContextMenu(e, node); };
+
+      const childUl = document.createElement('ul');
+      childUl.style.display = 'none';
+      if (node.children && node.children.length > 0) {
+        buildTreeNodes(node.children, childUl);
+      }
+      li.appendChild(div);
+      li.appendChild(childUl);
+    } else {
+      const icon = document.createElement('span');
+      icon.className = 'icon';
+      const ext = node.name.split('.').pop();
+      if (['md', 'markdown'].includes(ext)) icon.textContent = '\ud83d\udcdd';
+      else if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext)) icon.textContent = '\ud83d\uddbc';
+      else if (['csv'].includes(ext)) icon.textContent = '\ud83d\udcca';
+      else if (['json'].includes(ext)) icon.textContent = '\ud83d\udce6';
+      else icon.textContent = '\ud83d\udcc4';
+      div.appendChild(icon);
+      const name = document.createElement('span');
+      name.className = 'name';
+      name.textContent = node.name;
+      div.appendChild(name);
+
+      div.onclick = () => selectFile(node.path, div, node.name);
+      div.oncontextmenu = (e) => { e.preventDefault(); showContextMenu(e, node); };
+
+      li.appendChild(div);
+    }
+    ul.appendChild(li);
+  }
+}
+
+function toggleDir(li, div) {
+  const ul = li.querySelector('ul');
+  const chevron = div.querySelector('.chevron');
+  if (!ul) return;
+  if (ul.style.display === 'none') {
+    ul.style.display = '';
+    chevron.classList.add('open');
+  } else {
+    ul.style.display = 'none';
+    chevron.classList.remove('open');
+  }
+}
+
+function selectFile(path, div, name) {
+  state.editMode = false;
+  state.currentPath = path;
+  state.currentType = 'file';
+  if (selectedLi) selectedLi.classList.remove('active');
+  div.classList.add('active');
+  selectedLi = div;
+  updateUrl(path);
+  loadContent(path, name);
+}
+
+async function loadContent(path, name) {
+  const content = $('content');
+  const ext = path.split('.').pop().toLowerCase();
+
+  if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico'].includes(ext)) {
+    content.className = 'content-area image-view';
+    content.innerHTML = `<img src="${API}/file/${path}" alt="${escapeHtml(name)}">`;
+    showToolbar(path, 'image');
+    return;
+  }
+
+  if (ext === 'md' || ext === 'markdown') {
+    try {
+      const data = await apiFetch('/content/' + path);
+      content.className = 'content-area markdown';
+      content.innerHTML = data.html;
+      if (window.Prism) Prism.highlightAllUnder(content);
+      showToolbar(path, 'markdown');
+    } catch (e) { content.innerHTML = `<div class="empty-state"><p>${escapeHtml(e.message)}</p></div>`; }
+    return;
+  }
+
+  try {
+    const data = await apiFetch('/raw/' + path);
+    if (ext === 'csv') {
+      content.className = 'content-area';
+      content.innerHTML = '<pre class="text-view">' + escapeHtml(data.content) + '</pre>';
+    } else {
+      content.className = 'content-area text-view';
+      content.innerHTML = escapeHtml(data.content);
+    }
+    showToolbar(path, 'text');
+  } catch (e) { content.innerHTML = `<div class="empty-state"><p>${escapeHtml(e.message)}</p></div>`; }
+}
+
+function showToolbar(path, type) {
+  const editBtn = $('editBtn');
+  const saveBtn = $('saveBtn');
+  const cancelBtn = $('cancelBtn');
+  const deleteBtn = $('deleteBtn');
+  const bc = $('breadcrumb');
+
+  const parts = path.split('/');
+  bc.innerHTML = parts.map((p, i) => {
+    if (i === parts.length - 1) return `<span>${escapeHtml(p)}</span>`;
+    return `<a href="#" onclick="navigateToDir('${parts.slice(0, i + 1).join('/')}'); return false;">${escapeHtml(p)}</a> / `;
+  }).join('');
+
+  editBtn.classList.remove('hidden');
+  deleteBtn.classList.remove('hidden');
+  saveBtn.classList.add('hidden');
+  cancelBtn.classList.add('hidden');
+
+  if (type === 'image') editBtn.classList.add('hidden');
+}
+
+function navigateToDir(dirPath) {
+  const item = findTreeElement(dirPath);
+  if (item) {
+    const li = item.closest('li');
+    if (li) {
+      const ul = li.querySelector('ul');
+      if (ul) ul.style.display = '';
+      const chevron = item.querySelector('.chevron');
+      if (chevron) chevron.classList.add('open');
+    }
+  }
+}
+
+async function toggleEdit() {
+  if (!state.currentPath || state.editMode) return;
+  const ext = state.currentPath.split('.').pop().toLowerCase();
+  if (!['md', 'markdown', 'txt', 'json', 'yaml', 'yml', 'csv'].includes(ext)) {
+    toast('このファイルは編集できません');
+    return;
+  }
+  try {
+    const data = await apiFetch('/raw/' + state.currentPath);
+    state.originalContent = data.content;
+    state.editMode = true;
+
+    $('editBtn').classList.add('hidden');
+    $('saveBtn').classList.remove('hidden');
+    $('cancelBtn').classList.remove('hidden');
+
+    const content = $('content');
+    content.className = 'content-area';
+    content.innerHTML = `<div class="edit-pane">
+      <textarea id="editor">${escapeHtml(data.content)}</textarea>
+      <div class="preview markdown" id="livePreview"></div>
+    </div>`;
+
+    if (ext === 'md' || ext === 'markdown') {
+      const textarea = $('editor');
+      textarea.addEventListener('input', updateLivePreview);
+      updateLivePreview();
+    }
+  } catch (e) { toast('読込エラー: ' + e.message); }
+}
+
+function updateLivePreview() {
+  const textarea = $('editor');
+  const preview = $('livePreview');
+  if (!textarea || !preview) return;
+  preview.innerHTML = textarea.value;
+}
+
+async function saveFile() {
+  if (!state.currentPath || !state.editMode) return;
+  const textarea = $('editor');
+  if (!textarea) return;
+  try {
+    await apiFetch('/raw/' + state.currentPath, {
+      method: 'PUT',
+      body: JSON.stringify({ content: textarea.value }),
+    });
+    toast('保存しました');
+    cancelEdit();
+    loadContent(state.currentPath, state.currentPath.split('/').pop());
+  } catch (e) { toast('保存エラー: ' + e.message); }
+}
+
+function cancelEdit() {
+  state.editMode = false;
+  $('editBtn').classList.remove('hidden');
+  $('saveBtn').classList.add('hidden');
+  $('cancelBtn').classList.add('hidden');
+  if (state.currentPath) loadContent(state.currentPath, state.currentPath.split('/').pop());
+}
+
+async function deleteFile() {
+  if (!state.currentPath) return;
+  if (!confirm('本当に削除しますか？（.trash に移動します）')) return;
+  try {
+    await apiFetch('/raw/' + state.currentPath, { method: 'DELETE' });
+    toast('削除しました');
+    state.currentPath = null;
+    state.editMode = false;
+    $('content').innerHTML = `<div class="empty-state"><h2>Wiki</h2><p>ファイルを選択してください</p></div>`;
+    $('toolbar').querySelectorAll('button').forEach(b => b.classList.add('hidden'));
+    $('breadcrumb').innerHTML = '';
+    refreshTree();
+    updateUrl(null, true);
+  } catch (e) { toast('削除エラー: ' + e.message); }
+}
+
+async function createFile() {
+  const name = prompt('新しいファイル名（例: new-page.md）:');
+  if (!name) return;
+  const base = state.currentPath ? state.currentPath.split('/').slice(0, -1).join('/') : '';
+  const fullPath = base ? base + '/' + name : name;
+  try {
+    await apiFetch('/create/' + fullPath, { method: 'POST' });
+    toast('作成しました');
+    refreshTree();
+  } catch (e) { toast('作成エラー: ' + e.message); }
+}
+
+function showContextMenu(e, node) {
+  e.preventDefault();
+  const menu = $('contextMenu');
+  menu.innerHTML = '';
+
+  if (node.type === 'directory') {
+    addMenuItem(menu, '\ud83d\udcc4 新規ファイル', () => {
+      const name = prompt('ファイル名:');
+      if (name) apiFetch('/create/' + node.path + '/' + name, { method: 'POST' }).then(() => { refreshTree(); toast('作成しました'); });
+    });
+  } else {
+    addMenuItem(menu, '\ud83d\udc42 開く', () => {
+      const item = findTreeElement(node.path);
+      if (item) selectFile(node.path, item, node.name);
+    });
+    addMenuItem(menu, '\u270e 編集', () => {
+      const item = findTreeElement(node.path);
+      if (item) { selectFile(node.path, item, node.name); setTimeout(toggleEdit, 100); }
+    });
+    addMenuItem(menu, '\u2b07 ダウンロード', () => {
+      window.open(API + '/file/' + node.path + '?dl=1', '_blank');
+    });
+    addMenuItem(menu, null, null, true);
+    addMenuItem(menu, '\u2702 削除', async () => {
+      if (!confirm('削除しますか？')) return;
+      try { await apiFetch('/raw/' + node.path, { method: 'DELETE' }); toast('削除しました'); refreshTree(); }
+      catch (e) { toast('エラー: ' + e.message); }
+    });
+  }
+
+  menu.style.left = e.clientX + 'px';
+  menu.style.top = e.clientY + 'px';
+  menu.classList.remove('hidden');
+
+  const close = () => { menu.classList.add('hidden'); document.removeEventListener('click', close); };
+  setTimeout(() => document.addEventListener('click', close), 10);
+}
+
+function addMenuItem(menu, label, action, isSep) {
+  if (isSep) { const d = document.createElement('div'); d.className = 'sep'; menu.appendChild(d); return; }
+  const d = document.createElement('div');
+  d.textContent = label;
+  d.onclick = (e) => { e.stopPropagation(); action(); $('contextMenu').classList.add('hidden'); };
+  menu.appendChild(d);
+}
+
+function navigateByPath(path) {
+  if (!path) {
+    state.currentPath = null;
+    selectedLi = null;
+    $('content').innerHTML = `<div class="empty-state"><h2>Wiki</h2><p>サイドバーからファイルを選択してください</p></div>`;
+    $('toolbar').querySelectorAll('button').forEach(b => b.classList.add('hidden'));
+    $('breadcrumb').innerHTML = '';
+    return;
+  }
+  revealInTree(path);
+  const item = findTreeElement(path);
+  if (item) {
+    selectFile(path, item, path.split('/').pop());
+  } else {
+    const node = findTreeNode(path, state.tree);
+    const name = node ? node.name : path.split('/').pop();
+    state.editMode = false;
+    state.currentPath = path;
+    state.currentType = 'file';
+    if (selectedLi) selectedLi.classList.remove('active');
+    selectedLi = null;
+    updateUrl(path, true);
+    loadContent(path, name);
+  }
+}
+
+window.addEventListener('popstate', (e) => {
+  if (suppressPopstate) return;
+  const path = e.state ? e.state.path : null;
+  if (path !== state.currentPath) {
+    navigateByPath(path);
+  }
+});
+
+(async () => {
+  await refreshTree();
+  const urlPath = getPathFromUrl();
+  if (urlPath) {
+    navigateByPath(urlPath);
+  } else {
+    $('content').innerHTML = `<div class="empty-state"><h2>Wiki</h2><p>サイドバーからファイルを選択してください</p></div>`;
+    updateUrl(null, true);
+  }
+})();
+</script>
+</body>
+</html>

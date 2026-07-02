@@ -29,7 +29,7 @@ const KNOWLEDGE_BASE = path.resolve(
 );
 
 const matter = (content) => {
-  const frontmatterRegex = /^---\n([\s\S]*?)\n---\n?/;
+  const frontmatterRegex = /(?:^|\n)---\n([\s\S]*?)\n---\n?/;
   const match = content.match(frontmatterRegex);
   if (match) {
     const data = yaml.parse(match[1]);
@@ -52,6 +52,18 @@ const getMd = () => {
       .use(Attrs)
       .use(Anchor)
       .use(Prism, { plugins: ['line-numbers'], defaultLanguage: 'clike' });
+    // mermaid コードブロックはPrismの強調処理をスキップする
+    const origFence = _md.renderer.rules.fence;
+    _md.renderer.rules.fence = (tokens, idx, options, env, self) => {
+      const token = tokens[idx];
+      const info = token.info ? token.info.trim() : '';
+      if (info === 'mermaid') {
+        const sanitized = token.content.replace(/(\d\/\d)"/g, '$1in');
+        const code = _md.utils.escapeHtml(sanitized);
+        return `<pre class="language-mermaid"><code class="language-mermaid">${code}</code></pre>\n`;
+      }
+      return origFence(tokens, idx, options, env, self);
+    };
     _md.renderer.rules.table_open = () => '<table class="table table-striped">\n';
   }
   return _md;

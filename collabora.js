@@ -119,7 +119,7 @@ export async function start() {
       runArgs.push('-e', `password=${process.env.COLLABORA_PASSWORD}`);
     }
   }
-  const coolServerName = process.env.COLLABORA_SERVER_NAME || new URL(WOPI_SRC).hostname;
+  const coolServerName = process.env.COLLABORA_SERVER_NAME;
   if (coolServerName) {
     runArgs.push('-e', `server_name=${coolServerName}`);
   }

@@ -215,9 +215,10 @@ a:hover { text-decoration: underline; }
 <script>
 const API = '/api/knowledge';
 const HOST = location.hostname;
-const COOL_HOST = 'http://shibuya.local:9980';
+const HOST = location.hostname;
+const COOL_HOST = 'http://' + HOST + ':9980';
 const COOL_BROWSER = COOL_HOST + '/browser/de013a57f9/cool.html';
-const WOPI_HOST = 'http://shibuya.local:8888';
+const WOPI_HOST = 'http://' + HOST + ':8888';
 const OFFICE_EXTS = ['doc','docx','xls','xlsx','ppt','pptx','odt','ods','odp','rtf','csv'];
 
 let state = { tree: [], currentPath: null, currentType: null, editMode: false, originalContent: false };

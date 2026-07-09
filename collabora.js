@@ -113,14 +113,14 @@ export async function start() {
     runArgs.push('-e', `extra_params=--o:ssl.enable=false`);
     runArgs.push('-e', `DONT_GEN_SSL_CERT=1`);
     runArgs.push('-e', `dictionaries=en_US ja_JP`);
-    const coolServerName = process.env.COLLABORA_SERVER_NAME;
-    if (coolServerName) {
-      runArgs.push('--hostname', coolServerName.replace(/:.*$/, ''));
-    }
     if (process.env.COLLABORA_USERNAME && process.env.COLLABORA_PASSWORD) {
       runArgs.push('-e', `username=${process.env.COLLABORA_USERNAME}`);
       runArgs.push('-e', `password=${process.env.COLLABORA_PASSWORD}`);
     }
+  }
+  const coolServerName = process.env.COLLABORA_SERVER_NAME;
+  if (coolServerName) {
+    runArgs.push('-e', `server_name=${coolServerName}`);
   }
 
   runArgs.push(...EXTRA_ARGS.split(/\s+/).filter(Boolean), IMAGE);

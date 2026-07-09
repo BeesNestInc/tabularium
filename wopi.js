@@ -81,7 +81,7 @@ async function wopiRoutes(app, opts) {
       SupportsUpdate: true,
       SupportsRename: false,
       SupportsDelete: false,
-      UserFriendlyName: 'Legion User',
+      UserFriendlyName: fileId,
       IsAnonymous: false,
       HidePrintOption: 1,
       HideSaveOption: 0,

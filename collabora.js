@@ -109,21 +109,18 @@ export async function start() {
   const runArgs = ['run', '-d', '--name', CONTAINER_NAME, '--restart', 'unless-stopped', '-p', PORT_MAPPING];
 
   if (WOPI_SRC) {
-    let extra = '--o:ssl.enable=false';
-    runArgs.push('-e', `aliasgroup1={"id":"local","host":".*","protocol":"http"}`);
-    const coolServerName = process.env.COLLABORA_SERVER_NAME;
-    if (coolServerName) {
-      const hostOnly = coolServerName.replace(/:.*$/, '');
-      runArgs.push('-e', `domain=${hostOnly}`);
-      extra += ` --o:server_name=${coolServerName}`;
-    }
-    runArgs.push('-e', `extra_params=${extra}`);
+    runArgs.push('-e', `domain=.*`);
+    runArgs.push('-e', `extra_params=--o:ssl.enable=false`);
     runArgs.push('-e', `DONT_GEN_SSL_CERT=1`);
     runArgs.push('-e', `dictionaries=en_US ja_JP`);
     if (process.env.COLLABORA_USERNAME && process.env.COLLABORA_PASSWORD) {
       runArgs.push('-e', `username=${process.env.COLLABORA_USERNAME}`);
       runArgs.push('-e', `password=${process.env.COLLABORA_PASSWORD}`);
     }
+  }
+  const coolServerName = process.env.COLLABORA_SERVER_NAME;
+  if (coolServerName) {
+    runArgs.push('-e', `server_name=${coolServerName}`);
   }
 
   runArgs.push(...EXTRA_ARGS.split(/\s+/).filter(Boolean), IMAGE);

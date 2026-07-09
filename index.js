@@ -125,6 +125,36 @@ const checkPath = (absolutePath, knowledgeDir) => {
   return absolutePath.startsWith(knowledgeDir);
 };
 
+import { status as coolStatus, start as coolStart, stop as coolStop, logs as coolLogs } from './collabora.js';
+import wopiRoutes from './wopi.js';
+
+const registerCollaboraRoutes = (app) => {
+  app.get('/api/collabora/status', async () => {
+    return coolStatus();
+  });
+
+  app.post('/api/collabora/start', async (request, reply) => {
+    try {
+      return await coolStart();
+    } catch (err) {
+      return reply.code(500).send({ ok: false, error: err.message });
+    }
+  });
+
+  app.post('/api/collabora/stop', async (request, reply) => {
+    try {
+      return await coolStop();
+    } catch (err) {
+      return reply.code(500).send({ ok: false, error: err.message });
+    }
+  });
+
+  app.get('/api/collabora/logs', async (request) => {
+    const lines = parseInt(request.query.lines, 10) || 50;
+    return coolLogs(lines);
+  });
+};
+
 const registerKnowledgeRoutes = (app) => {
   const knowledgeDir = KNOWLEDGE_BASE;
 
@@ -242,6 +272,11 @@ const start = async () => {
   const app = Fastify({ logger: true });
 
   registerKnowledgeRoutes(app);
+  registerCollaboraRoutes(app);
+  await app.register(wopiRoutes, {
+    knowledgeBase: KNOWLEDGE_BASE,
+    wopiSrc: process.env.WOPI_SRC || `http://localhost:${PORT}`,
+  });
 
   const publicDir = path.join(__dirname, 'public');
   const serveIndex = (reply) => {

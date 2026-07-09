@@ -44,6 +44,10 @@ async function wopiRoutes(app, opts) {
   const knowledgeDir = path.resolve(opts.knowledgeBase || process.env.KNOWLEDGE_BASE || 'knowledge');
   const wopiSrc = opts.wopiSrc || process.env.WOPI_SRC || '';
 
+  app.addContentTypeParser('application/octet-stream', { parseAs: 'buffer' }, (_req, body, done) => {
+    done(null, body);
+  });
+
   app.get(`${PREFIX}/hosting/discovery`, async (request, reply) => {
     reply.type('application/xml');
     return discoveryXml(wopiSrc);
@@ -100,11 +104,7 @@ async function wopiRoutes(app, opts) {
     if (!checkPath(absolutePath, knowledgeDir)) return reply.code(403).send({ error: 'forbidden' });
 
     mkdirSync(path.dirname(absolutePath), { recursive: true });
-    const chunks = [];
-    for await (const chunk of request.raw) {
-      chunks.push(chunk);
-    }
-    writeFileSync(absolutePath, Buffer.concat(chunks));
+    writeFileSync(absolutePath, request.body);
     return {};
   });
 }

@@ -68,7 +68,7 @@ async function wopiRoutes(app, opts) {
     }
 
     const stats = statSync(absolutePath);
-    const baseName = path.basename(fileId);
+    const baseName = fileId;
 
     return {
       BaseFileName: baseName,

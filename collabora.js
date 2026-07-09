@@ -109,7 +109,6 @@ export async function start() {
   const runArgs = ['run', '-d', '--name', CONTAINER_NAME, '--restart', 'unless-stopped', '-p', PORT_MAPPING];
 
   if (WOPI_SRC) {
-    runArgs.push('-e', `domain=.*`);
     runArgs.push('-e', `aliasgroup1={"id":"local","host":".*","protocol":"http"}`);
     runArgs.push('-e', `extra_params=--o:ssl.enable=false`);
     runArgs.push('-e', `DONT_GEN_SSL_CERT=1`);

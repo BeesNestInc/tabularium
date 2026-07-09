@@ -110,8 +110,7 @@ export async function start() {
 
   if (WOPI_SRC) {
     runArgs.push('-e', `aliasgroup1={"id":"local","host":".*","protocol":"http"}`);
-    const serverName = process.env.COLLABORA_SERVER_NAME || new URL(WOPI_SRC).hostname;
-    runArgs.push('-e', `extra_params=--o:ssl.enable=false --o:server_name[type]=regex --o:server_name=^${serverName}(:[0-9]+)?$`);
+    runArgs.push('-e', `extra_params=--o:ssl.enable=false`);
     runArgs.push('-e', `DONT_GEN_SSL_CERT=1`);
     runArgs.push('-e', `dictionaries=en_US ja_JP`);
     if (process.env.COLLABORA_USERNAME && process.env.COLLABORA_PASSWORD) {
@@ -121,6 +120,7 @@ export async function start() {
   }
   const coolServerName = process.env.COLLABORA_SERVER_NAME;
   if (coolServerName) {
+    runArgs.push('-e', `domain=${coolServerName.replace(/:.*$/, '')}`);
     runArgs.push('-e', `server_name=${coolServerName}`);
   }
 

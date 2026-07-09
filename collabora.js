@@ -110,6 +110,7 @@ export async function start() {
 
   if (WOPI_SRC) {
     runArgs.push('-e', `domain=.*`);
+    runArgs.push('-e', `aliasgroup1={"id":"local","host":".*","protocol":"http"}`);
     runArgs.push('-e', `extra_params=--o:ssl.enable=false`);
     runArgs.push('-e', `DONT_GEN_SSL_CERT=1`);
     runArgs.push('-e', `dictionaries=en_US ja_JP`);

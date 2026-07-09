@@ -116,7 +116,7 @@ export async function start() {
     const coolServerName = process.env.COLLABORA_SERVER_NAME;
     if (coolServerName) {
       runArgs.push('-e', `server_name=${coolServerName}`);
-      extra += ` --o:server_name=*`;
+      extra += ` --o:server_name=${coolServerName}`;
     }
     runArgs.push('-e', `extra_params=${extra}`);
     if (process.env.COLLABORA_USERNAME && process.env.COLLABORA_PASSWORD) {

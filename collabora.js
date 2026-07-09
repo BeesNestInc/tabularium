@@ -109,16 +109,14 @@ export async function start() {
   const runArgs = ['run', '-d', '--name', CONTAINER_NAME, '--restart', 'unless-stopped', '-p', PORT_MAPPING];
 
   if (WOPI_SRC) {
-    let extra = '--o:ssl.enable=false';
     runArgs.push('-e', `aliasgroup1={"id":"local","host":".*","protocol":"http"}`);
+    runArgs.push('-e', `extra_params=--o:ssl.enable=false`);
     runArgs.push('-e', `DONT_GEN_SSL_CERT=1`);
     runArgs.push('-e', `dictionaries=en_US ja_JP`);
     const coolServerName = process.env.COLLABORA_SERVER_NAME;
     if (coolServerName) {
-      runArgs.push('-e', `server_name=${coolServerName}`);
-      extra += ' --o:server_name=*';
+      runArgs.push('--hostname', coolServerName.replace(/:.*$/, ''));
     }
-    runArgs.push('-e', `extra_params=${extra}`);
     if (process.env.COLLABORA_USERNAME && process.env.COLLABORA_PASSWORD) {
       runArgs.push('-e', `username=${process.env.COLLABORA_USERNAME}`);
       runArgs.push('-e', `password=${process.env.COLLABORA_PASSWORD}`);

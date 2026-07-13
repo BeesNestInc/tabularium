@@ -195,6 +195,115 @@ a:hover { text-decoration: underline; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* --- Folder View (Bookmarks in main pane) --- */
+.folder-view { padding: 24px 32px; }
+.folder-view-header {
+  font-size: 1.1em; color: var(--text-muted); padding-bottom: 8px;
+  border-bottom: 1px solid var(--border); margin-bottom: 8px;
+}
+.fv-bookmarks-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin: 16px 0 8px;
+}
+.fv-bookmarks-header h2 { font-size: 1.1em; margin: 0; }
+.fv-actions { display: flex; gap: 6px; }
+.fv-btn {
+  background: var(--surface); border: 1px solid var(--border);
+  color: var(--text); padding: 3px 10px; border-radius: 4px;
+  cursor: pointer; font-size: 12px;
+}
+.fv-btn:hover { background: var(--hover); }
+.fv-bookmark-item {
+  display: flex; align-items: center; padding: 6px 10px;
+  border-radius: 6px; gap: 8px;
+}
+.fv-bookmark-item:hover { background: var(--surface); }
+.fv-bookmark-item a {
+  flex: 1; display: flex; align-items: center; gap: 8px;
+  text-decoration: none; color: var(--text); min-width: 0;
+}
+.fv-bookmark-item a:hover { color: var(--primary); }
+.fv-favicon { width: 16px; height: 16px; flex-shrink: 0; }
+.fv-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fv-domain { font-size: 11px; color: var(--text-muted); flex-shrink: 0; }
+.fv-del-btn, .fv-edit-btn {
+  background: none; border: none; cursor: pointer; font-size: 12px;
+  padding: 2px 6px; border-radius: 4px; color: var(--text-muted);
+}
+.fv-del-btn:hover { color: #e53e3e; background: #fee; }
+.fv-edit-btn:hover { color: var(--primary); background: var(--surface); }
+.fv-list-thumb { width: 40px; height: 22px; object-fit: cover; border-radius: 3px; flex-shrink: 0; }
+.fv-thumb-grid-sm { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+.fv-thumb-grid-md { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+.fv-thumb-grid-lg { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+.fv-thumb-grid {
+  display: grid; gap: 12px; margin: 12px 0;
+}
+.fv-thumb-card {
+  border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+  position: relative;
+}
+.fv-thumb-card:hover { border-color: var(--primary); }
+.fv-thumb-card a { text-decoration: none; color: var(--text); display: block; }
+.fv-thumb-img {
+  width: 100%; aspect-ratio: 120/68; object-fit: cover;
+  background: var(--surface); display: block;
+}
+.fv-thumb-fallback {
+  width: 100%; aspect-ratio: 120/68;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--surface); font-size: 32px; color: var(--text-muted);
+}
+.fv-thumb-info { padding: 8px 10px; }
+.fv-thumb-info .fv-title { font-size: 13px; }
+.fv-thumb-info .fv-domain { font-size: 11px; }
+.fv-thumb-card .fv-del-btn, .fv-thumb-card .fv-edit-btn {
+  position: absolute; top: 4px; background: var(--bg); border: 1px solid var(--border);
+  border-radius: 50%; width: 22px; height: 22px; padding: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 11px;
+}
+.fv-thumb-card .fv-del-btn { right: 4px; }
+.fv-thumb-card .fv-edit-btn { right: 26px; }
+.fv-files-header {
+  font-size: 13px; color: var(--text-muted); margin: 12px 0 4px; font-weight: bold;
+}
+.fv-file-list { margin: 0 0 4px; }
+.fv-file-item {
+  display: flex; align-items: center; padding: 3px 8px; border-radius: 4px;
+  cursor: pointer; font-size: 13px; gap: 6px;
+}
+.fv-file-item:hover { background: var(--surface); }
+.fv-file-icon { flex-shrink: 0; width: 18px; text-align: center; }
+.fv-file-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fv-file-suffix { color: var(--text-muted); font-size: 12px; }
+.fv-empty {
+  text-align: center; padding: 48px 0; color: var(--text-muted); font-size: 14px;
+}
+.fv-dropzone {
+  border: 2px dashed var(--border); border-radius: 8px;
+  padding: 24px; text-align: center; margin: 16px 0;
+  color: var(--text-muted); font-size: 14px; transition: all .2s;
+}
+.content-area.fv-dragover { outline: 3px dashed var(--primary); outline-offset: -4px; background: rgba(37,99,235,.03); }
+/* Inline bookmark list in markdown content */
+.bookmark-list-inline { margin: 16px 0; }
+.bookmark-item-inline {
+  display: flex; align-items: center; padding: 4px 8px;
+  border-radius: 4px; font-size: 13px;
+}
+.bookmark-item-inline:hover { background: var(--surface); }
+.bookmark-item-inline a {
+  flex: 1; display: flex; align-items: center; gap: 6px;
+  color: var(--text); text-decoration: none; min-width: 0;
+}
+.bookmark-item-inline a:hover { color: var(--primary); }
+.bookmark-favicon-inline { width: 16px; height: 16px; flex-shrink: 0; }
+.bookmark-title-inline { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bookmark-domain-inline {
+  font-size: 11px; color: var(--text-muted); flex-shrink: 0;
+  margin-left: auto; padding-left: 8px;
+}
 </style>
 </head>
 <body>
@@ -223,6 +332,8 @@ a:hover { text-decoration: underline; }
   <div class="main">
     <div class="toolbar" id="toolbar">
       <div class="breadcrumb" id="breadcrumb"></div>
+      <button id="bookmarkBtn" class="hidden" onclick="toggleBookmarkView()">&#x1f516;</button>
+      <button id="viewToggleBtn" class="hidden" onclick="toggleFvView()">&#x2630;</button>
       <button id="editBtn" class="hidden" onclick="toggleEdit()">&#x270e; 編集</button>
       <button id="saveBtn" class="hidden" onclick="saveFile()">&#x1f4be; 保存</button>
       <button id="cancelBtn" class="hidden" onclick="cancelEdit()">&#x2716; 戻す</button>
@@ -245,7 +356,7 @@ const COOL_BROWSER = COOL_HOST + '/browser/de013a57f9/cool.html';
 const WOPI_HOST = 'http://' + HOST + ':8888';
 const OFFICE_EXTS = ['doc','docx','xls','xlsx','ppt','pptx','odt','ods','odp','rtf','csv'];
 
-let state = { tree: [], currentPath: null, currentType: null, editMode: false, originalContent: false };
+let state = { tree: [], currentPath: null, currentFolder: null, currentType: null, editMode: false, originalContent: false };
 let selectedLi = null;
 let suppressPopstate = false;
 
@@ -412,7 +523,21 @@ function parseCsvRow(row) {
 }
 
 function getFileUrl(path) {
-  return '/knowledge/' + path;
+  if (path && state.tree) {
+    for (var i = 0; i < state.tree.length; i++) {
+      var root = state.tree[i].path;
+      if (!root) continue;
+      if (path === root) {
+        path = i === 0 ? '' : path;  // first root → /knowledge/, others keep name
+        break;
+      }
+      if (path.indexOf(root + '/') === 0) {
+        path = path.slice(root.length + 1);
+        break;
+      }
+    }
+  }
+  return '/knowledge/' + (path || '');
 }
 
 function getPathFromUrl() {
@@ -422,7 +547,8 @@ function getPathFromUrl() {
 }
 
 function updateUrl(path, replace) {
-  const url = path ? getFileUrl(path) : '/knowledge/';
+  var url = path ? getFileUrl(path) : '/knowledge/';
+  if (path && !path.includes('.') && !url.endsWith('/')) url += '/';  // trailing slash for dirs
   if (replace) {
     history.replaceState({ path }, '', url);
   } else {
@@ -521,7 +647,7 @@ function buildTreeNodes(nodes, ul) {
       name.textContent = node.name;
       div.appendChild(name);
 
-      div.onclick = (e) => { e.stopPropagation(); toggleDir(li, div); };
+      div.onclick = (e) => { e.stopPropagation(); state.currentFolder = node.path; state.currentPath = node.path; state.currentType = 'directory';  if (selectedLi) selectedLi.classList.remove('active'); selectedLi = null; toggleDir(li, div); updateUrl(node.path); showFolderView(node.path); };
       div.oncontextmenu = (e) => { e.preventDefault(); showContextMenu(e, node); };
 
       const childUl = document.createElement('ul');
@@ -572,22 +698,28 @@ async function selectFile(path, div, name) {
   state.editMode = false;
   state.currentPath = path;
   state.currentType = 'file';
+  state.currentFolder = getFolderPath(path) || state.currentFolder;
+  
   if (selectedLi) selectedLi.classList.remove('active');
   div.classList.add('active');
   selectedLi = div;
   updateUrl(path);
   await revealInTree(path);
   loadContent(path, name);
+  checkBookmarks();
 }
 
 async function loadContent(path, name) {
   const content = $('content');
   const ext = path.split('.').pop().toLowerCase();
 
+  const folder = getFolderPath(path);
+
   if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico'].includes(ext)) {
     content.className = 'content-area image-view';
     content.innerHTML = `<img src="/api/knowledge/file/${path}" alt="${escapeHtml(name)}">`;
     showToolbar(path, 'image');
+    checkBookmarks();
     return;
   }
 
@@ -599,6 +731,7 @@ async function loadContent(path, name) {
       if (window.Prism) Prism.highlightAllUnder(content);
       renderMermaid(content);
       showToolbar(path, 'markdown');
+      checkBookmarks();
     } catch (e) { content.innerHTML = `<div class="empty-state"><p>${escapeHtml(e.message)}</p></div>`; }
     return;
   }
@@ -624,6 +757,7 @@ async function loadContent(path, name) {
       content.innerHTML = escapeHtml(data.content);
     }
     showToolbar(path, ext === 'csv' ? 'csv' : 'text');
+    checkBookmarks();
   } catch (e) { content.innerHTML = `<div class="empty-state"><p>${escapeHtml(e.message)}</p></div>`; }
 }
 
@@ -644,6 +778,7 @@ function showToolbar(path, type) {
   deleteBtn.classList.remove('hidden');
   saveBtn.classList.add('hidden');
   cancelBtn.classList.add('hidden');
+  $('viewToggleBtn').classList.add('hidden');
 
   if (type === 'image') editBtn.classList.add('hidden');
   if (type === 'office') {
@@ -810,26 +945,48 @@ function addMenuItem(menu, label, action, isSep) {
 async function navigateByPath(path) {
   if (!path) {
     state.currentPath = null;
+    state.currentFolder = null;
+    
     selectedLi = null;
     $('content').innerHTML = `<div class="empty-state"><h2>Wiki</h2><p>サイドバーからファイルを選択してください</p></div>`;
     $('toolbar').querySelectorAll('button').forEach(b => b.classList.add('hidden'));
     $('breadcrumb').innerHTML = '';
     return;
   }
-  await revealInTree(path);
-  const item = findTreeElement(path);
+  // Prepend root name if path doesn't start with one (for API calls)
+  var fullPath = path;
+  var firstSeg = path.split('/')[0];
+  if (state.tree.length > 0 && !state.tree.some(function(n) { return n.path === firstSeg; })) {
+    fullPath = state.tree[0].path + '/' + path;
+  }
+  await revealInTree(fullPath);
+  var name = fullPath.split('/').pop();
+  // Directory? (file paths have extensions in this wiki)
+  if (!name.includes('.')) {
+    state.currentPath = fullPath;
+    state.currentFolder = fullPath;
+    state.currentType = 'directory';
+    
+    if (selectedLi) selectedLi.classList.remove('active');
+    selectedLi = null;
+    updateUrl(path, true);
+    showFolderView(fullPath);
+    return;
+  }
+  var item = findTreeElement(fullPath);
   if (item) {
-    selectFile(path, item, path.split('/').pop());
+    selectFile(fullPath, item, name);
   } else {
-    const node = findTreeNode(path, state.tree);
-    const name = node ? node.name : path.split('/').pop();
+    var node = findTreeNode(fullPath, state.tree);
+    name = node ? node.name : name;
     state.editMode = false;
-    state.currentPath = path;
+    state.currentPath = fullPath;
+    state.currentFolder = getFolderPath(fullPath) || state.currentFolder;
     state.currentType = 'file';
     if (selectedLi) selectedLi.classList.remove('active');
     selectedLi = null;
     updateUrl(path, true);
-    loadContent(path, name);
+    loadContent(fullPath, name);
   }
 }
 
@@ -858,11 +1015,8 @@ function renderMermaid(root) {
 }
 
 window.addEventListener('popstate', (e) => {
-  if (suppressPopstate) return;
   const path = e.state ? e.state.path : null;
-  if (path !== state.currentPath) {
-    navigateByPath(path);
-  }
+  navigateByPath(path);
 });
 
 const COOL_API = '/api/collabora';
@@ -927,7 +1081,482 @@ async function coolAction(action) {
   coolRefresh();
 }
 
+// --- Folder View (Bookmarks in main pane) ---
+let fvViewMode = 'list';
+let currentBookmarks = [];
+let currentFolderTree = [];
+
+function getFolderPath(filePath) {
+  if (!filePath) return '';
+  const idx = filePath.lastIndexOf('/');
+  return idx === -1 ? '' : filePath.slice(0, idx);
+}
+
+async function showFolderView(folderPath) {
+  state.currentPath = folderPath;
+  state.currentFolder = folderPath;
+  state.currentType = 'directory';
+  var content = $('content');
+  var bc = $('breadcrumb');
+  var parts = folderPath.split('/');
+  bc.innerHTML = parts.map(function(p, i) {
+    if (i === parts.length - 1) return '<span>' + escapeHtml(p) + '</span>';
+    return '<a href="#" onclick="navigateToDir(\'' + parts.slice(0,i+1).join('/') + '\'); return false;">' + escapeHtml(p) + '</a> / ';
+  }).join('');
+  $('editBtn').classList.add('hidden');
+  $('saveBtn').classList.add('hidden');
+  $('cancelBtn').classList.add('hidden');
+  $('deleteBtn').classList.add('hidden');
+  try {
+    var bmRes = await fetch(API + '/bookmarks?path=' + encodeURIComponent(folderPath));
+    var bmData = await bmRes.json();
+    currentBookmarks = bmData.bookmarks || [];
+    var indexRes = await fetch(API + '/content/' + folderPath + '/index.md');
+    if (indexRes.ok) {
+      // index.md exists → show as default index
+      var data = await indexRes.json();
+      content.className = 'content-area markdown';
+      content.innerHTML = data.html;
+      if (window.Prism) Prism.highlightAllUnder(content);
+      renderMermaid(content);
+      // Show entry-list toggle button
+      var btn = $('bookmarkBtn');
+      btn.classList.remove('hidden');
+      btn.textContent = currentBookmarks.length > 0 ? '\uD83D\uDCCB ' + currentBookmarks.length : '\uD83D\uDCCB \u4E00\u89A7';
+      btn.onclick = function() { showFolderList(folderPath); };
+      $('viewToggleBtn').classList.remove('hidden');
+      $('viewToggleBtn').textContent = fvViewMode === 'list' ? '\u2630' : '\u229E';
+    } else {
+      await showFolderList(folderPath);
+    }
+  } catch {
+    currentBookmarks = [];
+    await showFolderList(folderPath);
+  }
+}
+
+async function showFolderList(folderPath) {
+  state.currentPath = folderPath;
+  state.currentFolder = folderPath;
+  state.currentType = 'directory';
+  $('bookmarkBtn').classList.add('hidden');
+  $('viewToggleBtn').classList.remove('hidden');
+  $('viewToggleBtn').textContent = fvViewMode === 'list' ? '\u2630' : '\u229E';
+  try {
+    var [bmRes, treeRes] = await Promise.all([
+      fetch(API + '/bookmarks?path=' + encodeURIComponent(folderPath)),
+      fetch(API + '/tree?path=' + encodeURIComponent(folderPath)),
+    ]);
+    var bmData = await bmRes.json();
+    currentBookmarks = bmData.bookmarks || [];
+    if (treeRes.ok) {
+      var treeData = await treeRes.json();
+      currentFolderTree = (treeData.children || []).filter(function(e) { return e.name !== '.bookmarks'; });
+    } else { currentFolderTree = []; }
+    // Check if index.md exists for the toggle back button
+    var indexRes = await fetch(API + '/content/' + folderPath + '/index.md');
+    renderFolderView(folderPath, indexRes.ok);
+  } catch { currentBookmarks = []; currentFolderTree = []; renderFolderView(folderPath, false); }
+}
+
+async function showFolderIndex(folderPath) {
+  state.currentPath = folderPath;
+  state.currentFolder = folderPath;
+  state.currentType = 'directory';
+  var content = $('content');
+  try {
+    var [bmRes, indexRes] = await Promise.all([
+      fetch(API + '/bookmarks?path=' + encodeURIComponent(folderPath)),
+      fetch(API + '/content/' + folderPath + '/index.md'),
+    ]);
+    var bmData = await bmRes.json();
+    currentBookmarks = bmData.bookmarks || [];
+    if (indexRes.ok) {
+      var data = await indexRes.json();
+      content.className = 'content-area markdown';
+      content.innerHTML = data.html;
+      if (window.Prism) Prism.highlightAllUnder(content);
+      renderMermaid(content);
+      var btn = $('bookmarkBtn');
+      btn.classList.remove('hidden');
+      btn.textContent = currentBookmarks.length > 0 ? '\uD83D\uDCCB ' + currentBookmarks.length : '\uD83D\uDCCB \u4E00\u89A7';
+      btn.onclick = function() { showFolderList(folderPath); };
+      $('viewToggleBtn').classList.remove('hidden');
+      $('viewToggleBtn').textContent = fvViewMode === 'list' ? '\u2630' : '\u229E';
+    } else {
+      await showFolderList(folderPath);
+    }
+  } catch { await showFolderList(folderPath); }
+}
+
+function renderFolderView(folderPath, hasIndex) {
+  const content = $('content');
+  content.className = 'content-area';
+  let html = '<div class="folder-view">';
+
+  if (hasIndex) {
+    html += '<div class="folder-view-header" style="display:flex;justify-content:space-between;align-items:center">';
+    html += '<span>' + escapeHtml(folderPath) + '</span>';
+    html += '<button class="fv-btn" onclick="showFolderIndex(\'' + escapeHtml(folderPath) + '\')" style="font-size:12px">📄 インデックスを表示</button>';
+    html += '</div>';
+  } else {
+    html += '<div class="folder-view-header">' + escapeHtml(folderPath) + '</div>';
+  }
+
+  if (fvViewMode === 'list') {
+    // --- List mode: files first, then bookmarks ---
+    if (currentFolderTree.length > 0) {
+      html += '<div class="fv-files-header">📁 ' + currentFolderTree.length + ' アイテム</div>';
+      html += '<div class="fv-file-list">';
+      var sorted = currentFolderTree.concat().sort(function(a, b) {
+        if (a.type !== b.type) return a.type === 'directory' ? -1 : 1;
+        return a.name.localeCompare(b.name);
+      });
+      sorted.forEach(function(e) {
+        var icon = e.type === 'directory' ? '\ud83d\udcc1' : (e.name.endsWith('.md') ? '\ud83d\udcdd' : '\ud83d\udcc4');
+        var click = e.type === 'directory'
+          ? 'onclick="selectFolder(\'' + e.path + '\')"'
+          : 'onclick="selectTreeFile(\'' + e.path + '\')"';
+        html += '<div class="fv-file-item" ' + click + '>';
+        html += '<span class="fv-file-icon">' + icon + '</span>';
+        html += '<span class="fv-file-name">' + escapeHtml(e.name) + '</span>';
+        if (e.type === 'directory') html += '<span class="fv-file-suffix">/</span>';
+        html += '</div>';
+      });
+      html += '</div>';
+      html += '<div style="border-top:1px solid var(--border);margin:12px 0"></div>';
+    }
+
+    html += '<div class="fv-bookmarks-header">';
+    html += '<h2>🔖 Bookmarks</h2>';
+    html += '<div class="fv-actions">';
+    html += '<button class="fv-btn" onclick="showBookmarkAddDialog(\'\')">+ 追加</button>';
+    html += '</div></div>';
+
+    if (currentBookmarks.length === 0) {
+      html += '<div class="fv-empty">まだブックマークがありません。<br>URLをドロップするか [+ 追加] ボタンから追加してください。</div>';
+    } else {
+      html += '<div>';
+      currentBookmarks.forEach(function(bm, i) {
+        var fUrl = bm.domain ? API + '/file/' + folderPath + '/.bookmarks/favicons/' + bm.domain + '.ico' : '';
+        var tUrl = bm.thumb ? API + '/file/' + folderPath + '/.bookmarks/thumbs/' + bm.thumb : '';
+        html += '<div class="fv-bookmark-item">';
+        html += '<a href="' + escapeHtml(bm.url) + '" target="_blank" rel="noopener noreferrer">';
+        if (bm.thumb) {
+          html += '<img class="fv-list-thumb" src="' + escapeHtml(tUrl) + '" alt="" loading="lazy">';
+        } else {
+          html += '<img class="fv-favicon" src="' + escapeHtml(fUrl) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">';
+        }
+        html += '<span class="fv-title">' + escapeHtml(bm.title) + '</span>';
+        html += '<span class="fv-domain">' + escapeHtml(bm.domain) + '</span>';
+        html += '</a>';
+        html += '<button class="fv-edit-btn" onclick="editBookmark(' + i + ')" title="編集">✎</button>';
+        html += '<button class="fv-del-btn" onclick="deleteBookmark(' + i + ')" title="削除">✕</button>';
+        html += '</div>';
+      });
+      html += '</div>';
+    }
+  } else {
+    // --- Thumbnail mode: unified grid of files + bookmarks ---
+    html += '<div class="fv-thumb-grid fv-thumb-grid-' + fvViewMode.replace('thumb-', '') + '">';
+
+    var sorted = currentFolderTree.concat().sort(function(a, b) {
+      if (a.type !== b.type) return a.type === 'directory' ? -1 : 1;
+      return a.name.localeCompare(b.name);
+    });
+    sorted.forEach(function(e) {
+      var ext = e.name.split('.').pop().toLowerCase();
+      var imgExts = ['png','jpg','jpeg','gif','webp','svg','bmp','ico'];
+      var isImage = imgExts.indexOf(ext) !== -1;
+      var thumbSrc = isImage ? API + '/file/' + e.path : '';
+      var icon = e.type === 'directory' ? '\ud83d\udcc1' : (e.name.endsWith('.md') ? '\ud83d\udcdd' : '\ud83d\udcc4');
+      var click = e.type === 'directory'
+        ? 'onclick="selectFolder(\'' + e.path + '\')"'
+        : 'onclick="selectTreeFile(\'' + e.path + '\')"';
+      var tip = e.name;
+      if (e.type === 'file') {
+        var sz = e.size;
+        if (sz !== undefined) {
+          tip += ' | ' + (sz > 1048576 ? (sz / 1048576).toFixed(1) + ' MB' : sz > 1024 ? (sz / 1024).toFixed(1) + ' KB' : sz + ' B');
+        }
+        if (e.mtime) tip += ' | ' + e.mtime.slice(0, 10);
+      } else {
+        tip += ' | ' + '\u30D5\u30A9\u30EB\u30C0';
+      }
+      html += '<div class="fv-thumb-card" style="cursor:pointer" title="' + escapeHtml(tip) + '" ' + click + '>';
+      if (isImage) {
+        html += '<img class="fv-thumb-img" src="' + escapeHtml(thumbSrc) + '" alt="" loading="lazy">';
+      } else {
+        html += '<div class="fv-thumb-fallback" style="font-size:40px">' + icon + '</div>';
+      }
+      html += '<div class="fv-thumb-info"><div class="fv-title">' + escapeHtml(e.name) + '</div></div>';
+      html += '</div>';
+    });
+
+    currentBookmarks.forEach(function(bm, i) {
+      var tUrl = bm.thumb ? API + '/file/' + folderPath + '/.bookmarks/thumbs/' + bm.thumb : '';
+      var fUrl = bm.domain ? API + '/file/' + folderPath + '/.bookmarks/favicons/' + bm.domain + '.ico' : '';
+      html += '<div class="fv-thumb-card">';
+      html += '<a href="' + escapeHtml(bm.url) + '" target="_blank" rel="noopener noreferrer">';
+      if (bm.thumb) {
+        html += '<img class="fv-thumb-img" src="' + escapeHtml(tUrl) + '" alt="" loading="lazy">';
+      } else {
+        html += '<div class="fv-thumb-fallback">';
+        if (fUrl) html += '<img class="fv-favicon" src="' + escapeHtml(fUrl) + '" alt="" loading="lazy" onerror="this.parentElement.textContent=\'?\';this.remove()">';
+        else html += '?';
+        html += '</div>';
+      }
+      html += '<div class="fv-thumb-info"><div class="fv-title">' + escapeHtml(bm.title) + '</div><div class="fv-domain">' + escapeHtml(bm.domain) + '</div></div></a>';
+      html += '<button class="fv-edit-btn" onclick="editBookmark(' + i + ')" title="編集">✎</button>';
+      html += '<button class="fv-del-btn" onclick="deleteBookmark(' + i + ')" title="削除">✕</button>';
+      html += '</div>';
+    });
+    html += '</div>';
+
+    html += '<div class="fv-bookmarks-header" style="margin-top:0">';
+    html += '<div></div><div class="fv-actions">';
+    html += '<button class="fv-btn" onclick="showBookmarkAddDialog(\'\')">+ 追加</button>';
+    html += '</div></div>';
+  }
+
+  html += '<div class="fv-dropzone">📥 URLをドロップしてブックマーク追加</div>';
+  html += '</div>';
+  content.innerHTML = html;
+}
+
+function selectFolder(folderPath) {
+  var div = findTreeElement(folderPath);
+  if (div) {
+    var li = div.closest('li');
+    if (li) { toggleDir(li, div); }
+  }
+  state.currentFolder = folderPath;
+  state.currentPath = folderPath;
+  state.currentType = 'directory';
+  if (selectedLi) selectedLi.classList.remove('active');
+  selectedLi = null;
+  updateUrl(folderPath);
+  showFolderView(folderPath);
+}
+
+function selectTreeFile(filePath) {
+  var div = findTreeElement(filePath);
+  if (div) {
+    selectFile(filePath, div, filePath.split('/').pop());
+  } else {
+    state.currentPath = filePath;
+    state.currentType = 'file';
+    state.currentFolder = getFolderPath(filePath) || state.currentFolder;
+    var name = filePath.split('/').pop();
+    updateUrl(filePath);
+    loadContent(filePath, name);
+    checkBookmarks();
+  }
+}
+
+var fvSizeNames = { 'list': '\u4E00\u89A7', 'thumb-sm': '\u5C0F', 'thumb-md': '\u4E2D', 'thumb-lg': '\u5927' };
+
+function toggleFvView() {
+  var sizes = ['list', 'thumb-sm', 'thumb-md', 'thumb-lg'];
+  var idx = sizes.indexOf(fvViewMode);
+  fvViewMode = sizes[(idx + 1) % sizes.length];
+  var btn = $('viewToggleBtn');
+  if (btn) btn.textContent = fvViewMode === 'list' ? '\u2630' : '\u229E';
+  toast('\u8868\u793A: ' + fvSizeNames[fvViewMode]);
+  if (state.currentFolder) renderFolderView(state.currentFolder);
+}
+
+function deleteBookmark(idx) {
+  var bm = currentBookmarks[idx];
+  if (!bm || !confirm('「' + bm.title + '」をブックマークから削除しますか？')) return;
+  var folder = state.currentFolder;
+  if (!folder) return;
+  fetch(API + '/bookmarks', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ path: folder, url: bm.url }),
+  }).then(function(r) { return r.json(); }).then(function() {
+    toast('削除しました');
+    if (state.currentType === 'directory' || !state.currentPath) {
+      showFolderList(folder);
+    } else {
+      loadContent(state.currentPath, state.currentPath.split('/').pop());
+    }
+  }).catch(function(e) { toast('削除エラー: ' + e.message); });
+}
+
+function editBookmark(idx) {
+  var bm = currentBookmarks[idx];
+  if (!bm) return;
+  var folder = state.currentFolder;
+  if (!folder) return;
+  var overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = '<div class="modal-dialog-sm">' +
+    '<div class="modal-header">ブックマーク編集</div>' +
+    '<div class="modal-body">' +
+    '<div class="mb-1"><label>タイトル</label><input class="form-control" id="bmEditTitle" value="' + escapeHtml(bm.title) + '"></div>' +
+    '<div class="mb-1"><label>URL</label><input class="form-control" id="bmEditUrl" value="' + escapeHtml(bm.url) + '"></div>' +
+    '</div>' +
+    '<div class="modal-footer">' +
+    '<button class="cool-btn" id="bmEditSave">保存</button>' +
+    '<button class="cool-btn" id="bmEditCancel">キャンセル</button>' +
+    '</div></div>';
+  document.body.appendChild(overlay);
+  overlay.querySelector('#bmEditSave').onclick = async function() {
+    var newTitle = overlay.querySelector('#bmEditTitle').value.trim();
+    var newUrl = overlay.querySelector('#bmEditUrl').value.trim();
+    if (!newTitle || !newUrl) { toast('タイトルとURLを入力してください'); return; }
+    try {
+      var res = await fetch(API + '/bookmarks', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: folder, oldUrl: bm.url, newTitle: newTitle, newUrl: newUrl }),
+      });
+      if (!res.ok) { var d = await res.json(); throw new Error(d.error); }
+      toast('更新しました');
+      overlay.remove();
+      if (state.currentType === 'directory' || !state.currentPath) {
+        showFolderList(folder);
+      } else {
+        loadContent(state.currentPath, state.currentPath.split('/').pop());
+      }
+    } catch (e) { toast('更新エラー: ' + e.message); }
+  };
+  overlay.querySelector('#bmEditCancel').onclick = function() { overlay.remove(); };
+  overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+}
+
+let fvDragCounter = 0;
+
+function checkBookmarks() {
+  // Called when viewing a file – show entry-list button if folder has bookmarks
+  var folder = state.currentFolder;
+  var btn = $('bookmarkBtn');
+  if (!folder || !btn) { if (btn) btn.classList.add('hidden'); return; }
+  fetch(API + '/bookmarks?path=' + encodeURIComponent(folder))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var bms = data.bookmarks || [];
+      if (bms.length > 0) {
+        currentBookmarks = bms;
+        btn.classList.remove('hidden');
+        btn.textContent = '\uD83D\uDCCB ' + bms.length;
+        btn.onclick = function() { toggleBookmarkView(); };
+      } else {
+        btn.classList.add('hidden');
+      }
+    }).catch(function() { btn.classList.add('hidden'); });
+}
+
+function toggleBookmarkView() {
+  // Called from toolbar button when viewing a file
+  // Navigate to the folder's entry list
+  var folder = state.currentFolder;
+  if (folder) {
+    updateUrl(folder);
+    showFolderList(folder);
+  }
+}
+
+function initFolderDnD() {
+  var content = $('content');
+  content.addEventListener('dragenter', function(e) {
+    if (!state.currentFolder) return;
+    e.preventDefault(); fvDragCounter++; content.classList.add('fv-dragover');
+  });
+  content.addEventListener('dragleave', function(e) {
+    if (!state.currentFolder) return;
+    e.preventDefault(); fvDragCounter--;
+    if (fvDragCounter <= 0) { fvDragCounter = 0; content.classList.remove('fv-dragover'); }
+  });
+  content.addEventListener('dragover', function(e) {
+    if (!state.currentFolder) return;
+    e.preventDefault();
+  });
+  content.addEventListener('drop', async function(e) {
+    if (!state.currentFolder) return;
+    e.preventDefault();
+    fvDragCounter = 0;
+    content.classList.remove('fv-dragover');
+    var url = e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain');
+    if (!url) { toast('URLを認識できませんでした'); return; }
+    var cleanUrl = url.trim();
+    if (cleanUrl.startsWith('<') && cleanUrl.endsWith('>')) cleanUrl = cleanUrl.slice(1, -1);
+    if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) { toast('有効なURLではありません'); return; }
+    showBookmarkAddDialog(cleanUrl);
+  });
+}
+
+function showBookmarkAddDialog(url) {
+  var folder = state.currentFolder;
+  if (!folder) { toast('先にフォルダを選択してください'); return; }
+  var overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = '<div class="modal-dialog-sm">' +
+    '<div class="modal-header">🔖 ブックマーク追加</div>' +
+    '<div class="modal-body">' +
+    '<div class="mb-1"><label>タイトル</label><input class="form-control" id="bmAddTitle" placeholder="ページタイトル"></div>' +
+    '<div class="mb-1"><label>URL</label><input class="form-control" id="bmAddUrl" value="' + escapeHtml(url) + '"></div>' +
+    '</div>' +
+    '<div class="modal-footer">' +
+    '<button class="cool-btn" id="bmAddSave">追加</button>' +
+    '<button class="cool-btn" id="bmAddCancel">キャンセル</button>' +
+    '</div></div>';
+  document.body.appendChild(overlay);
+  var urlInput = overlay.querySelector('#bmAddUrl');
+  var titleInput = overlay.querySelector('#bmAddTitle');
+  try { titleInput.value = new URL(url).hostname; } catch (e) {}
+  if (url) {
+    fetch(API + '/page-title?url=' + encodeURIComponent(url))
+      .then(function(r) { return r.json(); })
+      .then(function(data) { if (data.title) titleInput.value = data.title; })
+      .catch(function() {});
+  }
+  overlay.querySelector('#bmAddSave').onclick = async function() {
+    var title = titleInput.value.trim();
+    var u = urlInput.value.trim();
+    if (!title || !u) { toast('タイトルとURLを入力してください'); return; }
+    try {
+      var res = await fetch(API + '/bookmarks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: folder, title: title, url: u }),
+      });
+      if (!res.ok) { var d = await res.json(); throw new Error(d.error); }
+      toast('追加しました');
+      overlay.remove();
+      var refreshView = function() {
+        if (state.currentType === 'directory' || !state.currentPath) {
+          showFolderList(folder);
+        } else {
+          loadContent(state.currentPath, state.currentPath.split('/').pop());
+        }
+      };
+      refreshView();
+      // Poll for async thumbnail fetch (up to 20s)
+      var pollElapsed = 0;
+      var pollTimer = setInterval(function() {
+        pollElapsed += 3000;
+        fetch(API + '/bookmarks?path=' + encodeURIComponent(folder))
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            var bm = (data.bookmarks || []).find(function(b) { return b.url === u; });
+            if (bm && bm.thumb) {
+              clearInterval(pollTimer);
+              if (state.currentFolder === folder) refreshView();
+            }
+          }).catch(function() {});
+        if (pollElapsed >= 20000) clearInterval(pollTimer);
+      }, 3000);
+    } catch (e) { toast('追加エラー: ' + e.message); }
+  };
+  overlay.querySelector('#bmAddCancel').onclick = function() { overlay.remove(); };
+  overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+}
+
 (async () => {
+  initFolderDnD();
   await refreshTree();
   const urlPath = getPathFromUrl();
   if (urlPath) {

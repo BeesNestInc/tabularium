@@ -10,6 +10,7 @@ import Attrs from 'markdown-it-attrs';
 import Anchor from 'markdown-it-anchor';
 import dotenv from 'dotenv';
 import yaml from 'yaml';
+import crypto from 'node:crypto';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -120,6 +121,94 @@ const matter = (content) => {
   }
 };
 
+// --- bookmarks ---
+
+const ensureBookmarksDir = (dir) => {
+  const bmDir = path.join(dir, '.bookmarks');
+  mkdirSync(bmDir, { recursive: true });
+  mkdirSync(path.join(bmDir, 'favicons'), { recursive: true });
+  mkdirSync(path.join(bmDir, 'thumbs'), { recursive: true });
+  return bmDir;
+};
+
+const readBookmarks = (dir) => {
+  const bmFile = path.join(dir, '.bookmarks', 'bookmarks.yaml');
+  if (!existsSync(bmFile)) return [];
+  try {
+    const data = yaml.parse(readFileSync(bmFile, 'utf-8'));
+    return data.bookmarks || [];
+  } catch { return []; }
+};
+
+const writeBookmarks = (dir, bookmarks) => {
+  ensureBookmarksDir(dir);
+  const bmFile = path.join(dir, '.bookmarks', 'bookmarks.yaml');
+  writeFileSync(bmFile, yaml.stringify({ bookmarks }), 'utf-8');
+};
+
+const fetchFavicon = async (url, dir) => {
+  try {
+    const domain = new URL(url).hostname;
+    const fp = path.join(dir, '.bookmarks', 'favicons', domain + '.ico');
+    if (existsSync(fp)) return;
+    const res = await fetch(`https://${domain}/favicon.ico`, { signal: AbortSignal.timeout(5000) });
+    if (res.ok) writeFileSync(fp, Buffer.from(await res.arrayBuffer()));
+  } catch {}
+};
+
+const fetchOgImage = async (url, dir) => {
+  try {
+    const thumbDir = path.join(dir, '.bookmarks', 'thumbs');
+    mkdirSync(thumbDir, { recursive: true });
+    let imageUrl;
+    const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    if (yt) {
+      imageUrl = `https://img.youtube.com/vi/${yt[1]}/hqdefault.jpg`;
+    } else {
+      const res = await fetch(url, {
+        headers: { 'User-Agent': 'Mozilla/5.0' },
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!res.ok) return;
+      const html = await res.text();
+      const m = html.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i);
+      if (!m) return;
+      imageUrl = m[1];
+    }
+    const img = await fetch(imageUrl, { signal: AbortSignal.timeout(10000) });
+    if (!img.ok) return;
+    const buf = Buffer.from(await img.arrayBuffer());
+    const hash = crypto.createHash('md5').update(url).digest('hex').slice(0, 8);
+    const ext = (imageUrl.match(/\.(\w{3,4})(?:\?|$)/)?.[1] || 'jpg').toLowerCase();
+    writeFileSync(path.join(thumbDir, `${hash}.${ext}`), buf);
+    return `${hash}.${ext}`;
+  } catch {}
+};
+
+const renderBookmarksHtml = (absolutePath, rootPath, rootName) => {
+  const dir = path.dirname(absolutePath);
+  const bookmarks = readBookmarks(dir);
+  if (!bookmarks.length) return '';
+  const folderRel = rootPath ? path.relative(rootPath, dir) : '';
+  let html = '<div class="bookmark-list-inline">\n';
+  for (const bm of bookmarks) {
+    let domain = '';
+    try { domain = new URL(bm.url).hostname; } catch {}
+    const favUrl = rootName && folderRel ? `/api/knowledge/file/${rootName}/${folderRel}/.bookmarks/favicons/${domain}.ico` : '';
+    html += '<div class="bookmark-item-inline">';
+    html += `<a href="${bm.url.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}" target="_blank" rel="noopener noreferrer">`;
+    if (favUrl) html += `<img class="bookmark-favicon-inline" src="${favUrl.replace(/&/g,'&amp;')}" alt="" loading="lazy" onerror="this.style.display='none'">`;
+    html += `<span class="bookmark-title-inline">${bm.title.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>`;
+    html += '</a>';
+    html += `<span class="bookmark-domain-inline">${domain.replace(/&/g,'&amp;')}</span>`;
+    html += '</div>\n';
+  }
+  html += '</div>';
+  return html;
+};
+
+// --- markdown ---
+
 let _md = null;
 const getMd = () => {
   if (!_md) {
@@ -146,11 +235,18 @@ const getMd = () => {
   return _md;
 };
 
-const renderMarkdown = (absolutePath) => {
+const renderMarkdown = (absolutePath, rootPath = '', rootName = '') => {
   try {
     const source = readFileSync(absolutePath, 'utf-8');
     const { content } = matter(source);
-    return getMd().render(content);
+    let html = getMd().render(content);
+    const bmHtml = renderBookmarksHtml(absolutePath, rootPath, rootName);
+    if (bmHtml) {
+      html = html
+        .replace('<%= bookmarks %>', bmHtml)
+        .replace('&lt;%= bookmarks %&gt;', bmHtml);
+    }
+    return html;
   } catch (err) {
     console.error('markdown render error', err);
     return '';
@@ -328,6 +424,8 @@ const registerKnowledgeRoutes = (app) => {
         name: entry,
         type: stat.isDirectory() ? 'directory' : 'file',
         path: relativePath,
+        size: stat.isFile() ? stat.size : undefined,
+        mtime: stat.mtime.toISOString(),
         ...(stat.isDirectory() ? { children: [] } : {}),
       });
     }
@@ -373,7 +471,7 @@ const registerKnowledgeRoutes = (app) => {
     if (!checkPath(absolutePath, root.path)) return reply.code(403).send({ error: 'forbidden' });
     if (!existsSync(absolutePath) || !statSync(absolutePath).isFile()) return reply.code(404).send({ error: 'not found' });
     if (!/\.md$/i.test(filePath)) return reply.code(400).send({ error: 'only markdown files are supported' });
-    const html = renderMarkdown(absolutePath);
+    const html = renderMarkdown(absolutePath, root.path, root.name);
     return { html, path: request.params['*'] };
   });
 
@@ -485,6 +583,97 @@ const registerKnowledgeRoutes = (app) => {
     return { ok: true, from, to };
   });
 
+  // --- bookmarks ---
+
+  const bmDir = (sr) => sr.filePath ? path.resolve(sr.root.path, sr.filePath) : sr.root.path;
+
+  app.get('/api/knowledge/bookmarks', async (request, reply) => {
+    const p = request.query.path;
+    if (!p) return reply.code(400).send({ error: 'path required' });
+    const sr = splitRootPath(p);
+    if (!sr) return reply.code(404).send({ error: 'not found' });
+    const dir = bmDir(sr);
+    const bookmarks = readBookmarks(dir).map(bm => {
+      let domain = '';
+      try { domain = new URL(bm.url).hostname; } catch {}
+      return { ...bm, domain };
+    });
+    return { bookmarks };
+  });
+
+  app.post('/api/knowledge/bookmarks', async (request, reply) => {
+    const { path: p, title, url } = request.body ?? {};
+    if (!p || !title || !url) return reply.code(400).send({ error: 'path, title, url required' });
+    const sr = splitRootPath(p);
+    if (!sr) return reply.code(404).send({ error: 'not found' });
+    const dir = bmDir(sr);
+    const bookmarks = readBookmarks(dir);
+    if (bookmarks.some(b => b.url === url)) return reply.code(409).send({ error: 'already exists' });
+    bookmarks.push({ title, url });
+    writeBookmarks(dir, bookmarks);
+    const indexMd = path.join(dir, 'index.md');
+    if (!existsSync(indexMd)) writeFileSync(indexMd, '<%= bookmarks %>\n', 'utf-8');
+    fetchFavicon(url, dir);
+    fetchOgImage(url, dir).then(thumb => {
+      if (!thumb) return;
+      const updated = readBookmarks(dir);
+      const i = updated.findIndex(b => b.url === url);
+      if (i !== -1) { updated[i].thumb = thumb; writeBookmarks(dir, updated); }
+    });
+    return { ok: true };
+  });
+
+  app.patch('/api/knowledge/bookmarks', async (request, reply) => {
+    const { path: p, oldUrl, newTitle, newUrl } = request.body ?? {};
+    if (!p || !oldUrl) return reply.code(400).send({ error: 'path and oldUrl required' });
+    const sr = splitRootPath(p);
+    if (!sr) return reply.code(404).send({ error: 'not found' });
+    const dir = bmDir(sr);
+    const bookmarks = readBookmarks(dir);
+    const idx = bookmarks.findIndex(b => b.url === oldUrl);
+    if (idx === -1) return reply.code(404).send({ error: 'not found' });
+    const changedUrl = newUrl && newUrl !== oldUrl;
+    if (newTitle) bookmarks[idx].title = newTitle;
+    if (changedUrl) {
+      bookmarks[idx].url = newUrl;
+      delete bookmarks[idx].thumb;
+      fetchFavicon(newUrl, dir);
+      fetchOgImage(newUrl, dir).then(thumb => {
+        if (!thumb) return;
+        const updated = readBookmarks(dir);
+        const i = updated.findIndex(b => b.url === newUrl);
+        if (i !== -1) { updated[i].thumb = thumb; writeBookmarks(dir, updated); }
+      });
+    }
+    writeBookmarks(dir, bookmarks);
+    return { ok: true };
+  });
+
+  app.delete('/api/knowledge/bookmarks', async (request, reply) => {
+    const { path: p, url } = request.body ?? {};
+    if (!p || !url) return reply.code(400).send({ error: 'path and url required' });
+    const sr = splitRootPath(p);
+    if (!sr) return reply.code(404).send({ error: 'not found' });
+    const dir = bmDir(sr);
+    writeBookmarks(dir, readBookmarks(dir).filter(b => b.url !== url));
+    return { ok: true };
+  });
+
+  app.get('/api/knowledge/page-title', async (request, reply) => {
+    const url = request.query.url;
+    if (!url) return reply.code(400).send({ error: 'url required' });
+    try {
+      const res = await fetch(url, {
+        headers: { 'User-Agent': 'Mozilla/5.0' },
+        signal: AbortSignal.timeout(6000),
+      });
+      if (!res.ok) return { title: '' };
+      const html = await res.text();
+      const m = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+      return { title: m ? m[1].trim() : '' };
+    } catch { return { title: '' }; }
+  });
+
   // --- multi-root file operations (legacy, kept for compat) ---
 
   const rootPrefix = '/api/knowledge/:root';
@@ -510,7 +699,7 @@ const registerKnowledgeRoutes = (app) => {
     if (!checkPath(absolutePath, root.path)) return reply.code(403).send({ error: 'forbidden' });
     if (!existsSync(absolutePath) || !statSync(absolutePath).isFile()) return reply.code(404).send({ error: 'not found' });
     if (!/\.md$/i.test(filePath)) return reply.code(400).send({ error: 'only markdown files are supported' });
-    const html = renderMarkdown(absolutePath);
+    const html = renderMarkdown(absolutePath, root.path, root.name);
     return { html, path: filePath, root: root.name };
   });
 

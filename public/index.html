@@ -145,7 +145,31 @@ a:hover { text-decoration: underline; }
   opacity: 0; transition: opacity .3s;
 }
 .toast.show { opacity: 1; }
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+  display: flex; align-items: center; justify-content: center; z-index: 1001;
+}
+.modal-dialog-sm {
+  background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+  min-width: 360px; max-width: 480px; box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+.modal-header { padding: 12px 16px; border-bottom: 1px solid var(--border); font-weight: bold; font-size: 15px; }
+.modal-body { padding: 12px 16px; }
+.modal-footer { padding: 8px 16px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; }
+.mb-1 { margin-bottom: 8px; }
+.form-control {
+  width: 100%; padding: 6px 10px; border: 1px solid var(--border);
+  border-radius: 4px; background: var(--bg); color: var(--text);
+  font-size: 13px; font-family: var(--font); box-sizing: border-box;
+}
+.form-control:focus { outline: none; border-color: var(--primary); }
 .loading { text-align: center; padding: 48px; color: var(--text-muted); }
+.root-item { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 0.85rem; }
+.root-item-name { font-weight: 600; min-width: 60px; }
+.root-item-path { color: var(--text-muted); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.root-item-status { font-size: 0.75rem; padding: 1px 6px; border-radius: 3px; }
+.root-item-status.accessible { background: #d4edda; color: #155724; }
+.root-item-status.inaccessible { background: #f8d7da; color: #721c24; }
 .cool-indicator {
   cursor: pointer; font-size: 10px; font-weight: bold; padding: 1px 5px;
   border-radius: 3px; background: var(--surface); margin-left: 6px;
@@ -180,6 +204,7 @@ a:hover { text-decoration: underline; }
       <span>Wiki</span>
       <span id="coolIndicator" class="cool-indicator" title="Collabora Online" onclick="toggleCoolPanel()">CO</span>
       <div>
+        <button class="btn-icon" onclick="showRootDialog()" title="ルート設定">&#x2699;</button>
         <button class="btn-icon" onclick="refreshTree()" title="更新">&#x21bb;</button>
         <button class="btn-icon" onclick="createFile()" title="新規ファイル">+</button>
       </div>
@@ -230,6 +255,107 @@ const toast = (msg) => {
   const t = $('toast'); t.textContent = msg; t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 2000);
 };
+
+// root management
+let rootDialogRoots = [];
+let newRootName = '';
+let newRootPath = '';
+let rootManaging = false;
+let rootError = '';
+
+async function loadRootList() {
+  try {
+    const res = await fetch('/api/knowledge/roots');
+    const data = await res.json();
+    rootDialogRoots = data.roots || [];
+  } catch {}
+}
+
+function showRootDialog() {
+  loadRootList();
+  newRootName = '';
+  newRootPath = '';
+  rootError = '';
+  rootManaging = false;
+  const div = document.createElement('div');
+  div.id = 'rootDialog';
+  div.className = 'modal-overlay';
+  div.innerHTML = `<div class="modal-dialog-sm" id="rootDialogInner">
+    <div class="modal-header">ルート設定</div>
+    <div class="modal-body" id="rootDialogBody">
+      <div id="rootList"></div>
+      <hr>
+      <input class="form-control mb-1" id="newRootName" placeholder="ルート名 (例: wiki)">
+      <input class="form-control mb-1" id="newRootPath" placeholder="パス (例: /path/to/dir)">
+      <div id="rootError" class="text-danger small" style="display:none"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-sm btn-primary" id="addRootBtn">追加</button>
+      <button class="btn btn-sm btn-outline-secondary" id="closeRootBtn">閉じる</button>
+    </div>
+  </div>`;
+  document.body.appendChild(div);
+
+  const renderList = () => {
+    const list = div.querySelector('#rootList');
+    list.innerHTML = rootDialogRoots.map(r =>
+      `<div class="root-item">
+        <span class="root-item-name">${r.name}</span>
+        <span class="root-item-path">${r.path}</span>
+        <span class="root-item-status ${r.accessible ? 'accessible' : 'inaccessible'}">${r.accessible ? 'OK' : 'NG'}</span>
+        ${!r.builtin ? '<button class="btn btn-sm btn-outline-danger root-del-btn" data-name="' + r.name + '">削除</button>' : ''}
+      </div>`
+    ).join('');
+    list.querySelectorAll('.root-del-btn').forEach(btn => {
+      btn.onclick = async () => {
+        const name = btn.dataset.name;
+        try {
+          const res = await fetch('/api/knowledge/roots/' + encodeURIComponent(name), { method: 'DELETE' });
+          if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+          const data = await res.json();
+          rootDialogRoots = data.roots;
+          renderList();
+          refreshTree();
+        } catch (e) { alert('削除失敗: ' + e.message); }
+      };
+    });
+  };
+  renderList();
+
+  div.querySelector('#addRootBtn').onclick = async () => {
+    const name = div.querySelector('#newRootName').value.trim();
+    const path = div.querySelector('#newRootPath').value.trim();
+    if (!name || !path) return;
+    rootManaging = true;
+    div.querySelector('#addRootBtn').disabled = true;
+    div.querySelector('#rootError').style.display = 'none';
+    try {
+      const res = await fetch('/api/knowledge/roots', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, path }),
+      });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+      const data = await res.json();
+      rootDialogRoots = data.roots;
+      div.querySelector('#newRootName').value = '';
+      div.querySelector('#newRootPath').value = '';
+      renderList();
+      refreshTree();
+    } catch (e) {
+      const errEl = div.querySelector('#rootError');
+      errEl.textContent = e.message;
+      errEl.style.display = '';
+    } finally {
+      rootManaging = false;
+      div.querySelector('#addRootBtn').disabled = false;
+    }
+  };
+
+  div.onclick = (e) => { if (e.target === div) div.remove(); };
+  div.querySelector('#closeRootBtn').onclick = () => div.remove();
+  div.querySelector('#rootDialogInner').onclick = (e) => e.stopPropagation();
+}
 
 async function apiFetch(path, opts = {}) {
   const res = await fetch(API + path, {
@@ -324,21 +450,37 @@ function findTreeElement(path) {
   return null;
 }
 
-function revealInTree(path) {
+const expandedCache = {};
+
+async function revealInTree(path) {
   const parts = path.split('/');
   for (let i = 1; i < parts.length; i++) {
     const dir = parts.slice(0, i).join('/');
-    const item = findTreeElement(dir);
-    if (item) {
-      const li = item.closest('li');
-      if (li) {
-        const ul = li.querySelector('ul');
-        if (ul) ul.style.display = '';
-        const chevron = item.querySelector('.chevron');
-        if (chevron) chevron.classList.add('open');
-      }
-    }
+    await expandDir(dir);
   }
+}
+
+async function expandDir(dirPath) {
+  const item = findTreeElement(dirPath);
+  if (!item) return;
+  const li = item.closest('li');
+  if (!li) return;
+  const ul = li.querySelector('ul');
+  const chevron = item.querySelector('.chevron');
+  if (!ul) return;
+  if (!expandedCache[dirPath]) {
+    expandedCache[dirPath] = true;
+    try {
+      const data = await fetch(API + '/tree?path=' + encodeURIComponent(dirPath));
+      if (data.ok) {
+        const json = await data.json();
+        ul.innerHTML = '';
+        buildTreeNodes(json.children || [], ul);
+      }
+    } catch {}
+  }
+  ul.style.display = '';
+  if (chevron) chevron.classList.add('open');
 }
 
 async function refreshTree() {
@@ -384,9 +526,6 @@ function buildTreeNodes(nodes, ul) {
 
       const childUl = document.createElement('ul');
       childUl.style.display = 'none';
-      if (node.children && node.children.length > 0) {
-        buildTreeNodes(node.children, childUl);
-      }
       li.appendChild(div);
       li.appendChild(childUl);
     } else {
@@ -420,16 +559,16 @@ function toggleDir(li, div) {
   const ul = li.querySelector('ul');
   const chevron = div.querySelector('.chevron');
   if (!ul) return;
+  const dirPath = div.dataset.path;
   if (ul.style.display === 'none') {
-    ul.style.display = '';
-    chevron.classList.add('open');
+    expandDir(dirPath);
   } else {
     ul.style.display = 'none';
-    chevron.classList.remove('open');
+    if (chevron) chevron.classList.remove('open');
   }
 }
 
-function selectFile(path, div, name) {
+async function selectFile(path, div, name) {
   state.editMode = false;
   state.currentPath = path;
   state.currentType = 'file';
@@ -437,6 +576,7 @@ function selectFile(path, div, name) {
   div.classList.add('active');
   selectedLi = div;
   updateUrl(path);
+  await revealInTree(path);
   loadContent(path, name);
 }
 
@@ -446,7 +586,7 @@ async function loadContent(path, name) {
 
   if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico'].includes(ext)) {
     content.className = 'content-area image-view';
-    content.innerHTML = `<img src="${API}/file/${path}" alt="${escapeHtml(name)}">`;
+    content.innerHTML = `<img src="/api/knowledge/file/${path}" alt="${escapeHtml(name)}">`;
     showToolbar(path, 'image');
     return;
   }
@@ -667,7 +807,7 @@ function addMenuItem(menu, label, action, isSep) {
   menu.appendChild(d);
 }
 
-function navigateByPath(path) {
+async function navigateByPath(path) {
   if (!path) {
     state.currentPath = null;
     selectedLi = null;
@@ -676,7 +816,7 @@ function navigateByPath(path) {
     $('breadcrumb').innerHTML = '';
     return;
   }
-  revealInTree(path);
+  await revealInTree(path);
   const item = findTreeElement(path);
   if (item) {
     selectFile(path, item, path.split('/').pop());
@@ -791,7 +931,7 @@ async function coolAction(action) {
   await refreshTree();
   const urlPath = getPathFromUrl();
   if (urlPath) {
-    navigateByPath(urlPath);
+    await navigateByPath(urlPath);
   } else {
     $('content').innerHTML = `<div class="empty-state"><h2>Wiki</h2><p>サイドバーからファイルを選択してください</p></div>`;
     updateUrl(null, true);

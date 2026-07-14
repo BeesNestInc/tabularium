@@ -548,7 +548,6 @@ function getPathFromUrl() {
 
 function updateUrl(path, replace) {
   var url = path ? getFileUrl(path) : '/knowledge/';
-  if (path && !path.includes('.') && !url.endsWith('/')) url += '/';  // trailing slash for dirs
   if (replace) {
     history.replaceState({ path }, '', url);
   } else {
@@ -961,8 +960,24 @@ async function navigateByPath(path) {
   }
   await revealInTree(fullPath);
   var name = fullPath.split('/').pop();
-  // Directory? (file paths have extensions in this wiki)
-  if (!name.includes('.')) {
+  // Check if directory via stat from tree data
+  var isDir = fullPath.endsWith('/');
+  if (!isDir) {
+    var treeItem = findTreeElement(fullPath) || findTreeNode(fullPath, state.tree);
+    isDir = treeItem && treeItem.dataset && treeItem.dataset.type === 'directory';
+  }
+  if (!isDir && state.tree.length > 0) {
+    // Fallback: check tree data for type
+    var walk = function(nodes, p) {
+      for (const n of nodes) {
+        if (n.path === p) return n.type === 'directory';
+        if (n.children && n.children.length) { var r = walk(n.children, p); if (r !== null) return r; }
+      }
+      return null;
+    };
+    isDir = walk(state.tree, fullPath) === true;
+  }
+  if (isDir) {
     state.currentPath = fullPath;
     state.currentFolder = fullPath;
     state.currentType = 'directory';
@@ -1214,14 +1229,15 @@ function renderFolderView(folderPath, hasIndex) {
       });
       sorted.forEach(function(e) {
         var icon = e.type === 'directory' ? '\ud83d\udcc1' : (e.name.endsWith('.md') ? '\ud83d\udcdd' : '\ud83d\udcc4');
+        var href = '/' + escapeHtml(e.path) + (e.type === 'directory' ? '/' : '');
         var click = e.type === 'directory'
-          ? 'onclick="selectFolder(\'' + e.path + '\')"'
-          : 'onclick="selectTreeFile(\'' + e.path + '\')"';
-        html += '<div class="fv-file-item" ' + click + '>';
+          ? 'selectFolder(\'' + e.path + '\')'
+          : 'selectTreeFile(\'' + e.path + '\')';
+        html += '<a class="fv-file-item" href="' + href + '" onclick="event.preventDefault();' + click + ';return false">';
         html += '<span class="fv-file-icon">' + icon + '</span>';
         html += '<span class="fv-file-name">' + escapeHtml(e.name) + '</span>';
         if (e.type === 'directory') html += '<span class="fv-file-suffix">/</span>';
-        html += '</div>';
+        html += '</a>';
       });
       html += '</div>';
       html += '<div style="border-top:1px solid var(--border);margin:12px 0"></div>';
@@ -1273,24 +1289,18 @@ function renderFolderView(folderPath, hasIndex) {
       var click = e.type === 'directory'
         ? 'onclick="selectFolder(\'' + e.path + '\')"'
         : 'onclick="selectTreeFile(\'' + e.path + '\')"';
-      var tip = e.name;
-      if (e.type === 'file') {
-        var sz = e.size;
-        if (sz !== undefined) {
-          tip += ' | ' + (sz > 1048576 ? (sz / 1048576).toFixed(1) + ' MB' : sz > 1024 ? (sz / 1024).toFixed(1) + ' KB' : sz + ' B');
-        }
-        if (e.mtime) tip += ' | ' + e.mtime.slice(0, 10);
-      } else {
-        tip += ' | ' + '\u30D5\u30A9\u30EB\u30C0';
-      }
-      html += '<div class="fv-thumb-card" style="cursor:pointer" title="' + escapeHtml(tip) + '" ' + click + '>';
+      var thumbHref = '/' + escapeHtml(e.path) + (e.type === 'directory' ? '/' : '');
+      var thumbClick = e.type === 'directory'
+        ? 'selectFolder(\'' + e.path + '\')'
+        : 'selectTreeFile(\'' + e.path + '\')';
+      html += '<a class="fv-thumb-card" href="' + thumbHref + '" onclick="event.preventDefault();' + thumbClick + ';return false">';
       if (isImage) {
         html += '<img class="fv-thumb-img" src="' + escapeHtml(thumbSrc) + '" alt="" loading="lazy">';
       } else {
         html += '<div class="fv-thumb-fallback" style="font-size:40px">' + icon + '</div>';
       }
       html += '<div class="fv-thumb-info"><div class="fv-title">' + escapeHtml(e.name) + '</div></div>';
-      html += '</div>';
+      html += '</a>';
     });
 
     currentBookmarks.forEach(function(bm, i) {
@@ -1461,22 +1471,25 @@ function toggleBookmarkView() {
 
 function initFolderDnD() {
   var content = $('content');
+  // Prevent browser navigation on URL drops anywhere in the page
+  document.addEventListener('dragover', function(e) { e.preventDefault(); });
+  document.addEventListener('drop', function(e) { e.preventDefault(); });
   content.addEventListener('dragenter', function(e) {
+    e.preventDefault();
     if (!state.currentFolder) return;
-    e.preventDefault(); fvDragCounter++; content.classList.add('fv-dragover');
+    fvDragCounter++; content.classList.add('fv-dragover');
   });
   content.addEventListener('dragleave', function(e) {
-    if (!state.currentFolder) return;
-    e.preventDefault(); fvDragCounter--;
+    e.preventDefault();
+    fvDragCounter--;
     if (fvDragCounter <= 0) { fvDragCounter = 0; content.classList.remove('fv-dragover'); }
   });
   content.addEventListener('dragover', function(e) {
-    if (!state.currentFolder) return;
     e.preventDefault();
   });
   content.addEventListener('drop', async function(e) {
-    if (!state.currentFolder) return;
     e.preventDefault();
+    if (!state.currentFolder) return;
     fvDragCounter = 0;
     content.classList.remove('fv-dragover');
     var url = e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain');

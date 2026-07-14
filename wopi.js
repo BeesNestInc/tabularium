@@ -1,7 +1,7 @@
 import { readFileSync, statSync, existsSync, writeFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 
-const PREFIX = '/knowledge';
+const PREFIX = '';
 const MIME_MAP = {
   doc:  'application/msword',
   docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',

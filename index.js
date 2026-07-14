@@ -183,14 +183,12 @@ const buildTree = (dirPath, relativeRoot, showHidden = false, depth = 0, ctx = n
     try { stat = statSync(fullPath); } catch { continue; }
     ctx.count++;
 
-    if (stat.isDirectory()) {
-      children.push({
-        name: entry, type: 'directory', path: relativePath,
-        children: buildTree(fullPath, relativePath, showHidden, depth + 1, ctx),
-      });
-    } else {
-      children.push({ name: entry, type: 'file', path: relativePath });
-    }
+    children.push({
+      name: entry, type: stat.isDirectory() ? 'directory' : 'file', path: relativePath,
+      size: stat.size, mtime: stat.mtime.toISOString(), birthtime: stat.birthtime.toISOString(),
+      mode: stat.mode, uid: stat.uid, gid: stat.gid,
+      ...(stat.isDirectory() ? { children: buildTree(fullPath, relativePath, showHidden, depth + 1, ctx) } : {}),
+    });
   }
 
   children.sort((a, b) => {
@@ -302,10 +300,11 @@ const registerKnowledgeRoutes = (app) => {
 
   app.get('/api/knowledge', async () => {
     const tree = [];
-    for (const r of roots) {
+    for (let i = 0; i < roots.length; i++) {
+      const r = roots[i];
       const err = assertRootAccess(r.path);
       if (err) continue;
-      tree.push({ name: r.name, type: 'directory', path: r.name, children: [] });
+      tree.push({ name: r.name, type: 'directory', path: i === 0 ? '' : r.name, children: [] });
     }
     return { tree };
   });
@@ -314,7 +313,7 @@ const registerKnowledgeRoutes = (app) => {
 
   app.get('/api/knowledge/tree', async (request, reply) => {
     const filePath = request.query.path || '';
-    const sr = splitRootPath(filePath);
+    const sr = splitRootPath(filePath) || (roots.length > 0 && !filePath ? { root: roots[0], filePath: '' } : null);
     if (!sr) return reply.code(404).send({ error: 'not found' });
     const { root, filePath: relPath } = sr;
     const dirPath = relPath ? path.resolve(root.path, relPath) : root.path;
@@ -327,15 +326,16 @@ const registerKnowledgeRoutes = (app) => {
     for (const entry of entries) {
       if (!showHidden && entry.startsWith('.')) continue;
       const fullPath = path.join(dirPath, entry);
-      const relativePath = filePath ? `${filePath}/${entry}` : entry;
+      const relBase = sr.filePath || '';
+      const relativePath = relBase ? `${relBase}/${entry}` : entry;
       let stat;
       try { stat = statSync(fullPath); } catch { continue; }
       children.push({
         name: entry,
         type: stat.isDirectory() ? 'directory' : 'file',
         path: relativePath,
-        size: stat.isFile() ? stat.size : undefined,
-        mtime: stat.mtime.toISOString(),
+        size: stat.size, mtime: stat.mtime.toISOString(), birthtime: stat.birthtime.toISOString(),
+        mode: stat.mode, uid: stat.uid, gid: stat.gid,
         ...(stat.isDirectory() ? { children: [] } : {}),
       });
     }
@@ -368,6 +368,14 @@ const registerKnowledgeRoutes = (app) => {
         const rel = expanded.slice(r.path.length).replace(/^\//, '');
         const err = assertRootAccess(r.path);
         if (!err) return { root: r, filePath: rel || '' };
+      }
+    }
+    // Fallback: treat pathStr as a subpath of each root (clean URL scheme)
+    for (const r of roots) {
+      const testPath = path.resolve(r.path, pathStr);
+      if (existsSync(testPath) || existsSync(path.dirname(testPath))) {
+        const err = assertRootAccess(r.path);
+        if (!err) return { root: r, filePath: pathStr };
       }
     }
     return null;

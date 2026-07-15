@@ -3,11 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Fastify from 'fastify';
 import fastifyStatic from '@fastify/static';
-import MarkdownIt from 'markdown-it';
-import { full as Emoji } from 'markdown-it-emoji';
-import Prism from 'markdown-it-prism';
-import Attrs from 'markdown-it-attrs';
-import Anchor from 'markdown-it-anchor';
+import { createMd } from '../src/libs/markdown-render.js';
 import dotenv from 'dotenv';
 import yaml from 'yaml';
 import { createBookmarkRoutes, patchRenderMarkdown } from '../src/libs/bookmarks.js';
@@ -159,25 +155,12 @@ const matter = (content) => {
 let _md = null;
 const getMd = () => {
   if (!_md) {
-    _md = new MarkdownIt({
-      html: true, xhtmlOut: false, breaks: false, linkify: true, typographer: true,
-    })
-      .use(Emoji)
-      .use(Attrs)
-      .use(Anchor)
-      .use(Prism, { plugins: ['line-numbers'], defaultLanguage: 'clike' });
-    const origFence = _md.renderer.rules.fence;
-    _md.renderer.rules.fence = (tokens, idx, options, env, self) => {
-      const token = tokens[idx];
-      const info = token.info ? token.info.trim() : '';
-      if (info === 'mermaid') {
-        const sanitized = token.content.replace(/(\d\/\d)"/g, '$1in');
-        const code = _md.utils.escapeHtml(sanitized);
-        return `<pre class="language-mermaid"><code class="language-mermaid">${code}</code></pre>\n`;
-      }
-      return origFence(tokens, idx, options, env, self);
-    };
-    _md.renderer.rules.table_open = () => '<table class="table table-striped">\n';
+    _md = createMd({
+      useAnchor: true,
+      mermaidSanitize: true,
+      prismPlugins: ['line-numbers'],
+      mdOptions: { html: true, xhtmlOut: false, breaks: false, linkify: true, typographer: true },
+    });
   }
   return _md;
 };

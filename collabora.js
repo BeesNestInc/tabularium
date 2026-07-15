@@ -110,7 +110,6 @@ export async function start() {
 
   if (WOPI_SRC) {
     runArgs.push('-e', `domain=.*`);
-    runArgs.push('-e', `extra_params=--o:ssl.enable=false`);
     runArgs.push('-e', `DONT_GEN_SSL_CERT=1`);
     runArgs.push('-e', `dictionaries=en_US ja_JP`);
     if (process.env.COLLABORA_USERNAME && process.env.COLLABORA_PASSWORD) {
@@ -123,7 +122,15 @@ export async function start() {
     runArgs.push('-e', `server_name=${coolServerName}`);
   }
 
-  runArgs.push(...EXTRA_ARGS.split(/\s+/).filter(Boolean), IMAGE);
+  const extraParams = [
+    '--o:ssl.enable=false',
+    `--o:net.content_security_policy=script-src 'self' 'unsafe-eval' 'unsafe-inline'`,
+  ];
+  if (process.env.COLLABORA_EXTRA_PARAMS) {
+    extraParams.push(...process.env.COLLABORA_EXTRA_PARAMS.split(/\s+/));
+  }
+
+  runArgs.push(...EXTRA_ARGS.split(/\s+/).filter(Boolean), IMAGE, ...extraParams);
 
   const args = st.exists ? ['start', CONTAINER_NAME] : runArgs;
 

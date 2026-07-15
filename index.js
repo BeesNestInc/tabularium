@@ -703,9 +703,14 @@ const start = async () => {
 
   const publicDir = path.join(__dirname, 'public');
   const serveIndex = (reply) => {
-    const indexFile = path.join(publicDir, 'index.html');
+    const indexFile = path.join(publicDir, 'wiki.html');
     if (existsSync(indexFile)) {
       return reply.type('text/html').send(readFileSync(indexFile, 'utf-8'));
+    }
+    // fallback to index.html (legacy or main SPA)
+    const legacyFile = path.join(publicDir, 'index.html');
+    if (existsSync(legacyFile)) {
+      return reply.type('text/html').send(readFileSync(legacyFile, 'utf-8'));
     }
     return reply.code(404).send({ error: 'not found' });
   };

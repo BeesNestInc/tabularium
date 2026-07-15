@@ -688,6 +688,11 @@ const registerKnowledgeRoutes = (app) => {
 const start = async () => {
   const app = Fastify({ logger: true });
 
+  // Fake auth endpoints for shared Svelte frontend
+  app.get('/api/auth/me', async () => ({ user: { id: 'wiki', name: 'Wiki', role: 'admin' } }));
+  app.post('/api/auth/logout', async () => ({}));
+  app.post('/api/auth/login', async () => ({ ok: true }));
+
   registerKnowledgeRoutes(app);
   registerCollaboraRoutes(app);
   await app.register(wopiRoutes, {

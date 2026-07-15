@@ -102,7 +102,7 @@ async function wopiRoutes(app, opts) {
       DisableExport: false,
       DisableCopy: false,
       DisableInactiveMessages: false,
-      FileUrl: `${wopiSrc}${PREFIX}/wopi/files/${fileId}/contents`,
+      FileUrl: `${request.protocol}://${request.headers.host || request.hostname}${PREFIX}/wopi/files/${fileId}/contents`,
     };
   });
 

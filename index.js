@@ -11,6 +11,7 @@ import Anchor from 'markdown-it-anchor';
 import dotenv from 'dotenv';
 import yaml from 'yaml';
 import { createBookmarkRoutes, patchRenderMarkdown } from '../src/libs/bookmarks.js';
+import { registerKnowledgeRoutes } from '../src/libs/knowledge-routes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -269,9 +270,9 @@ const registerCollaboraRoutes = (app) => {
   });
 };
 
-const registerKnowledgeRoutes = (app) => {
+const registerWikiKnowledgeRoutes = (app) => {
 
-  // --- root management ---
+  // --- root management (wiki-server specific: persists to roots.json) ---
 
   app.get('/api/knowledge/roots', async () => {
     const withAccess = roots.map(r => {
@@ -289,7 +290,6 @@ const registerKnowledgeRoutes = (app) => {
     if (!existsSync(resolvedPath)) return reply.code(404).send({ error: 'not found' });
     if (!isPathAccessible(resolvedPath)) return reply.code(403).send({ error: 'パーミッションがないよ' });
     if (roots.some(r => r.name === name)) return reply.code(409).send({ error: 'root name already exists' });
-    const newRoot = { name, path: resolvedPath };
     persistedRoots.push({ name, path: rootPath });
     saveRootsFile(persistedRoots);
     roots = getRoots();
@@ -326,363 +326,21 @@ const registerKnowledgeRoutes = (app) => {
     return { ok: true, roots: roots.map(r => ({ ...r, accessible: isPathAccessible(r.path), exists: existsSync(r.path) })) };
   });
 
-  // --- GET /api/knowledge returns roots only (children loaded on demand) ---
-
-  app.get('/api/knowledge', async (request, reply) => {
-    var showHidden = (request.query || {}).showHidden === 'true';
-    var filePath = (request.query || {}).path || '';
-
-    if (filePath !== '') {
-      // Unified tree API: return directory children
-      const sr = splitRootPath(filePath) || { root: roots[0], filePath: '' };
-      if (!sr) return { type: 'directory', stat: null, children: [] };
-      const { root, filePath: relPath } = sr;
-      const dirPath = relPath ? path.resolve(root.path, relPath) : root.path;
-      const st = statSync(dirPath);
-      const children = [];
-      let entries;
-      try { entries = readdirSync(dirPath); } catch { return { type: 'directory', stat: st, children: [] }; }
-      for (const entry of entries) {
-        if (!showHidden && entry.startsWith('.')) continue;
-        const fullPath = path.join(dirPath, entry);
-        const relBase = sr.root.name + (sr.filePath ? '/' + sr.filePath : '');
-        const relativePath = `${relBase}/${entry}`;
-        let stat;
-        try { stat = statSync(fullPath); } catch { continue; }
-        children.push({
-          name: entry, type: stat.isDirectory() ? 'directory' : 'file', path: relativePath,
-          size: stat.size, mtime: stat.mtime.toISOString(), birthtime: stat.birthtime.toISOString(),
-          mode: stat.mode, uid: stat.uid, gid: stat.gid,
-          ...(stat.isDirectory() ? { children: [] } : {}),
-        });
-      }
-      children.sort((a, b) => { if (a.type !== b.type) return a.type === 'directory' ? -1 : 1; return a.name.localeCompare(b.name); });
-      return { type: 'directory', stat: st, children };
-    }
-
-    // No path → return root nodes
-    const tree = [];
-    for (const r of roots) {
-      const err = assertRootAccess(r.path);
-      if (err) continue;
-      tree.push({ name: r.name, type: 'directory', path: r.name, children: [] });
-    }
-    return { type: 'directory', stat: null, children: tree };
-  });
-
-  // --- GET /api/knowledge/tree?path=rootName/rest returns children of a directory ---
-
-  app.get('/api/knowledge/tree', async (request, reply) => {
-    const filePath = request.query.path || '';
-    const sr = splitRootPath(filePath) || (roots.length > 0 && !filePath ? { root: roots[0], filePath: '' } : null);
-    if (!sr) return reply.code(404).send({ error: 'not found' });
-    const { root, filePath: relPath } = sr;
-    const dirPath = relPath ? path.resolve(root.path, relPath) : root.path;
-    const err = assertRootAccess(dirPath);
-    if (err) return reply.code(err.code).send({ error: err.error });
-    const showHidden = request.query.showHidden === 'true';
-    const children = [];
-    let entries;
-    try { entries = readdirSync(dirPath); } catch { return { children: [] }; }
-    for (const entry of entries) {
-      if (!showHidden && entry.startsWith('.')) continue;
-      const fullPath = path.join(dirPath, entry);
-      const relBase = sr.root.name + (sr.filePath ? '/' + sr.filePath : '');
-      const relativePath = `${relBase}/${entry}`;
-      let stat;
-      try { stat = statSync(fullPath); } catch { continue; }
-      children.push({
-        name: entry,
-        type: stat.isDirectory() ? 'directory' : 'file',
-        path: relativePath,
-        size: stat.size, mtime: stat.mtime.toISOString(), birthtime: stat.birthtime.toISOString(),
-        mode: stat.mode, uid: stat.uid, gid: stat.gid,
-        ...(stat.isDirectory() ? { children: [] } : {}),
-      });
-    }
-    children.sort((a, b) => {
-      if (a.type !== b.type) return a.type === 'directory' ? -1 : 1;
-      return a.name.localeCompare(b.name);
-    });
-    return { children };
-  });
-
-  // --- backward compat routes (root name is first path segment) ---
-
-  app.get('/api/knowledge/content/*', async (request, reply) => {
-    const sr = splitRootPath(request.params['*']);
-    if (!sr) return reply.code(404).send({ error: 'not found' });
-    const { root, filePath } = sr;
-    const absolutePath = path.resolve(root.path, filePath);
-    if (!checkPath(absolutePath, root.path)) return reply.code(403).send({ error: 'forbidden' });
-    if (!existsSync(absolutePath) || !statSync(absolutePath).isFile()) return reply.code(404).send({ error: 'not found' });
-    if (!/\.md$/i.test(filePath)) return reply.code(400).send({ error: 'only markdown files are supported' });
-    const html = renderMarkdown(absolutePath, root.path, root.name);
-    const isIndex = /\/index\.md$|^index\.md$/.test(filePath);
-    return { html, path: request.params['*'], type: isIndex ? 'index' : 'file' };
-  });
-
-  app.get('/api/knowledge/raw/*', async (request, reply) => {
-    const sr = splitRootPath(request.params['*']);
-    if (!sr) return reply.code(404).send({ error: 'not found' });
-    const { root, filePath } = sr;
-    const absolutePath = path.resolve(root.path, filePath);
-    if (!checkPath(absolutePath, root.path)) return reply.code(403).send({ error: 'forbidden' });
-    if (!existsSync(absolutePath) || !statSync(absolutePath).isFile()) return reply.code(404).send({ error: 'not found' });
-    const content = readFileSync(absolutePath, 'utf-8');
-    return { content, path: request.params['*'] };
-  });
-
-  app.put('/api/knowledge/raw/*', async (request, reply) => {
-    const sr = splitRootPath(request.params['*']);
-    if (!sr) return reply.code(404).send({ error: 'not found' });
-    const { root, filePath } = sr;
-    const absolutePath = path.resolve(root.path, filePath);
-    if (!checkPath(absolutePath, root.path)) return reply.code(403).send({ error: 'forbidden' });
-    const { content } = request.body ?? {};
-    if (typeof content !== 'string') return reply.code(400).send({ error: 'content is required' });
-    mkdirSync(path.dirname(absolutePath), { recursive: true });
-    writeFileSync(absolutePath, content, 'utf-8');
-    return { ok: true, path: request.params['*'] };
-  });
-
-  app.post('/api/knowledge/create/*', async (request, reply) => {
-    const sr = splitRootPath(request.params['*']);
-    if (!sr) return reply.code(404).send({ error: 'not found' });
-    const { root, filePath } = sr;
-    const absolutePath = path.resolve(root.path, filePath);
-    if (!checkPath(absolutePath, root.path)) return reply.code(403).send({ error: 'forbidden' });
-    if (existsSync(absolutePath)) return reply.code(409).send({ error: 'file already exists' });
-    mkdirSync(path.dirname(absolutePath), { recursive: true });
-    writeFileSync(absolutePath, '', 'utf-8');
-    return { ok: true, path: request.params['*'] };
-  });
-
-  app.get('/api/knowledge/file/*', async (request, reply) => {
-    const sr = splitRootPath(request.params['*']);
-    if (!sr) return reply.code(404).send({ error: 'not found' });
-    const { root, filePath } = sr;
-    const absolutePath = path.resolve(root.path, filePath);
-    if (!checkPath(absolutePath, root.path)) return reply.code(403).send({ error: 'forbidden' });
-    if (!existsSync(absolutePath) || !statSync(absolutePath).isFile()) return reply.code(404).send({ error: 'not found' });
-    const ext = path.extname(filePath).toLowerCase();
-    const contentType = MIME_TYPES[ext] || 'application/octet-stream';
-    const data = readFileSync(absolutePath);
-    if (request.query.dl === '1') {
-      reply.header('Content-Disposition', `attachment; filename="${encodeURIComponent(path.basename(filePath))}"`);
-      reply.header('Content-Type', 'application/octet-stream');
-      return reply.send(data);
-    }
-    reply.header('Content-Type', contentType);
-    return reply.send(data);
-  });
-
-  app.get('/api/knowledge/info', async (request, reply) => {
-    const sr = splitRootPath(request.query.path);
-    if (!sr) return reply.code(404).send({ error: 'not found' });
-    const { root, filePath } = sr;
-    const absolutePath = path.resolve(root.path, filePath);
-    if (!checkPath(absolutePath, root.path)) return reply.code(403).send({ error: 'forbidden' });
-    if (!existsSync(absolutePath) || !statSync(absolutePath).isFile()) return reply.code(404).send({ error: 'not found' });
-    const stats = statSync(absolutePath);
-    const info = { size: stats.size, mtime: stats.mtime.toISOString(), birthtime: stats.birthtime.toISOString() };
-    if (/\.md$/i.test(filePath)) {
-      const content = readFileSync(absolutePath, 'utf-8');
-      const parsed = matter(content);
-      info.frontmatter = parsed.data;
-    }
-    return info;
-  });
-
-  app.delete('/api/knowledge/raw/*', async (request, reply) => {
-    const sr = splitRootPath(request.params['*']);
-    if (!sr) return reply.code(404).send({ error: 'not found' });
-    const { root, filePath } = sr;
-    const absolutePath = path.resolve(root.path, filePath);
-    if (!checkPath(absolutePath, root.path)) return reply.code(403).send({ error: 'forbidden' });
-    if (!existsSync(absolutePath) || !statSync(absolutePath).isFile()) return reply.code(404).send({ error: 'not found' });
-    const trashDir = path.join(path.dirname(absolutePath), '.trash');
-    const trashPath = path.resolve(trashDir, path.basename(absolutePath));
-    mkdirSync(trashDir, { recursive: true });
-    const content = readFileSync(absolutePath);
-    writeFileSync(trashPath, content);
-    rmSync(absolutePath);
-    return { ok: true, path: request.params['*'], trash: path.relative(root.path, trashPath) };
-  });
-
-  app.post('/api/knowledge/move', async (request, reply) => {
-    const { from, to } = request.body ?? {};
-    if (!from || !to) return reply.code(400).send({ error: 'from and to are required' });
-    const srFrom = splitRootPath(from);
-    const srTo = splitRootPath(to);
-    if (!srFrom || !srTo || srFrom.root.name !== srTo.root.name) return reply.code(400).send({ error: 'move requires same root' });
-    const { root, filePath: fromFile } = srFrom;
-    const { filePath: toFile } = srTo;
-    const fromPath = path.resolve(root.path, fromFile);
-    const toPath = path.resolve(root.path, toFile);
-    if (!checkPath(fromPath, root.path) || !checkPath(toPath, root.path)) return reply.code(403).send({ error: 'forbidden' });
-    if (!existsSync(fromPath)) return reply.code(404).send({ error: 'source not found' });
-    if (existsSync(toPath)) return reply.code(409).send({ error: 'destination already exists' });
-    mkdirSync(path.dirname(toPath), { recursive: true });
-    const content = readFileSync(fromPath);
-    writeFileSync(toPath, content);
-    rmSync(fromPath);
-    return { ok: true, from, to };
+  // --- shared knowledge routes (tree, content, raw, file, info, move, create, etc.) ---
+  registerKnowledgeRoutes(app, {
+    rootPath: '/api/knowledge',
+    splitRootPath: (p) => splitRootPath(p),
+    getRoots: () => roots,
+    assertRootAccess,
+    renderMarkdown,
+    mimeTypes: MIME_TYPES,
+    buildTree,
   });
 
   // --- bookmarks (shared from src/libs/bookmarks.js) ---
   createBookmarkRoutes(app, {
     splitRootPath: (_req, p) => splitRootPath(p),
     prefix: '/api',
-  });
-
-  // --- multi-root file operations (legacy, kept for compat) ---
-
-  const rootPrefix = '/api/knowledge/:root';
-
-  app.get(`${rootPrefix}`, async (request, reply) => {
-    const root = resolveRoot(request.params.root);
-    if (!root) return reply.code(404).send({ error: 'root not found' });
-    if (!existsSync(root.path)) return { tree: [] };
-    const err = assertRootAccess(root.path);
-    if (err) return reply.code(err.code).send({ error: err.error });
-    const showHidden = request.query.showHidden === 'true';
-    const tree = buildTree(root.path, '', showHidden);
-    return { tree, root: root.name };
-  });
-
-  app.get(`${rootPrefix}/content/*`, async (request, reply) => {
-    const root = resolveRoot(request.params.root);
-    if (!root) return reply.code(404).send({ error: 'root not found' });
-    const err = assertRootAccess(root.path);
-    if (err) return reply.code(err.code).send({ error: err.error });
-    const filePath = request.params['*'];
-    const absolutePath = path.resolve(root.path, filePath);
-    if (!checkPath(absolutePath, root.path)) return reply.code(403).send({ error: 'forbidden' });
-    if (!existsSync(absolutePath) || !statSync(absolutePath).isFile()) return reply.code(404).send({ error: 'not found' });
-    if (!/\.md$/i.test(filePath)) return reply.code(400).send({ error: 'only markdown files are supported' });
-    const html = renderMarkdown(absolutePath, root.path, root.name);
-    return { html, path: filePath, root: root.name };
-  });
-
-  app.get(`${rootPrefix}/raw/*`, async (request, reply) => {
-    const root = resolveRoot(request.params.root);
-    if (!root) return reply.code(404).send({ error: 'root not found' });
-    const err = assertRootAccess(root.path);
-    if (err) return reply.code(err.code).send({ error: err.error });
-    const filePath = request.params['*'];
-    const absolutePath = path.resolve(root.path, filePath);
-    if (!checkPath(absolutePath, root.path)) return reply.code(403).send({ error: 'forbidden' });
-    if (!existsSync(absolutePath) || !statSync(absolutePath).isFile()) return reply.code(404).send({ error: 'not found' });
-    const content = readFileSync(absolutePath, 'utf-8');
-    return { content, path: filePath, root: root.name };
-  });
-
-  app.put(`${rootPrefix}/raw/*`, async (request, reply) => {
-    const root = resolveRoot(request.params.root);
-    if (!root) return reply.code(404).send({ error: 'root not found' });
-    const err = assertRootAccess(root.path);
-    if (err) return reply.code(err.code).send({ error: err.error });
-    const filePath = request.params['*'];
-    const absolutePath = path.resolve(root.path, filePath);
-    if (!checkPath(absolutePath, root.path)) return reply.code(403).send({ error: 'forbidden' });
-    const { content } = request.body ?? {};
-    if (typeof content !== 'string') return reply.code(400).send({ error: 'content is required' });
-    mkdirSync(path.dirname(absolutePath), { recursive: true });
-    writeFileSync(absolutePath, content, 'utf-8');
-    return { ok: true, path: filePath, root: root.name };
-  });
-
-  app.post(`${rootPrefix}/create/*`, async (request, reply) => {
-    const root = resolveRoot(request.params.root);
-    if (!root) return reply.code(404).send({ error: 'root not found' });
-    const err = assertRootAccess(root.path);
-    if (err) return reply.code(err.code).send({ error: err.error });
-    const filePath = request.params['*'];
-    const absolutePath = path.resolve(root.path, filePath);
-    if (!checkPath(absolutePath, root.path)) return reply.code(403).send({ error: 'forbidden' });
-    if (existsSync(absolutePath)) return reply.code(409).send({ error: 'file already exists' });
-    mkdirSync(path.dirname(absolutePath), { recursive: true });
-    writeFileSync(absolutePath, '', 'utf-8');
-    return { ok: true, path: filePath, root: root.name };
-  });
-
-  app.get(`${rootPrefix}/file/*`, async (request, reply) => {
-    const root = resolveRoot(request.params.root);
-    if (!root) return reply.code(404).send({ error: 'root not found' });
-    const err = assertRootAccess(root.path);
-    if (err) return reply.code(err.code).send({ error: err.error });
-    const filePath = request.params['*'];
-    const absolutePath = path.resolve(root.path, filePath);
-    if (!checkPath(absolutePath, root.path)) return reply.code(403).send({ error: 'forbidden' });
-    if (!existsSync(absolutePath) || !statSync(absolutePath).isFile()) return reply.code(404).send({ error: 'not found' });
-    const ext = path.extname(filePath).toLowerCase();
-    const contentType = MIME_TYPES[ext] || 'application/octet-stream';
-    const data = readFileSync(absolutePath);
-    if (request.query.dl === '1') {
-      reply.header('Content-Disposition', `attachment; filename="${encodeURIComponent(path.basename(filePath))}"`);
-      reply.header('Content-Type', 'application/octet-stream');
-      return reply.send(data);
-    }
-    reply.header('Content-Type', contentType);
-    return reply.send(data);
-  });
-
-  app.get(`${rootPrefix}/info`, async (request, reply) => {
-    const root = resolveRoot(request.params.root);
-    if (!root) return reply.code(404).send({ error: 'root not found' });
-    const err = assertRootAccess(root.path);
-    if (err) return reply.code(err.code).send({ error: err.error });
-    const filePath = request.query.path;
-    if (!filePath) return reply.code(400).send({ error: 'path query parameter is required' });
-    const absolutePath = path.resolve(root.path, filePath);
-    if (!checkPath(absolutePath, root.path)) return reply.code(403).send({ error: 'forbidden' });
-    if (!existsSync(absolutePath) || !statSync(absolutePath).isFile()) return reply.code(404).send({ error: 'not found' });
-    const stats = statSync(absolutePath);
-    const info = { size: stats.size, mtime: stats.mtime.toISOString(), birthtime: stats.birthtime.toISOString() };
-    if (/\.md$/i.test(filePath)) {
-      const content = readFileSync(absolutePath, 'utf-8');
-      const parsed = matter(content);
-      info.frontmatter = parsed.data;
-    }
-    return info;
-  });
-
-  app.delete(`${rootPrefix}/raw/*`, async (request, reply) => {
-    const root = resolveRoot(request.params.root);
-    if (!root) return reply.code(404).send({ error: 'root not found' });
-    const err = assertRootAccess(root.path);
-    if (err) return reply.code(err.code).send({ error: err.error });
-    const filePath = request.params['*'];
-    const absolutePath = path.resolve(root.path, filePath);
-    if (!checkPath(absolutePath, root.path)) return reply.code(403).send({ error: 'forbidden' });
-    if (!existsSync(absolutePath) || !statSync(absolutePath).isFile()) return reply.code(404).send({ error: 'not found' });
-    const trashDir = path.join(path.dirname(absolutePath), '.trash');
-    const trashPath = path.resolve(trashDir, path.basename(absolutePath));
-    mkdirSync(trashDir, { recursive: true });
-    const content = readFileSync(absolutePath);
-    writeFileSync(trashPath, content);
-    rmSync(absolutePath);
-    return { ok: true, path: filePath, root: root.name, trash: path.relative(root.path, trashPath) };
-  });
-
-  app.post(`${rootPrefix}/move`, async (request, reply) => {
-    const root = resolveRoot(request.params.root);
-    if (!root) return reply.code(404).send({ error: 'root not found' });
-    const err = assertRootAccess(root.path);
-    if (err) return reply.code(err.code).send({ error: err.error });
-    const { from, to } = request.body ?? {};
-    if (!from || !to) return reply.code(400).send({ error: 'from and to are required' });
-    const fromPath = path.resolve(root.path, from);
-    const toPath = path.resolve(root.path, to);
-    if (!checkPath(fromPath, root.path) || !checkPath(toPath, root.path)) return reply.code(403).send({ error: 'forbidden' });
-    if (!existsSync(fromPath)) return reply.code(404).send({ error: 'source not found' });
-    if (existsSync(toPath)) return reply.code(409).send({ error: 'destination already exists' });
-    mkdirSync(path.dirname(toPath), { recursive: true });
-    const content = readFileSync(fromPath);
-    writeFileSync(toPath, content);
-    rmSync(fromPath);
-    return { ok: true, from, to, root: root.name };
   });
 };
 
@@ -694,7 +352,7 @@ const start = async () => {
   app.post('/api/auth/logout', async () => ({}));
   app.post('/api/auth/login', async () => ({ ok: true }));
 
-  registerKnowledgeRoutes(app);
+  registerWikiKnowledgeRoutes(app);
   registerCollaboraRoutes(app);
   await app.register(wopiRoutes, {
     knowledgeBase: roots[0]?.path || resolvePath(process.env.KNOWLEDGE_BASE || 'knowledge'),

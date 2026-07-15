@@ -105,6 +105,36 @@ const assertRootAccess = (rootDir) => {
   return null;
 };
 
+const splitRootPath = (pathStr) => {
+  if (!pathStr) return null;
+  const slashIdx = pathStr.indexOf('/');
+  const firstSeg = slashIdx === -1 ? pathStr : pathStr.slice(0, slashIdx);
+  const restPath = slashIdx === -1 ? '' : pathStr.slice(slashIdx + 1);
+  const byName = resolveRoot(firstSeg);
+  if (byName) {
+    const err = assertRootAccess(byName.path);
+    if (!err) return { root: byName, filePath: restPath };
+  }
+  const expanded = pathStr.startsWith('/')
+    ? (pathStr.startsWith(projectRoot) ? pathStr : path.resolve(projectRoot, pathStr.slice(1)))
+    : path.resolve(projectRoot, pathStr);
+  for (const r of roots) {
+    if (expanded.startsWith(r.path)) {
+      const rel = expanded.slice(r.path.length).replace(/^\//, '');
+      const err = assertRootAccess(r.path);
+      if (!err) return { root: r, filePath: rel || '' };
+    }
+  }
+  for (const r of roots) {
+    const testPath = path.resolve(r.path, pathStr);
+    if (existsSync(testPath) || existsSync(path.dirname(testPath))) {
+      const err = assertRootAccess(r.path);
+      if (!err) return { root: r, filePath: pathStr };
+    }
+  }
+  return null;
+};
+
 // --- markdown ---
 
 const matter = (content) => {
@@ -298,15 +328,46 @@ const registerKnowledgeRoutes = (app) => {
 
   // --- GET /api/knowledge returns roots only (children loaded on demand) ---
 
-  app.get('/api/knowledge', async () => {
+  app.get('/api/knowledge', async (request, reply) => {
+    var showHidden = (request.query || {}).showHidden === 'true';
+    var filePath = (request.query || {}).path || '';
+
+    if (filePath !== '') {
+      // Unified tree API: return directory children
+      const sr = splitRootPath(filePath) || { root: roots[0], filePath: '' };
+      if (!sr) return { type: 'directory', stat: null, children: [] };
+      const { root, filePath: relPath } = sr;
+      const dirPath = relPath ? path.resolve(root.path, relPath) : root.path;
+      const st = statSync(dirPath);
+      const children = [];
+      let entries;
+      try { entries = readdirSync(dirPath); } catch { return { type: 'directory', stat: st, children: [] }; }
+      for (const entry of entries) {
+        if (!showHidden && entry.startsWith('.')) continue;
+        const fullPath = path.join(dirPath, entry);
+        const relBase = sr.root.name + (sr.filePath ? '/' + sr.filePath : '');
+        const relativePath = `${relBase}/${entry}`;
+        let stat;
+        try { stat = statSync(fullPath); } catch { continue; }
+        children.push({
+          name: entry, type: stat.isDirectory() ? 'directory' : 'file', path: relativePath,
+          size: stat.size, mtime: stat.mtime.toISOString(), birthtime: stat.birthtime.toISOString(),
+          mode: stat.mode, uid: stat.uid, gid: stat.gid,
+          ...(stat.isDirectory() ? { children: [] } : {}),
+        });
+      }
+      children.sort((a, b) => { if (a.type !== b.type) return a.type === 'directory' ? -1 : 1; return a.name.localeCompare(b.name); });
+      return { type: 'directory', stat: st, children };
+    }
+
+    // No path → return root nodes
     const tree = [];
-    for (let i = 0; i < roots.length; i++) {
-      const r = roots[i];
+    for (const r of roots) {
       const err = assertRootAccess(r.path);
       if (err) continue;
-      tree.push({ name: r.name, type: 'directory', path: i === 0 ? '' : r.name, children: [] });
+      tree.push({ name: r.name, type: 'directory', path: r.name, children: [] });
     }
-    return { tree };
+    return { type: 'directory', stat: null, children: tree };
   });
 
   // --- GET /api/knowledge/tree?path=rootName/rest returns children of a directory ---
@@ -326,8 +387,8 @@ const registerKnowledgeRoutes = (app) => {
     for (const entry of entries) {
       if (!showHidden && entry.startsWith('.')) continue;
       const fullPath = path.join(dirPath, entry);
-      const relBase = sr.filePath || '';
-      const relativePath = relBase ? `${relBase}/${entry}` : entry;
+      const relBase = sr.root.name + (sr.filePath ? '/' + sr.filePath : '');
+      const relativePath = `${relBase}/${entry}`;
       let stat;
       try { stat = statSync(fullPath); } catch { continue; }
       children.push({
@@ -347,39 +408,6 @@ const registerKnowledgeRoutes = (app) => {
   });
 
   // --- backward compat routes (root name is first path segment) ---
-
-  const splitRootPath = (pathStr) => {
-    if (!pathStr) return null;
-    // try root name match first
-    const slashIdx = pathStr.indexOf('/');
-    const firstSeg = slashIdx === -1 ? pathStr : pathStr.slice(0, slashIdx);
-    const restPath = slashIdx === -1 ? '' : pathStr.slice(slashIdx + 1);
-    const byName = resolveRoot(firstSeg);
-    if (byName) {
-      const err = assertRootAccess(byName.path);
-      if (!err) return { root: byName, filePath: restPath };
-    }
-    // absolute / project-relative fallback
-    const expanded = pathStr.startsWith('/')
-      ? (pathStr.startsWith(projectRoot) ? pathStr : path.resolve(projectRoot, pathStr.slice(1)))
-      : path.resolve(projectRoot, pathStr);
-    for (const r of roots) {
-      if (expanded.startsWith(r.path)) {
-        const rel = expanded.slice(r.path.length).replace(/^\//, '');
-        const err = assertRootAccess(r.path);
-        if (!err) return { root: r, filePath: rel || '' };
-      }
-    }
-    // Fallback: treat pathStr as a subpath of each root (clean URL scheme)
-    for (const r of roots) {
-      const testPath = path.resolve(r.path, pathStr);
-      if (existsSync(testPath) || existsSync(path.dirname(testPath))) {
-        const err = assertRootAccess(r.path);
-        if (!err) return { root: r, filePath: pathStr };
-      }
-    }
-    return null;
-  };
 
   app.get('/api/knowledge/content/*', async (request, reply) => {
     const sr = splitRootPath(request.params['*']);
@@ -665,6 +693,7 @@ const start = async () => {
   await app.register(wopiRoutes, {
     knowledgeBase: roots[0]?.path || resolvePath(process.env.KNOWLEDGE_BASE || 'knowledge'),
     wopiSrc: process.env.WOPI_SRC || `http://localhost:${PORT}`,
+    splitRootPath: (request, path) => splitRootPath(path),
   });
 
   const publicDir = path.join(__dirname, 'public');

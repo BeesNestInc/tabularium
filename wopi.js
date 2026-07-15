@@ -43,6 +43,19 @@ function checkPath(absolutePath, rootDir) {
 async function wopiRoutes(app, opts) {
   const knowledgeDir = path.resolve(opts.knowledgeBase || process.env.KNOWLEDGE_BASE || 'knowledge');
   const wopiSrc = opts.wopiSrc || process.env.WOPI_SRC || '';
+  const fileResolver = opts.splitRootPath || ((_req, fileId) => { const fp = path.resolve(knowledgeDir, fileId); return fp.startsWith(knowledgeDir) ? fp : null; });
+  const getFilePath = opts.splitRootPath
+    ? (request, fileId) => {
+        const sr = fileResolver(request, fileId);
+        if (!sr) return null;
+        const absPath = path.resolve(sr.root.path, sr.filePath);
+        if (!absPath.startsWith(sr.root.path)) return null;
+        return absPath;
+      }
+    : (_req, fileId) => {
+        const absPath = path.resolve(knowledgeDir, fileId);
+        return absPath.startsWith(knowledgeDir) ? absPath : null;
+      };
 
   app.addContentTypeParser('application/octet-stream', { parseAs: 'buffer' }, (_req, body, done) => {
     done(null, body);
@@ -57,9 +70,8 @@ async function wopiRoutes(app, opts) {
     const wildcard = request.params['*'];
     const isContents = wildcard.endsWith('/contents');
     const fileId = isContents ? wildcard.slice(0, -'/contents'.length) : wildcard;
-    const absolutePath = path.resolve(knowledgeDir, fileId);
-
-    if (!checkPath(absolutePath, knowledgeDir)) return reply.code(403).send({ error: 'forbidden' });
+    const absolutePath = getFilePath(request, fileId);
+    if (!absolutePath) return reply.code(404).send({ error: 'not found' });
     if (!existsSync(absolutePath) || !statSync(absolutePath).isFile()) return reply.code(404).send({ error: 'not found' });
 
     if (isContents) {
@@ -99,9 +111,8 @@ async function wopiRoutes(app, opts) {
     if (!wildcard.endsWith('/contents')) return reply.code(400).send({ error: 'only /contents is writable' });
 
     const fileId = wildcard.slice(0, -'/contents'.length);
-    const absolutePath = path.resolve(knowledgeDir, fileId);
-
-    if (!checkPath(absolutePath, knowledgeDir)) return reply.code(403).send({ error: 'forbidden' });
+    const absolutePath = getFilePath(request, fileId);
+    if (!absolutePath) return reply.code(404).send({ error: 'not found' });
 
     mkdirSync(path.dirname(absolutePath), { recursive: true });
     writeFileSync(absolutePath, request.body);

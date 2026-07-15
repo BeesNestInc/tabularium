@@ -528,7 +528,7 @@ function getFileUrl(path) {
       var root = state.tree[i].path;
       if (!root) continue;
       if (path === root) {
-        path = i === 0 ? '' : path;  // first root → /knowledge/, others keep name
+        path = i === 0 ? '' : path;  // first root → /, others keep name
         break;
       }
       if (path.indexOf(root + '/') === 0) {
@@ -537,17 +537,18 @@ function getFileUrl(path) {
       }
     }
   }
-  return '/knowledge/' + (path || '');
+  return '/' + (path || '');
 }
 
 function getPathFromUrl() {
   const p = window.location.pathname;
-  if (p.startsWith('/knowledge/')) return decodeURIComponent(p.slice('/knowledge/'.length));
+  if (p === '/') return '';
+  if (p.startsWith('/')) return decodeURIComponent(p.slice(1));
   return null;
 }
 
 function updateUrl(path, replace) {
-  var url = path ? getFileUrl(path) : '/knowledge/';
+  var url = path ? getFileUrl(path) : '/';
   if (replace) {
     history.replaceState({ path }, '', url);
   } else {

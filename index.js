@@ -418,7 +418,8 @@ const registerKnowledgeRoutes = (app) => {
     if (!existsSync(absolutePath) || !statSync(absolutePath).isFile()) return reply.code(404).send({ error: 'not found' });
     if (!/\.md$/i.test(filePath)) return reply.code(400).send({ error: 'only markdown files are supported' });
     const html = renderMarkdown(absolutePath, root.path, root.name);
-    return { html, path: request.params['*'] };
+    const isIndex = /\/index\.md$|^index\.md$/.test(filePath);
+    return { html, path: request.params['*'], type: isIndex ? 'index' : 'file' };
   });
 
   app.get('/api/knowledge/raw/*', async (request, reply) => {
@@ -719,7 +720,6 @@ const start = async () => {
     await app.register(fastifyStatic, {
       root: publicDir,
       prefix: '/',
-      wildcard: false,
     });
     app.setNotFoundHandler((request, reply) => {
       if (request.url.startsWith('/api/')) {

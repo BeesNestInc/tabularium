@@ -611,9 +611,9 @@ async function expandDir(dirPath) {
 async function refreshTree() {
   try {
     const data = await apiFetch('');
-    state.tree = data.tree;
+    state.tree = data.children || [];
     renderTree();
-    return data.tree;
+    return data.children;
   } catch (e) { toast('更新エラー: ' + e.message); }
 }
 
@@ -736,7 +736,7 @@ async function loadContent(path, name) {
   }
 
   if (OFFICE_EXTS.includes(ext)) {
-    const wopiUrl = WOPI_HOST + '/knowledge/wopi/files/' + path;
+    const wopiUrl = WOPI_HOST + '/wopi/files/' + path;
     const coolUrl = COOL_BROWSER + '?WOPISrc=' + encodeURIComponent(wopiUrl) + '&access_token=dev';
     content.className = 'content-area';
     content.innerHTML = `<div class="cool-doc-container">

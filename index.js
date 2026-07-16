@@ -179,6 +179,7 @@ const MIME_TYPES = {
   '.css': 'text/css', '.scss': 'text/x-scss',
   '.html': 'text/html', '.htm': 'text/html',
   '.xml': 'application/xml',
+  '.ical': 'text/calendar',
 };
 
 const checkPath = (absolutePath, rootDir) => {

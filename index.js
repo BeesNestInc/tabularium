@@ -3,10 +3,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Fastify from 'fastify';
 import fastifyStatic from '@fastify/static';
-import { createMd } from '../src/libs/markdown-render.js';
 import dotenv from 'dotenv';
-import yaml from 'yaml';
-import { createBookmarkRoutes, patchRenderMarkdown } from '../src/libs/bookmarks.js';
+import { createBookmarkRoutes } from '../src/libs/bookmarks.js';
 import { registerKnowledgeRoutes } from '../src/libs/knowledge-routes.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -133,49 +131,6 @@ const splitRootPath = (pathStr) => {
 };
 
 // --- markdown ---
-
-const matter = (content) => {
-  const frontmatterRegex = /(?:^|\n)---\n([\s\S]*?)\n---\n?/;
-  const match = content.match(frontmatterRegex);
-  if (match) {
-    const data = yaml.parse(match[1]);
-    return {
-      data: data,
-      content: content.slice(match[0].length)
-    };
-  } else {
-    return { data: {}, content };
-  }
-};
-
-// --- bookmarks (shared from src/libs/bookmarks.js) ---
-
-// --- markdown ---
-
-let _md = null;
-const getMd = () => {
-  if (!_md) {
-    _md = createMd({
-      useAnchor: true,
-      mermaidSanitize: true,
-      prismPlugins: ['line-numbers'],
-      mdOptions: { html: true, xhtmlOut: false, breaks: false, linkify: true, typographer: true },
-    });
-  }
-  return _md;
-};
-
-const _renderMarkdown = (absolutePath) => {
-  try {
-    const source = readFileSync(absolutePath, 'utf-8');
-    const { content } = matter(source);
-    return getMd().render(content);
-  } catch (err) {
-    console.error('markdown render error', err);
-    return '';
-  }
-};
-const renderMarkdown = patchRenderMarkdown(_renderMarkdown);
 
 const buildTree = (dirPath, relativeRoot, showHidden = false, depth = 0, ctx = null) => {
   if (depth > 8) return [];
@@ -315,7 +270,6 @@ const registerWikiKnowledgeRoutes = (app) => {
     splitRootPath: (p) => splitRootPath(p),
     getRoots: () => roots,
     assertRootAccess,
-    renderMarkdown,
     mimeTypes: MIME_TYPES,
     buildTree,
   });

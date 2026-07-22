@@ -70,21 +70,21 @@
   let tooltipX = 0; let tooltipY = 0; let tooltipContent = '';
 
   const CATEGORY_COLORS = [
-    { name: 'blue', label: t('青'), color: '#3498db' },
-    { name: 'red', label: t('赤'), color: '#e74c3c' },
-    { name: 'green', label: t('緑'), color: '#2ecc71' },
-    { name: 'orange', label: t('橙'), color: '#f39c12' },
-    { name: 'purple', label: t('紫'), color: '#9b59b6' },
-    { name: 'cyan', label: t('水色'), color: '#1abc9c' },
-    { name: 'gray', label: t('灰'), color: '#95a5a6' },
+    { name: 'blue', label: t('blue'), color: '#3498db' },
+    { name: 'red', label: t('red'), color: '#e74c3c' },
+    { name: 'green', label: t('green'), color: '#2ecc71' },
+    { name: 'orange', label: t('orange'), color: '#f39c12' },
+    { name: 'purple', label: t('purple'), color: '#9b59b6' },
+    { name: 'cyan', label: t('cyan'), color: '#1abc9c' },
+    { name: 'gray', label: t('gray'), color: '#95a5a6' },
   ];
 
   const CALENDAR_DOTS = ['🔵','🔴','🟢','🟠','🟣','🟡','🟤','⚪','⚫','🔶','🔷','🔘','❤️','💜'];
   const WEEKDAYS = [
-    { key: 'mo', label: t('月') }, { key: 'tu', label: t('火') },
-    { key: 'we', label: t('水') }, { key: 'th', label: t('木') },
-    { key: 'fr', label: t('金') }, { key: 'sa', label: t('土') },
-    { key: 'su', label: t('日') },
+    { key: 'mo', label: t('month') }, { key: 'tu', label: t('tue') },
+    { key: 'we', label: t('wed') }, { key: 'th', label: t('thu') },
+    { key: 'fr', label: t('fri') }, { key: 'sa', label: t('sat') },
+    { key: 'su', label: t('day') },
   ];
 
   const hoursList = Array.from({length: 24}, (_, i) => String(i).padStart(2, '0'));
@@ -247,9 +247,9 @@
         right: 'multiMonthYear,dayGridYear,dayGridMonth,timeGridWeek',
       },
       eventTimeFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
-      noEventsText: t('予定なし'),
-      moreLinkText: (n) => t('他 {0} 件', n),
-      buttonText: { today: t('今日'), multiMonthYear: t('年'), dayGridYear: t('年'), month: t('月'), week: t('週') },
+      noEventsText: t('noEvents'),
+      moreLinkText: (n) => t('moreEvents', n),
+      buttonText: { today: t('today'), multiMonthYear: t('year'), dayGridYear: t('year'), month: t('month'), week: t('week') },
 
       eventDidMount: (info) => {
         const el = info.el; const ev = info.event;
@@ -264,17 +264,17 @@
         }
         const loc = ev.extendedProps?.location; const desc = ev.extendedProps?.description;
         let h = `<strong>${dot} ${ev.title}</strong>`;
-        if (ev.extendedProps?._sourceFile) h += `<br><span class="tt-label">${t('元:')}</span> ${ev.extendedProps._sourceFile}`;
+        if (ev.extendedProps?._sourceFile) h += `<br><span class="tt-label">${t('source')}</span> ${ev.extendedProps._sourceFile}`;
         if (ev.start) {
           const d = ev.allDay ? ev.start.toLocaleDateString(navigator.language) : ev.start.toLocaleString(navigator.language);
-          h += `<br><span class="tt-label">${t('日時:')}</span> ${d}`;
+          h += `<br><span class="tt-label">${t('dateTime')}</span> ${d}`;
         }
         if (ev.end) {
           const d = ev.allDay ? ev.end.toLocaleDateString(navigator.language) : ev.end.toLocaleString(navigator.language);
-          h += `<br><span class="tt-label">${t('終了:')}</span> ${d}`;
+          h += `<br><span class="tt-label">${t('end')}</span> ${d}`;
         }
-        if (loc) h += `<br><span class="tt-label">${t('場所:')}</span> ${loc}`;
-        if (desc) h += `<br><span class="tt-label">${t('詳細:')}</span> ${desc.replace(/\n/g, '<br>')}`;
+        if (loc) h += `<br><span class="tt-label">${t('location')}</span> ${loc}`;
+        if (desc) h += `<br><span class="tt-label">${t('details')}</span> ${desc.replace(/\n/g, '<br>')}`;
         el.addEventListener('mouseenter', () => {
           tooltipContent = h; const r = el.getBoundingClientRect();
           tooltipX = r.left + r.width / 2; tooltipY = r.top - 8; tooltipVisible = true;
@@ -399,7 +399,7 @@
       const src = calendarSources.find(s => s.path === srcFile);
       const ev = src?.data?.events?.find(e => e.uid === uid);
       if (!ev) { if (revertFn) revertFn(); return; }
-      if (ev.recurrence) { if (revertFn) revertFn(); alert(t('繰り返しイベントの移動はイベントをクリックして編集してください。')); return; }
+      if (ev.recurrence) { if (revertFn) revertFn(); alert(t('dragRecurringHint')); return; }
       modifyFn(ev);
       await putRaw(srcFile, yaml.stringify(src.data));
       await reloadMultiSources();
@@ -407,7 +407,7 @@
     } else {
       const ev = currentData?.events?.find(e => e.uid === uid);
       if (!ev) { if (revertFn) revertFn(); return; }
-      if (ev.recurrence) { if (revertFn) revertFn(); alert(t('繰り返しイベントの移動はイベントをクリックして編集してください。')); return; }
+      if (ev.recurrence) { if (revertFn) revertFn(); alert(t('dragRecurringHint')); return; }
       modifyFn(ev);
       refreshCalendar(); markDirty();
     }
@@ -557,7 +557,7 @@
 
   async function deleteEdit(skipConfirm) {
     if (!editForm.uid) return;
-    if (!skipConfirm && !confirm(t('このイベントを削除しますか？'))) return;
+    if (!skipConfirm && !confirm(t('confirmDeleteEvent'))) return;
 
     if (multiMode && editForm._sourceIdx >= 0) {
       const src = calendarSources[editForm._sourceIdx];
@@ -628,7 +628,7 @@
     refreshCalendar();
   }
   async function removeSource(i) {
-    if (!confirm(t('"{0}" を削除しますか？', calendarSources[i].name))) return;
+    if (!confirm(t('confirmDeleteNamed', calendarSources[i].name))) return;
     calendarSources = calendarSources.filter((_, idx) => idx !== i);
     currentData.calendars = calendarSources.map(s => s.path);
     await putRaw(filePath, yaml.stringify(currentData));
@@ -645,7 +645,7 @@
   function readIcsFile(file) {
     const reader = new FileReader();
     reader.onload = () => { importIcsEvents(reader.result); };
-    reader.onerror = () => { importResult = t('ファイルの読み込みに失敗しました'); };
+    reader.onerror = () => { importResult = t('loadFileFailed'); };
     reader.readAsText(file);
   }
 
@@ -654,7 +654,7 @@
       const imported = icalToYaml(icsText);
       const events = imported.events || [];
       if (events.length === 0) {
-        importResult = t('インポートできるイベントが見つかりませんでした');
+        importResult = t('noImportableEvents');
         return;
       }
 
@@ -676,14 +676,14 @@
       if (added > 0) {
         refreshCalendar();
         markDirty();
-        importResult = t('{0}件中{1}件をインポートしました', events.length, added);
-        if (skipped > 0) importResult += t('（{0}件はUID重複のためスキップ）', skipped);
+        importResult = t('importedCount', events.length, added);
+        if (skipped > 0) importResult += t('skippedUidConflict', skipped);
       } else {
-        importResult = t('{0}件中0件をインポートしました（すべてUID重複）', skipped);
+        importResult = t('importedZeroAllConflict', skipped);
       }
       setTimeout(() => { importResult = ''; }, 5000);
     } catch (e) {
-      importResult = t('ICSパースエラー: {0}', e.message);
+      importResult = t('icsParseError', e.message);
       setTimeout(() => { importResult = ''; }, 8000);
     }
   }
@@ -710,13 +710,13 @@
 
   function describeRecurrence(r) {
     if (!r) return '';
-    const freqMap = { DAILY: t('日'), WEEKLY: t('週'), MONTHLY: t('月'), YEARLY: t('年') };
+    const freqMap = { DAILY: t('day'), WEEKLY: t('week'), MONTHLY: t('month'), YEARLY: t('year') };
     const freq = freqMap[r.freq] || r.freq;
-    let s = t('毎{0}', freq);
+    let s = t('everyFreq', freq);
     if (r.interval && r.interval > 1) s = `${r.interval}${s}`;
     if (r.byDay) s += `（${r.byDay.join(', ')}）`;
     if (r.until) s += ` ～${r.until}`;
-    if (r.count) s += t(' {0}回', r.count);
+    if (r.count) s += t('countTimes', r.count);
     return s;
   }
 
@@ -738,14 +738,14 @@
       return;
     }
 
-    if (!confirm(t('このイベントを削除しますか？'))) return;
+    if (!confirm(t('confirmDeleteEvent'))) return;
     editForm = pendingEdit;
     await deleteEdit(true);
     closeViewModal();
   }
 
   async function confirmDeleteChoice(mode) {
-    if (!confirm(t('このイベントを削除しますか？'))) {
+    if (!confirm(t('confirmDeleteEvent'))) {
       showDeleteChoice = false;
       return;
     }
@@ -817,25 +817,25 @@
       {#each calendarSources as src, i}
         <span class="source-item">
           <input type="checkbox" checked={src.enabled} onchange={() => toggleSource(i)} />
-           <span class="source-dot" onclick={() => cycleDot(i)} title={t('クリックで色変更')}>{src.dot}</span>
+           <span class="source-dot" onclick={() => cycleDot(i)} title={t('clickToChangeColor')}>{src.dot}</span>
           <span class="source-name">{src.name}</span>
-           <button class="source-del" onclick={() => removeSource(i)} title={t('削除')}>✕</button>
+           <button class="source-del" onclick={() => removeSource(i)} title={t('delete')}>✕</button>
         </span>
       {/each}
-      <button class="btn btn-sm btn-outline-secondary" onclick={addSource}>{t('＋追加')}</button>
+      <button class="btn btn-sm btn-outline-secondary" onclick={addSource}>{t('addItem')}</button>
     </div>
   {/if}
   {#if !multiMode}
     <div class="import-toolbar">
       <input type="file" accept=".ics" bind:this={fileInput} onchange={handleIcsImport} style="display:none" />
-      <button class="btn btn-sm btn-outline-secondary" onclick={() => fileInput?.click()}>{t('📥 ICS取込')}</button>
-      <button class="btn btn-sm btn-outline-secondary" onclick={exportIcs}>{t('📤 ICS出力')}</button>
+      <button class="btn btn-sm btn-outline-secondary" onclick={() => fileInput?.click()}>{t('importIcs')}</button>
+      <button class="btn btn-sm btn-outline-secondary" onclick={exportIcs}>{t('exportIcs')}</button>
       {#if importResult}
         <span class="import-result">{importResult}</span>
       {/if}
     </div>
   {/if}
-  {#if loading}<div class="text-muted" style="padding:12px">{t('読み込み中...')}</div>{/if}
+  {#if loading}<div class="text-muted" style="padding:12px">{t('loading')}</div>{/if}
   <div bind:this={container} class="calendar-container"></div>
 </div>
 
@@ -849,18 +849,18 @@
 {#if showAddModal}
   <div class="modal-overlay" onclick={() => showAddModal = false}>
     <div class="modal-dialog-sm" onclick={(e) => e.stopPropagation()}>
-      <div class="modal-header">{t('カレンダー追加')}</div>
+      <div class="modal-header">{t('addCalendar')}</div>
       <div class="modal-body">
         <div class="form-group">
-          <label>{t('カレンダーファイルのパス')}</label>
-          <input class="form-control" placeholder={t('例: knowledge/calendars/team.ical')} bind:value={addPath}
+          <label>{t('calendarFilePath')}</label>
+          <input class="form-control" placeholder={t('calendarFileExample')} bind:value={addPath}
             onkeydown={(e) => e.key === 'Enter' && confirmAdd()} autofocus />
-          <div class="text-muted small" style="margin-top:4px">{t('ナレッジ上の絶対パスで指定してください')}</div>
+          <div class="text-muted small" style="margin-top:4px">{t('absolutePathHint')}</div>
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-sm btn-outline-secondary" onclick={() => showAddModal = false}>{t('キャンセル')}</button>
-        <button class="btn btn-sm btn-primary" onclick={confirmAdd} disabled={!addPath.trim()}>{t('追加')}</button>
+        <button class="btn btn-sm btn-outline-secondary" onclick={() => showAddModal = false}>{t('cancel')}</button>
+        <button class="btn btn-sm btn-primary" onclick={confirmAdd} disabled={!addPath.trim()}>{t('add')}</button>
       </div>
     </div>
   </div>
@@ -869,11 +869,11 @@
 {#if showCreateModal}
   <div class="modal-overlay" onclick={closeCreateModal}>
     <div class="modal-dialog-sm" onclick={(e) => e.stopPropagation()}>
-      <div class="modal-header">{t('新規イベント')}</div>
+      <div class="modal-header">{t('newEvent')}</div>
       <div class="modal-body">
         {#if multiMode}
           <div class="form-group">
-            <label>{t('保存先')}</label>
+            <label>{t('saveTo')}</label>
             <select class="form-control" bind:value={createForm.sourceIdx}>
       {#each calendarSources as src, i (src.path)}
                 <option value={i}>{src.dot} {src.name}</option>
@@ -882,15 +882,15 @@
           </div>
         {/if}
         <div class="form-group">
-          <label>{t('件名')}</label>
+          <label>{t('subject')}</label>
           <input class="form-control" bind:value={createForm.title} onkeydown={(e) => e.key === 'Enter' && createEvent()} autofocus />
         </div>
         <div class="form-group">
-          <label>{t('場所')}</label>
+          <label>{t('location')}</label>
           <input class="form-control" bind:value={createForm.location} />
         </div>
         <div class="form-group">
-          <label>{t('色')}</label>
+          <label>{t('color')}</label>
           <div class="color-picker">
             {#each CATEGORY_COLORS as c}
               <button class="color-swatch" class:selected={createForm.category === c.name}
@@ -899,11 +899,11 @@
             {/each}
             <button class="color-swatch" class:selected={!createForm.category}
               style="width:28px;height:28px;border-radius:50%;border:2px solid {!createForm.category ? '#333' : '#ccc'};background:linear-gradient(45deg,#3498db,#e74c3c,#2ecc71)"
-              onclick={() => createForm.category = ''} title={t('自動')}></button>
+              onclick={() => createForm.category = ''} title={t('auto')}></button>
           </div>
         </div>
         <div class="form-group">
-          <label>{t('日時')}</label>
+          <label>{t('dateTime')}</label>
           <div class="form-datetime">
             <input class="form-control form-control-sm" type="date" bind:value={createForm.startDate} style="width:auto;display:inline" />
             {#if !createForm.allDay}
@@ -935,19 +935,19 @@
               </select>
             {/if}
             <label style="display:inline-flex;align-items:center;gap:4px;margin-left:8px">
-              <input type="checkbox" bind:checked={createForm.allDay} onchange={() => { if (createForm.allDay) { createForm.startTime = ''; createForm.endTime = ''; } }} /> {t('終日')}
+              <input type="checkbox" bind:checked={createForm.allDay} onchange={() => { if (createForm.allDay) { createForm.startTime = ''; createForm.endTime = ''; } }} /> {t('allDay')}
             </label>
           </div>
         </div>
         <div class="form-group">
-          <label><input type="checkbox" bind:checked={createForm.recurrenceEnabled} /> {t('繰り返す')}</label>
+          <label><input type="checkbox" bind:checked={createForm.recurrenceEnabled} /> {t('repeat')}</label>
           {#if createForm.recurrenceEnabled}
             <div class="recur-config">
               <div class="recur-row">
-                <span>{t('毎')}</span>
+                <span>{t('every')}</span>
                 <input class="form-control form-control-sm" type="number" min="1" bind:value={createForm.recurrenceInterval} style="width:60px;display:inline" />
                 <select class="form-control form-control-sm" bind:value={createForm.recurrenceFreq} style="width:auto;display:inline">
-                <option value="daily">{t('日')}</option><option value="weekly">{t('週')}</option><option value="monthly">{t('月')}</option><option value="yearly">{t('年')}</option>
+                <option value="daily">{t('day')}</option><option value="weekly">{t('week')}</option><option value="monthly">{t('month')}</option><option value="yearly">{t('year')}</option>
               </select>
             </div>
             {#if createForm.recurrenceFreq === 'weekly'}
@@ -959,28 +959,28 @@
                 </div>
               {/if}
               <div class="recur-row">
-                <label>{t('終了:')}</label>
+                <label>{t('end')}</label>
                 <select class="form-control form-control-sm" bind:value={createForm.recurrenceEndType} style="width:auto;display:inline">
-                  <option value="never">{t('なし')}</option><option value="date">{t('日付指定')}</option><option value="count">{t('N回後')}</option>
+                  <option value="never">{t('none')}</option><option value="date">{t('byDate')}</option><option value="count">{t('afterNTimes')}</option>
                 </select>
                 {#if createForm.recurrenceEndType === 'date'}
                   <input class="form-control form-control-sm" type="date" bind:value={createForm.recurrenceUntil} style="width:auto;display:inline" />
                 {/if}
                 {#if createForm.recurrenceEndType === 'count'}
-                  <input class="form-control form-control-sm" type="number" min="1" bind:value={createForm.recurrenceCount} style="width:80px;display:inline" /> {t('回')}
+                  <input class="form-control form-control-sm" type="number" min="1" bind:value={createForm.recurrenceCount} style="width:80px;display:inline" /> {t('times')}
                 {/if}
               </div>
             </div>
           {/if}
         </div>
         <div class="form-group">
-          <label>{t('詳細')}</label>
+          <label>{t('details')}</label>
           <textarea class="form-control" rows="3" bind:value={createForm.description}></textarea>
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-sm btn-outline-secondary" onclick={closeCreateModal}>{t('キャンセル')}</button>
-        <button class="btn btn-sm btn-primary" onclick={createEvent} disabled={!createForm.title.trim()}>{t('作成')}</button>
+        <button class="btn btn-sm btn-outline-secondary" onclick={closeCreateModal}>{t('cancel')}</button>
+        <button class="btn btn-sm btn-primary" onclick={createEvent} disabled={!createForm.title.trim()}>{t('create')}</button>
       </div>
     </div>
   </div>
@@ -989,24 +989,24 @@
 {#if showEditModal}
   <div class="modal-overlay" onclick={closeEditModal}>
     <div class="modal-dialog-sm" onclick={(e) => e.stopPropagation()}>
-      <div class="modal-header">{t('イベント編集')}</div>
+      <div class="modal-header">{t('editEvent')}</div>
       <div class="modal-body">
         {#if editForm.isRecurring}
           <div class="edit-mode-select">
-            <label class="edit-mode-radio"><input type="radio" name="editMode" value="all" bind:group={editForm.editMode} onchange={applyEditFormMode} /> {t('全ての予定')}</label>
-            <label class="edit-mode-radio"><input type="radio" name="editMode" value="single" bind:group={editForm.editMode} onchange={applyEditFormMode} /> {t('このイベントだけ')}</label>
+            <label class="edit-mode-radio"><input type="radio" name="editMode" value="all" bind:group={editForm.editMode} onchange={applyEditFormMode} /> {t('allEvents')}</label>
+            <label class="edit-mode-radio"><input type="radio" name="editMode" value="single" bind:group={editForm.editMode} onchange={applyEditFormMode} /> {t('thisEventOnly')}</label>
           </div>
         {/if}
         <div class="form-group">
-          <label>{t('件名')}</label>
+          <label>{t('subject')}</label>
           <input class="form-control" bind:value={editForm.title} onkeydown={(e) => e.key === 'Enter' && saveEdit()} autofocus />
         </div>
         <div class="form-group">
-          <label>{t('場所')}</label>
+          <label>{t('location')}</label>
           <input class="form-control" bind:value={editForm.location} />
         </div>
         <div class="form-group">
-          <label>{t('色')}</label>
+          <label>{t('color')}</label>
           <div class="color-picker">
             {#each CATEGORY_COLORS as c}
               <button class="color-swatch" class:selected={editForm.category === c.name}
@@ -1015,11 +1015,11 @@
             {/each}
             <button class="color-swatch" class:selected={!editForm.category}
               style="width:28px;height:28px;border-radius:50%;border:2px solid {!editForm.category ? '#333' : '#ccc'};background:linear-gradient(45deg,#3498db,#e74c3c,#2ecc71)"
-              onclick={() => editForm.category = ''} title={t('自動')}></button>
+              onclick={() => editForm.category = ''} title={t('auto')}></button>
           </div>
         </div>
         <div class="form-group">
-          <label>{t('日時')}</label>
+          <label>{t('dateTime')}</label>
           <div class="form-datetime">
             <input class="form-control form-control-sm" type="date" bind:value={editForm.startDate} style="width:auto;display:inline" />
             {#if !editForm.allDay}
@@ -1051,20 +1051,20 @@
               </select>
             {/if}
             <label style="display:inline-flex;align-items:center;gap:4px;margin-left:8px">
-              <input type="checkbox" bind:checked={editForm.allDay} onchange={() => { if (editForm.allDay) { editForm.startTime = ''; editForm.endTime = ''; } }} /> {t('終日')}
+              <input type="checkbox" bind:checked={editForm.allDay} onchange={() => { if (editForm.allDay) { editForm.startTime = ''; editForm.endTime = ''; } }} /> {t('allDay')}
             </label>
           </div>
         </div>
         {#if editForm.isRecurring}
           <div class="form-group">
-            <label><input type="checkbox" bind:checked={editForm.recurrenceEnabled} disabled={editForm.editMode === 'single'} /> {t('繰り返す')}</label>
+            <label><input type="checkbox" bind:checked={editForm.recurrenceEnabled} disabled={editForm.editMode === 'single'} /> {t('repeat')}</label>
             {#if editForm.recurrenceEnabled}
               <div class="recur-config">
                 <div class="recur-row">
-                  <span>{t('毎')}</span>
+                  <span>{t('every')}</span>
                   <input class="form-control form-control-sm" type="number" min="1" bind:value={editForm.recurrenceInterval} disabled={editForm.editMode === 'single'} style="width:60px;display:inline" />
                   <select class="form-control form-control-sm" bind:value={editForm.recurrenceFreq} disabled={editForm.editMode === 'single'} style="width:auto;display:inline">
-                    <option value="daily">{t('日')}</option><option value="weekly">{t('週')}</option><option value="monthly">{t('月')}</option><option value="yearly">{t('年')}</option>
+                    <option value="daily">{t('day')}</option><option value="weekly">{t('week')}</option><option value="monthly">{t('month')}</option><option value="yearly">{t('year')}</option>
                   </select>
                 </div>
                 {#if editForm.recurrenceFreq === 'weekly'}
@@ -1076,15 +1076,15 @@
                   </div>
                 {/if}
                 <div class="recur-row">
-                  <label>{t('終了:')}</label>
+                  <label>{t('end')}</label>
                   <select class="form-control form-control-sm" bind:value={editForm.recurrenceEndType} disabled={editForm.editMode === 'single'} style="width:auto;display:inline">
-                    <option value="never">{t('なし')}</option><option value="date">{t('日付指定')}</option><option value="count">{t('N回後')}</option>
+                    <option value="never">{t('none')}</option><option value="date">{t('byDate')}</option><option value="count">{t('afterNTimes')}</option>
                   </select>
                   {#if editForm.recurrenceEndType === 'date'}
                     <input class="form-control form-control-sm" type="date" bind:value={editForm.recurrenceUntil} disabled={editForm.editMode === 'single'} style="width:auto;display:inline" />
                   {/if}
                   {#if editForm.recurrenceEndType === 'count'}
-                    <input class="form-control form-control-sm" type="number" min="1" bind:value={editForm.recurrenceCount} disabled={editForm.editMode === 'single'} style="width:80px;display:inline" /> {t('回')}
+                    <input class="form-control form-control-sm" type="number" min="1" bind:value={editForm.recurrenceCount} disabled={editForm.editMode === 'single'} style="width:80px;display:inline" /> {t('times')}
                   {/if}
                 </div>
               </div>
@@ -1092,15 +1092,15 @@
           </div>
         {/if}
         <div class="form-group">
-          <label>{t('詳細')}</label>
+          <label>{t('details')}</label>
           <textarea class="form-control" rows="3" bind:value={editForm.description}></textarea>
         </div>
         <hr>
-        <button class="btn btn-sm btn-outline-danger" onclick={deleteEdit}>{t('この予定を削除')}</button>
+        <button class="btn btn-sm btn-outline-danger" onclick={deleteEdit}>{t('deleteThisEvent')}</button>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-sm btn-outline-secondary" onclick={closeEditModal}>{t('キャンセル')}</button>
-        <button class="btn btn-sm btn-primary" onclick={saveEdit} disabled={!editForm.title.trim()}>{t('保存')}</button>
+        <button class="btn btn-sm btn-outline-secondary" onclick={closeEditModal}>{t('cancel')}</button>
+        <button class="btn btn-sm btn-primary" onclick={saveEdit} disabled={!editForm.title.trim()}>{t('save')}</button>
       </div>
     </div>
   </div>
@@ -1141,13 +1141,13 @@
       </div>
       <div class="modal-footer">
         {#if showDeleteChoice}
-          <button class="btn btn-sm btn-outline-secondary" onclick={() => showDeleteChoice = false}>{t('キャンセル')}</button>
-          <button class="btn btn-sm btn-danger" onclick={() => confirmDeleteChoice('single')} style="margin-left:auto">{t('この予定だけ削除')}</button>
-          <button class="btn btn-sm btn-danger" onclick={() => confirmDeleteChoice('all')}>{t('すべての予定を削除')}</button>
+          <button class="btn btn-sm btn-outline-secondary" onclick={() => showDeleteChoice = false}>{t('cancel')}</button>
+          <button class="btn btn-sm btn-danger" onclick={() => confirmDeleteChoice('single')} style="margin-left:auto">{t('deleteThisEventOnly')}</button>
+          <button class="btn btn-sm btn-danger" onclick={() => confirmDeleteChoice('all')}>{t('deleteAllEvents')}</button>
         {:else}
-          <button class="btn btn-sm btn-outline-danger" onclick={deleteFromView} style="margin-right:auto">{t('削除')}</button>
-          <button class="btn btn-sm btn-outline-secondary" onclick={closeViewModal}>{t('閉じる')}</button>
-          <button class="btn btn-sm btn-primary" onclick={openEditFromView}>{t('編集')}</button>
+          <button class="btn btn-sm btn-outline-danger" onclick={deleteFromView} style="margin-right:auto">{t('delete')}</button>
+          <button class="btn btn-sm btn-outline-secondary" onclick={closeViewModal}>{t('close')}</button>
+          <button class="btn btn-sm btn-primary" onclick={openEditFromView}>{t('edit')}</button>
         {/if}
       </div>
     </div>

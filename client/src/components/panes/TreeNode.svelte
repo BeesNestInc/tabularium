@@ -74,7 +74,7 @@
   };
 
   const doDelete = async () => {
-    if (!confirm(t('"{0}" を削除しますか？（.trash/ に移動します）', node.name))) return;
+    if (!confirm(t('confirmDeleteTrash', node.name))) return;
     deleting = true;
     try {
       const res = await fetch(apiUrl(`/raw/${node.path}`), {
@@ -83,7 +83,7 @@
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       onDelete?.();
     } catch (e) {
-      alert(t('削除失敗: {0}', e.message));
+      alert(t('deleteFailed', e.message));
     } finally {
       deleting = false;
     }
@@ -141,28 +141,28 @@
   const ctxMenuItems = () => {
     if (node.type === 'directory') {
       const items = [
-        { label: t('開く'), action: () => onSelectFolder?.(node.path) },
-        { label: t('新規ファイル'), action: () => onNewFile?.(node.path) },
-        { label: t('新規フォルダ'), action: () => { window.createFolderFromPath?.(node.path); } },
+        { label: t('open'), action: () => onSelectFolder?.(node.path) },
+        { label: t('newFile'), action: () => onNewFile?.(node.path) },
+        { label: t('newFolder'), action: () => { window.createFolderFromPath?.(node.path); } },
       ];
       if (isCutPending) {
-        items.push({ label: t('貼り付け'), action: () => onPaste?.(node.path) });
+        items.push({ label: t('paste'), action: () => onPaste?.(node.path) });
       }
-      items.push({ label: t('削除'), action: doDelete, disabled: deleting });
+      items.push({ label: t('delete'), action: doDelete, disabled: deleting });
       return items;
     }
     if (isTrash) {
       return [
-        { label: t('元に戻す'), action: () => onRestore?.(node.path) },
-        { label: t('削除'), action: doDelete, disabled: deleting },
+        { label: t('undo'), action: () => onRestore?.(node.path) },
+        { label: t('delete'), action: doDelete, disabled: deleting },
       ];
     }
     const items = [
-      { label: t('編集'), action: () => onEdit?.(node.path) },
-      { label: t('印刷'), action: () => { window.open('/' + node.path + '?mode=print', '_blank'); } },
-      { label: t('ダウンロード'), action: () => { window.open(apiUrl('/file/' + node.path + '?dl=1'), '_blank'); } },
-      { label: t('切り取り'), action: () => onCut?.(node.path) },
-      { label: t('削除'), action: doDelete, disabled: deleting },
+      { label: t('edit'), action: () => onEdit?.(node.path) },
+      { label: t('print'), action: () => { window.open('/' + node.path + '?mode=print', '_blank'); } },
+      { label: t('download'), action: () => { window.open(apiUrl('/file/' + node.path + '?dl=1'), '_blank'); } },
+      { label: t('cut'), action: () => onCut?.(node.path) },
+      { label: t('delete'), action: doDelete, disabled: deleting },
     ];
     return items;
   };
@@ -173,7 +173,7 @@
   {#if node.type === 'directory'}
     <div class="tree-dir-row" class:drag-over={node.type === 'directory'}
       ondragover={onDragOver} ondragenter={onDragEnter} ondrop={onDrop}>
-      <button class="tree-toggle-arrow" onclick={doToggle} disabled={loadingChildren} title={t('開閉')}>
+      <button class="tree-toggle-arrow" onclick={doToggle} disabled={loadingChildren} title={t('toggle')}>
         <span class="tree-arrow">{isOpen && children.length > 0 ? '▾' : '▸'}</span>
       </button>
       <a class="tree-toggle-folder" href="/{node.path}/" onclick={(e) => { e.preventDefault(); onSelectFolder?.(node.path); }}>

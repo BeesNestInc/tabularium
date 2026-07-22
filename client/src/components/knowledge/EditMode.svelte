@@ -47,12 +47,12 @@
     <span class="edit-path">{selectedPath}</span>
     <div class="edit-actions">
       <button class="btn btn-sm btn-primary" onclick={() => dispatch('save')} disabled={saving}>
-        {saving ? t('保存中...') : t('保存')}
+        {saving ? t('saving') : t('save')}
       </button>
       <button class="btn btn-sm btn-success" onclick={() => dispatch('saveAndExit')} disabled={saving}>
-        {saving ? t('保存中...') : t('保存して終了')}
+        {saving ? t('saving') : t('saveAndExit')}
       </button>
-      <a href="/{selectedPath}" class="btn btn-sm btn-outline-secondary">{t('取消')}</a>
+      <a href="/{selectedPath}" class="btn btn-sm btn-outline-secondary">{t('cancel')}</a>
     </div>
   </div>
   {#if saveMessage}

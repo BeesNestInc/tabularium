@@ -37,6 +37,6 @@ export const load = async (path) => {
     }
     return html;
   } catch {
-    return '<div class="alert alert-danger">' + t('ファイルが存在しません') + '</div>';
+    return '<div class="alert alert-danger">' + t('fileNotFound') + '</div>';
   }
 };

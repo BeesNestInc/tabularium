@@ -7,8 +7,8 @@ export const esc = (s) => {
 
 export const fileListingHtml = (entries, dirPath) => {
   if (!entries || !entries.length) return '';
-  let html = '<div class="fv-files-header"><span>' + t('📁 {0} アイテム', entries.length) + '</span>'
-    + '<div class="fv-actions"><button class="fv-btn" onclick="window.createFolder()">' + t('+ フォルダ') + '</button></div></div>';
+  let html = '<div class="fv-files-header"><span>' + t('itemCount', entries.length) + '</span>'
+    + '<div class="fv-actions"><button class="fv-btn" onclick="window.createFolder()">' + t('addFolder') + '</button></div></div>';
   html += '<div class="fv-file-list">';
   const sorted = entries.slice().sort((a, b) => {
     if (a.type !== b.type) return a.type === 'directory' ? -1 : 1;
@@ -27,7 +27,7 @@ export const fileListingHtml = (entries, dirPath) => {
     html += '<span class="fv-file-name">' + esc(e.name) + '</span>';
     if (e.type === 'directory') html += '<span class="fv-file-suffix">/</span>';
     html += '</a>';
-    html += '<button class="fv-del-btn" onclick="event.stopPropagation();window.deleteEntry(\'' + esc(e.path) + '\')" title="' + t('削除') + '">✕</button>';
+    html += '<button class="fv-del-btn" onclick="event.stopPropagation();window.deleteEntry(\'' + esc(e.path) + '\')" title="' + t('delete') + '">✕</button>';
     html += '</div>';
   }
   html += '</div>';
@@ -45,8 +45,8 @@ export const bookmarkItemHtml = (bm, i, folderPath, mode) => {
       + '<span class="fv-title">' + esc(bm.title) + '</span>'
       + '<span class="fv-domain">' + esc(bm.domain) + '</span>'
       + '</a>'
-      + '<button class="fv-edit-btn" onclick="window.editBookmark(' + i + ')" title="' + t('編集') + '">✎</button>'
-      + '<button class="fv-del-btn" onclick="window.deleteBookmark(' + i + ')" title="' + t('削除') + '">✕</button>'
+      + '<button class="fv-edit-btn" onclick="window.editBookmark(' + i + ')" title="' + t('edit') + '">✎</button>'
+      + '<button class="fv-del-btn" onclick="window.deleteBookmark(' + i + ')" title="' + t('delete') + '">✕</button>'
       + '</div>';
   }
   // thumbnail card mode
@@ -57,8 +57,8 @@ export const bookmarkItemHtml = (bm, i, folderPath, mode) => {
         + (fUrl ? '<img class="fv-favicon" src="' + esc(fUrl) + '" alt="" loading="lazy" onerror="this.parentElement.textContent=\'?\';this.remove()">' : '?')
         + '</div>')
     + '<div class="fv-thumb-info"><div class="fv-title">' + esc(bm.title) + '</div><div class="fv-domain">' + esc(bm.domain) + '</div></div></a>'
-    + '<button class="fv-edit-btn" onclick="window.editBookmark(' + i + ')" title="' + t('編集') + '">✎</button>'
-    + '<button class="fv-del-btn" onclick="window.deleteBookmark(' + i + ')" title="' + t('削除') + '">✕</button>'
+    + '<button class="fv-edit-btn" onclick="window.editBookmark(' + i + ')" title="' + t('edit') + '">✎</button>'
+    + '<button class="fv-del-btn" onclick="window.deleteBookmark(' + i + ')" title="' + t('delete') + '">✕</button>'
     + '</div>';
 };
 
@@ -78,9 +78,9 @@ export const folderViewHtml = (folderPath, entries, bookmarks, mode, hasIndex) =
   }
   if (mode === 'list') {
     html += '<div class="fv-bookmarks-header"><span>🔖 Bookmarks</span>'
-      + '<div class="fv-actions"><button class="fv-btn" onclick="window.showBookmarkAddDialog(\'\')">' + t('+ 追加') + '</button></div></div>';
+      + '<div class="fv-actions"><button class="fv-btn" onclick="window.showBookmarkAddDialog(\'\')">' + t('addItem') + '</button></div></div>';
     if (!bookmarks || !bookmarks.length) {
-      html += '<div class="fv-empty">' + t('📥 URLをドロップしてブックマーク追加') + '</div>';
+      html += '<div class="fv-empty">' + t('dropUrlToBookmark') + '</div>';
     } else {
       html += bookmarkListHtml(bookmarks, folderPath, 'list');
     }
@@ -115,7 +115,7 @@ export const folderViewHtml = (folderPath, entries, bookmarks, mode, hasIndex) =
     }
     html += '</div>';
     html += '<div class="fv-bookmarks-header" style="margin-top:0"><div></div>'
-      + '<div class="fv-actions"><button class="fv-btn" onclick="window.showBookmarkAddDialog(\'\')">' + t('+ 追加') + '</button></div></div>';
+      + '<div class="fv-actions"><button class="fv-btn" onclick="window.showBookmarkAddDialog(\'\')">' + t('addItem') + '</button></div></div>';
   }
 
   html += '</div>';

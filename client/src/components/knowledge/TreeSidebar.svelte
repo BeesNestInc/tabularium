@@ -85,7 +85,7 @@
       cutPath = null;
       loadTree();
     } catch (e) {
-      alert(t('移動失敗: {0}', e.message));
+      alert(t('moveFailed', e.message));
     }
   };
   const doMove = async (fromPath, toDir) => {
@@ -104,7 +104,7 @@
       }
       loadTree();
     } catch (e) {
-      alert(t('移動失敗: {0}', e.message));
+      alert(t('moveFailed', e.message));
     }
   };
   const doRestore = async (trashFilePath) => {
@@ -125,7 +125,7 @@
       }
       loadTree();
     } catch (e) {
-      alert(t('復元失敗: {0}', e.message));
+      alert(t('restoreFailed', e.message));
     }
   };
 
@@ -161,20 +161,20 @@
 
 <aside class="knowledge-tree-pane">
   <div class="pane-header">
-    <span>{t('ナレッジ')}</span>
+    <span>{t('knowledge')}</span>
     <div class="header-buttons">
-      <button class="btn btn-sm btn-outline-secondary" onclick={() => dispatch('openRootDialog')} title={t('ルート設定')}>⚙</button>
-      <button class="btn btn-sm btn-outline-secondary" onclick={() => { showHidden = !showHidden; loadTree(); }} title={t('隠しファイルを表示')}>{showHidden ? '📂' : '📁'}</button>
-      <button class="btn btn-sm btn-outline-secondary" onclick={() => dispatch('openNewDialog')}>{t('新規')}</button>
+      <button class="btn btn-sm btn-outline-secondary" onclick={() => dispatch('openRootDialog')} title={t('rootSettings')}>⚙</button>
+      <button class="btn btn-sm btn-outline-secondary" onclick={() => { showHidden = !showHidden; loadTree(); }} title={t('showHidden')}>{showHidden ? '📂' : '📁'}</button>
+      <button class="btn btn-sm btn-outline-secondary" onclick={() => dispatch('openNewDialog')}>{t('new')}</button>
     </div>
   </div>
   <div class="pane-body">
     {#if loading}
-      <div class="text-muted">{t('読み込み中...')}</div>
+      <div class="text-muted">{t('loading')}</div>
     {:else if error}
       <div class="alert alert-danger small">{error}</div>
     {:else if !tree[''] || tree[''].length === 0}
-      <div class="text-muted">{t('ナレッジがありません。')}</div>
+      <div class="text-muted">{t('noKnowledge')}</div>
     {:else}
       <div class="tree-view">
         {#each tree[''] as node}

@@ -3,8 +3,6 @@ const detectLocale = () => {
   return (navigator.language || '').split('-')[0] || 'en';
 };
 
-const messages = {};
-
 const en = {
   '保存': 'Save',
   '保存中...': 'Saving...',
@@ -50,12 +48,10 @@ const en = {
   'ルート設定': 'Root Settings',
   '隠しファイルを表示': 'Show Hidden Files',
   '新規ファイル作成': 'Create New File',
-  'ルート設定': 'Root Settings',
   'ルート名 (例: wiki)': 'Root name (e.g., wiki)',
   'パス (例: /path/to/dir)': 'Path (e.g., /path/to/dir)',
   '(ルート)': '(root)',
   'ファイル名': 'Filename',
-  'ファイル名に拡張子が含まれない場合、選択した種類の拡張子を自動付与します': 'If the filename has no extension, the selected type will be appended automatically.',
   'カレンダー': 'Calendar',
   'カレンダー一覧': 'Calendar List',
   '図 (draw.io)': 'Diagram (draw.io)',
@@ -100,7 +96,6 @@ const en = {
   '"{0}" を削除しますか？（.trash/ に移動します）': 'Delete "{0}"? (moves to .trash/)',
   'ルート「{0}」を削除しますか？': 'Delete root "{0}"?',
   '図が変更されています。保存しますか？': 'The diagram has been modified. Save?',
-  '繰り返しイベントの移動はイベントをクリックして編集してください。': 'Drag recurring events by clicking and editing.',
   'ファイルの読み込みに失敗しました': 'Failed to load file',
   'インポートできるイベントが見つかりませんでした': 'No importable events found',
   '{0}件中{1}件をインポートしました': 'Imported {1} of {0} events',
@@ -149,24 +144,9 @@ const en = {
   '日': 'Sun',
 };
 
-const ja = {};
-
-const loadMessages = (locale) => {
-  if (locale === 'ja') return ja;
-  return en;
-};
-
 let locale = detectLocale();
 
-export const setLocale = (l) => { locale = l; Object.assign(messages, loadMessages(l)); };
-export const getLocale = () => locale;
-
-export const t = (key, ...args) => {
-  let msg = messages[key];
-  if (msg === undefined) {
-    // fallback: try English, then use key as-is
-    msg = en[key] ?? key;
-  }
+const fmt = (msg, args) => {
   if (args.length === 0) return msg;
   return msg.replace(/\{(\d+)\}/g, (_, idx) => {
     const i = Number(idx);
@@ -174,5 +154,14 @@ export const t = (key, ...args) => {
   });
 };
 
-// initialize
-setLocale(locale);
+export const setLocale = (l) => { locale = l; };
+export const getLocale = () => locale;
+
+export const t = (key, ...args) => {
+  if (locale !== 'ja') {
+    const msg = en[key];
+    if (msg !== undefined) return fmt(msg, args);
+  }
+  // ja locale or unknown key → return key as-is (keys are already Japanese)
+  return fmt(key, args);
+};

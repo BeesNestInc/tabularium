@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import Fastify from 'fastify';
 import fastifyStatic from '@fastify/static';
 import dotenv from 'dotenv';
+import { t } from './libs/i18n.js';
 import { createBookmarkRoutes } from './libs/bookmarks.js';
 import { registerKnowledgeRoutes } from './libs/knowledge-routes.js';
 import duckdb from 'duckdb';
@@ -97,8 +98,8 @@ const resolveRoot = (rootName) => {
 };
 
 const assertRootAccess = (rootDir) => {
-  if (!existsSync(rootDir)) return { ok: false, code: 404, error: 'not found' };
-  if (!isPathAccessible(rootDir)) return { ok: false, code: 403, error: 'パーミッションがないよ' };
+  if (!existsSync(rootDir)) return { ok: false, code: 404, error: t('not found') };
+  if (!isPathAccessible(rootDir)) return { ok: false, code: 403, error: t('パーミッションがないよ') };
   return null;
 };
 
@@ -225,12 +226,12 @@ const registerWikiKnowledgeRoutes = (app) => {
 
   app.post('/api/knowledge/roots', async (request, reply) => {
     const { name, path: rootPath } = request.body ?? {};
-    if (!name || !rootPath) return reply.code(400).send({ error: 'name and path are required' });
-    if (name.includes('/') || name.includes('\\') || name.includes('..')) return reply.code(400).send({ error: 'invalid name' });
+    if (!name || !rootPath) return reply.code(400).send({ error: t('name and path are required') });
+    if (name.includes('/') || name.includes('\\') || name.includes('..')) return reply.code(400).send({ error: t('invalid name') });
     const resolvedPath = resolvePath(rootPath);
-    if (!existsSync(resolvedPath)) return reply.code(404).send({ error: 'not found' });
-    if (!isPathAccessible(resolvedPath)) return reply.code(403).send({ error: 'パーミッションがないよ' });
-    if (roots.some(r => r.name === name)) return reply.code(409).send({ error: 'root name already exists' });
+    if (!existsSync(resolvedPath)) return reply.code(404).send({ error: t('not found') });
+    if (!isPathAccessible(resolvedPath)) return reply.code(403).send({ error: t('パーミッションがないよ') });
+    if (roots.some(r => r.name === name)) return reply.code(409).send({ error: t('root name already exists') });
     persistedRoots.push({ name, path: rootPath });
     saveRootsFile(persistedRoots);
     roots = getRoots();
@@ -239,13 +240,13 @@ const registerWikiKnowledgeRoutes = (app) => {
 
   app.put('/api/knowledge/roots', async (request, reply) => {
     const { roots: newRoots } = request.body ?? {};
-    if (!Array.isArray(newRoots)) return reply.code(400).send({ error: 'roots must be an array' });
+    if (!Array.isArray(newRoots)) return reply.code(400).send({ error: t('roots must be an array') });
     for (const r of newRoots) {
-      if (!r.name || !r.path) return reply.code(400).send({ error: 'each root must have name and path' });
-      if (r.name.includes('/') || r.name.includes('\\') || r.name.includes('..')) return reply.code(400).send({ error: `invalid root name: ${r.name}` });
+      if (!r.name || !r.path) return reply.code(400).send({ error: t('each root must have name and path') });
+      if (r.name.includes('/') || r.name.includes('\\') || r.name.includes('..')) return reply.code(400).send({ error: t('invalid root name: {0}', r.name) });
       const resolvedPath = resolvePath(r.path);
-      if (!existsSync(resolvedPath)) return reply.code(404).send({ error: `root path not found: ${r.name}` });
-      if (!isPathAccessible(resolvedPath)) return reply.code(403).send({ error: `パーミッションがないよ: ${r.name}` });
+      if (!existsSync(resolvedPath)) return reply.code(404).send({ error: t('root path not found: {0}', r.name) });
+      if (!isPathAccessible(resolvedPath)) return reply.code(403).send({ error: t('パーミッションがないよ: {0}', r.name) });
       r.path = resolvedPath;
     }
     const envNames = parseRootsFromEnv().map(r => r.name);
@@ -258,9 +259,9 @@ const registerWikiKnowledgeRoutes = (app) => {
   app.delete('/api/knowledge/roots/:name', async (request, reply) => {
     const { name } = request.params;
     const envNames = parseRootsFromEnv().map(r => r.name);
-    if (envNames.includes(name)) return reply.code(400).send({ error: 'cannot remove env-configured root' });
+    if (envNames.includes(name)) return reply.code(400).send({ error: t('cannot remove env-configured root') });
     const idx = persistedRoots.findIndex(r => r.name === name);
-    if (idx === -1) return reply.code(404).send({ error: 'root not found' });
+    if (idx === -1) return reply.code(404).send({ error: t('root not found') });
     persistedRoots = persistedRoots.filter((_, i) => i !== idx);
     saveRootsFile(persistedRoots);
     roots = getRoots();
@@ -422,9 +423,9 @@ const initDuckDbExtras = async () => {
         resolve();
       });
     });
-    console.log('DuckDB attached to PostgreSQL.');
+    console.log(t('DuckDB attached to PostgreSQL.'));
   } catch (err) {
-    console.error('Failed to attach PostgreSQL:', err.message);
+    console.error(t('Failed to attach PostgreSQL:'), err.message);
   }
 };
 
@@ -432,16 +433,15 @@ const registerQueryRoutes = (app) => {
   app.post('/api/execute', async (request, reply) => {
     const { language, code, attach } = request.body || {};
     if (!language || !code) {
-      return reply.code(400).send({ error: '`language` and `code` are required.' });
+      return reply.code(400).send({ error: t('`language` and `code` are required.') });
     }
     const start = Date.now();
     if (language === 'postgresql' || language === 'pg') {
-      // direct PostgreSQL execution
       const connStr = attach && typeof attach === 'object'
         ? Object.values(attach)[0]
         : process.env.PG_CONNECT_STRING || process.env.DATABASE_URL;
       if (!connStr) {
-        return reply.code(400).send({ error: 'No database connection string. Set `databases:` in front matter or PG_CONNECT_STRING env.' });
+        return reply.code(400).send({ error: t('No database connection string. Set `databases:` in front matter or PG_CONNECT_STRING env.') });
       }
       try {
         const result = await execPgQuery(connStr, code);
@@ -452,7 +452,6 @@ const registerQueryRoutes = (app) => {
       }
     }
     if (language === 'sql' || language === 'duckdb') {
-      // DuckDB execution
       if (attach && typeof attach === 'object') {
         for (const [alias, connStr] of Object.entries(attach)) {
           const libpq = toLibpqConnStr(connStr);
@@ -472,7 +471,7 @@ const registerQueryRoutes = (app) => {
               });
             });
           } catch (err) {
-            return reply.code(500).send({ error: `Failed to attach database '${alias}': ${err.message}` });
+            return reply.code(500).send({ error: t('Failed to attach database \'{0}\': {1}', alias, err.message) });
           }
         }
       }
@@ -484,7 +483,7 @@ const registerQueryRoutes = (app) => {
         return reply.code(500).send({ error: err.message });
       }
     }
-    return reply.code(400).send({ error: `Unsupported language: ${language}. Supported: sql, duckdb, postgresql` });
+    return reply.code(400).send({ error: t('Unsupported language: {0}. Supported: sql, duckdb, postgresql', language) });
   });
 };
 
@@ -526,18 +525,19 @@ const start = async () => {
     });
     app.setNotFoundHandler((request, reply) => {
       if (request.url.startsWith('/api/')) {
-        return reply.code(404).send({ error: 'not found' });
+        return reply.code(404).send({ error: t('not found') });
       }
       return serveIndex(reply);
     });
   }
 
-  await initDuckDbExtras();
+    await initDuckDbExtras();
 
   try {
     await app.listen({ port: PORT, host: HOST });
-    console.log(`Wiki server running at http://${HOST === '0.0.0.0' ? 'localhost' : HOST}:${PORT}`);
-    console.log(`Knowledge roots (${roots.length}):`, roots.map(r => `${r.name}: ${r.path}`).join(', '));
+    const hostname = HOST === '0.0.0.0' ? 'localhost' : HOST;
+    console.log(t('Wiki server running at http://{0}:{1}', hostname, PORT));
+    console.log(t('Knowledge roots ({0}):', roots.length), roots.map(r => `${r.name}: ${r.path}`).join(', '));
   } catch (err) {
     console.error(err);
     process.exit(1);

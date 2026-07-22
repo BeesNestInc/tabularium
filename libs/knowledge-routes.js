@@ -1,5 +1,6 @@
 import { readFileSync, readdirSync, statSync, existsSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import path from 'node:path';
+import { t } from './i18n.js';
 import { matter } from './utils.js';
 
 export function registerKnowledgeRoutes(app, opts) {
@@ -15,7 +16,7 @@ export function registerKnowledgeRoutes(app, opts) {
     const qPath = request.query.path ?? '';
     if (qPath !== '') {
       const sr = resolvePath(request, qPath) || (getRoots(request).length > 0 ? { root: getRoots(request)[0], filePath: qPath } : null);
-      if (!sr) return reply.code(404).send({ error: 'not found' });
+      if (!sr) return reply.code(404).send({ error: t('not found') });
       const { root, filePath: relPath } = sr;
       const dirPath = relPath ? path.resolve(root.path, relPath) : root.path;
       const err = opts.assertRootAccess ? opts.assertRootAccess(dirPath) : null;
@@ -87,12 +88,12 @@ export function registerKnowledgeRoutes(app, opts) {
   // --- GET /page ---
   app.get(rootPath + '/page', async (request, reply) => {
     const qPath = request.query.path || '';
-    if (!qPath) return reply.code(400).send({ error: 'path required' });
+    if (!qPath) return reply.code(400).send({ error: t('path required') });
     const sr = resolvePath(request, qPath) || (getRoots(request).length > 0 ? { root: getRoots(request)[0], filePath: qPath } : null);
     if (!sr) return reply.code(404).send({ error: 'not found' });
     const { root, filePath: relPath } = sr;
     const absPath = relPath ? path.resolve(root.path, relPath) : root.path;
-    if (!absPath.startsWith(root.path)) return reply.code(403).send({ error: 'forbidden' });
+    if (!absPath.startsWith(root.path)) return reply.code(403).send({ error: t('forbidden') });
     const err = opts.assertRootAccess ? opts.assertRootAccess(absPath) : null;
     if (err) return reply.code(err.code).send({ error: err.error });
     if (!existsSync(absPath)) return reply.code(404).send({ error: 'not found' });
@@ -101,7 +102,7 @@ export function registerKnowledgeRoutes(app, opts) {
       const showHidden = request.query.showHidden === 'true';
       const entries = [];
       let dirEntries;
-      try { dirEntries = readdirSync(absPath); } catch { return reply.code(500).send({ error: 'cannot read directory' }); }
+      try { dirEntries = readdirSync(absPath); } catch { return reply.code(500).send({ error: t('cannot read directory') }); }
       for (const entry of dirEntries) {
         if (!showHidden && entry.startsWith('.')) continue;
         const full = path.join(absPath, entry);
@@ -134,7 +135,7 @@ export function registerKnowledgeRoutes(app, opts) {
     if (!sr) return reply.code(404).send({ error: 'not found' });
     const { root, filePath } = sr;
     const absolutePath = path.resolve(root.path, filePath);
-    if (!absolutePath.startsWith(root.path)) return reply.code(403).send({ error: 'forbidden' });
+    if (!absolutePath.startsWith(root.path)) return reply.code(403).send({ error: t('forbidden') });
     if (!existsSync(absolutePath)) return reply.code(404).send({ error: 'not found' });
     const st = statSync(absolutePath);
     const content = readFileSync(absolutePath, 'utf-8');
@@ -147,7 +148,7 @@ export function registerKnowledgeRoutes(app, opts) {
     if (!sr) return reply.code(404).send({ error: 'not found' });
     const { root, filePath } = sr;
     const absolutePath = path.resolve(root.path, filePath);
-    if (!absolutePath.startsWith(root.path)) return reply.code(403).send({ error: 'forbidden' });
+    if (!absolutePath.startsWith(root.path)) return reply.code(403).send({ error: t('forbidden') });
     mkdirSync(path.dirname(absolutePath), { recursive: true });
     writeFileSync(absolutePath, request.body.content || '');
     return { ok: true };
@@ -159,7 +160,7 @@ export function registerKnowledgeRoutes(app, opts) {
     if (!sr) return reply.code(404).send({ error: 'not found' });
     const { root, filePath } = sr;
     const absolutePath = path.resolve(root.path, filePath);
-    if (!absolutePath.startsWith(root.path)) return reply.code(403).send({ error: 'forbidden' });
+    if (!absolutePath.startsWith(root.path)) return reply.code(403).send({ error: t('forbidden') });
     if (!existsSync(absolutePath)) return reply.code(404).send({ error: 'not found' });
     rmSync(absolutePath, { recursive: true, force: true });
     return { ok: true };
@@ -171,8 +172,8 @@ export function registerKnowledgeRoutes(app, opts) {
     if (!sr) return reply.code(404).send({ error: 'not found' });
     const { root, filePath } = sr;
     const absolutePath = path.resolve(root.path, filePath);
-    if (!absolutePath.startsWith(root.path)) return reply.code(403).send({ error: 'forbidden' });
-    if (existsSync(absolutePath)) return reply.code(409).send({ error: 'already exists' });
+    if (!absolutePath.startsWith(root.path)) return reply.code(403).send({ error: t('forbidden') });
+    if (existsSync(absolutePath)) return reply.code(409).send({ error: t('already exists') });
     mkdirSync(absolutePath, { recursive: true });
     return { ok: true, path: request.params['*'] };
   });
@@ -183,8 +184,8 @@ export function registerKnowledgeRoutes(app, opts) {
     if (!sr) return reply.code(404).send({ error: 'not found' });
     const { root, filePath } = sr;
     const absolutePath = path.resolve(root.path, filePath);
-    if (!absolutePath.startsWith(root.path)) return reply.code(403).send({ error: 'forbidden' });
-    if (existsSync(absolutePath)) return reply.code(409).send({ error: 'already exists' });
+    if (!absolutePath.startsWith(root.path)) return reply.code(403).send({ error: t('forbidden') });
+    if (existsSync(absolutePath)) return reply.code(409).send({ error: t('already exists') });
     mkdirSync(path.dirname(absolutePath), { recursive: true });
     const ext = path.extname(filePath).toLowerCase();
     const template = opts.fileTemplates?.[ext] || '';
@@ -198,7 +199,7 @@ export function registerKnowledgeRoutes(app, opts) {
     if (!sr) return reply.code(404).send({ error: 'not found' });
     const { root, filePath } = sr;
     const absolutePath = path.resolve(root.path, filePath);
-    if (!absolutePath.startsWith(root.path)) return reply.code(403).send({ error: 'forbidden' });
+    if (!absolutePath.startsWith(root.path)) return reply.code(403).send({ error: t('forbidden') });
     if (!existsSync(absolutePath)) return reply.code(404).send({ error: 'not found' });
     const st = statSync(absolutePath);
     const ext = path.extname(filePath).toLowerCase();
@@ -224,7 +225,7 @@ export function registerKnowledgeRoutes(app, opts) {
     if (!sr) return reply.code(404).send({ error: 'not found' });
     const { root, filePath: relPath } = sr;
     const absolutePath = relPath ? path.resolve(root.path, relPath) : root.path;
-    if (!absolutePath.startsWith(root.path)) return reply.code(403).send({ error: 'forbidden' });
+    if (!absolutePath.startsWith(root.path)) return reply.code(403).send({ error: t('forbidden') });
     if (!existsSync(absolutePath)) return reply.code(404).send({ error: 'not found' });
     const st = statSync(absolutePath);
     const result = { type: st.isDirectory() ? 'directory' : 'file', path: request.query.path, size: st.size, mtime: st.mtime.toISOString(), birthtime: st.birthtime.toISOString() };
@@ -241,15 +242,15 @@ export function registerKnowledgeRoutes(app, opts) {
   // --- POST /move ---
   app.post(rootPath + '/move', async (request, reply) => {
     const { from, to } = request.body || {};
-    if (!from || !to) return reply.code(400).send({ error: 'from and to are required' });
+    if (!from || !to) return reply.code(400).send({ error: t('from and to are required') });
     const srFrom = resolvePath(request, from);
     const srTo = resolvePath(request, to);
-    if (!srFrom || !srTo) return reply.code(404).send({ error: 'path not found' });
+    if (!srFrom || !srTo) return reply.code(404).send({ error: t('path not found') });
     const fromPath = path.resolve(srFrom.root.path, srFrom.filePath);
     const toPath = path.resolve(srTo.root.path, srTo.filePath);
-    if (!fromPath.startsWith(srFrom.root.path) || !toPath.startsWith(srTo.root.path)) return reply.code(403).send({ error: 'forbidden' });
-    if (!existsSync(fromPath)) return reply.code(404).send({ error: 'source not found' });
-    if (existsSync(toPath)) return reply.code(409).send({ error: 'destination already exists' });
+    if (!fromPath.startsWith(srFrom.root.path) || !toPath.startsWith(srTo.root.path)) return reply.code(403).send({ error: t('forbidden') });
+    if (!existsSync(fromPath)) return reply.code(404).send({ error: t('source not found') });
+    if (existsSync(toPath)) return reply.code(409).send({ error: t('destination already exists') });
     mkdirSync(path.dirname(toPath), { recursive: true });
     const content = readFileSync(fromPath, 'utf-8');
     writeFileSync(toPath, content);
@@ -264,7 +265,7 @@ export function registerKnowledgeRoutes(app, opts) {
   app.get(rootPrefix, async (request, reply) => {
     const roots = getRoots(request);
     const root = roots.find(r => r.name === request.params.root);
-    if (!root) return reply.code(404).send({ error: 'root not found' });
+    if (!root) return reply.code(404).send({ error: t('root not found') });
     if (!existsSync(root.path)) return { tree: [] };
     const err = opts.assertRootAccess ? opts.assertRootAccess(root.path) : null;
     if (err) return reply.code(err.code).send({ error: err.error });
@@ -278,10 +279,10 @@ export function registerKnowledgeRoutes(app, opts) {
   app.get(rootPrefix + '/raw/*', async (request, reply) => {
     const roots = getRoots(request);
     const root = roots.find(r => r.name === request.params.root);
-    if (!root) return reply.code(404).send({ error: 'root not found' });
+    if (!root) return reply.code(404).send({ error: t('root not found') });
     const filePath = request.params['*'];
     const absolutePath = path.resolve(root.path, filePath);
-    if (!absolutePath.startsWith(root.path)) return reply.code(403).send({ error: 'forbidden' });
+    if (!absolutePath.startsWith(root.path)) return reply.code(403).send({ error: t('forbidden') });
     if (!existsSync(absolutePath)) return reply.code(404).send({ error: 'not found' });
     const content = readFileSync(absolutePath, 'utf-8');
     return { content, path: filePath };
@@ -290,10 +291,10 @@ export function registerKnowledgeRoutes(app, opts) {
   app.put(rootPrefix + '/raw/*', async (request, reply) => {
     const roots = getRoots(request);
     const root = roots.find(r => r.name === request.params.root);
-    if (!root) return reply.code(404).send({ error: 'root not found' });
+    if (!root) return reply.code(404).send({ error: t('root not found') });
     const filePath = request.params['*'];
     const absolutePath = path.resolve(root.path, filePath);
-    if (!absolutePath.startsWith(root.path)) return reply.code(403).send({ error: 'forbidden' });
+    if (!absolutePath.startsWith(root.path)) return reply.code(403).send({ error: t('forbidden') });
     mkdirSync(path.dirname(absolutePath), { recursive: true });
     writeFileSync(absolutePath, request.body.content || '');
     return { ok: true };
@@ -302,11 +303,11 @@ export function registerKnowledgeRoutes(app, opts) {
   app.post(rootPrefix + '/create/*', async (request, reply) => {
     const roots = getRoots(request);
     const root = roots.find(r => r.name === request.params.root);
-    if (!root) return reply.code(404).send({ error: 'root not found' });
+    if (!root) return reply.code(404).send({ error: t('root not found') });
     const filePath = request.params['*'];
     const absolutePath = path.resolve(root.path, filePath);
-    if (!absolutePath.startsWith(root.path)) return reply.code(403).send({ error: 'forbidden' });
-    if (existsSync(absolutePath)) return reply.code(409).send({ error: 'already exists' });
+    if (!absolutePath.startsWith(root.path)) return reply.code(403).send({ error: t('forbidden') });
+    if (existsSync(absolutePath)) return reply.code(409).send({ error: t('already exists') });
     mkdirSync(path.dirname(absolutePath), { recursive: true });
     writeFileSync(absolutePath, '', 'utf-8');
     return { ok: true, path: filePath };
@@ -315,10 +316,10 @@ export function registerKnowledgeRoutes(app, opts) {
   app.get(rootPrefix + '/file/*', async (request, reply) => {
     const roots = getRoots(request);
     const root = roots.find(r => r.name === request.params.root);
-    if (!root) return reply.code(404).send({ error: 'root not found' });
+    if (!root) return reply.code(404).send({ error: t('root not found') });
     const filePath = request.params['*'];
     const absolutePath = path.resolve(root.path, filePath);
-    if (!absolutePath.startsWith(root.path)) return reply.code(403).send({ error: 'forbidden' });
+    if (!absolutePath.startsWith(root.path)) return reply.code(403).send({ error: t('forbidden') });
     if (!existsSync(absolutePath)) return reply.code(404).send({ error: 'not found' });
     const data = readFileSync(absolutePath);
     if (request.query.dl === '1') {
@@ -338,10 +339,10 @@ export function registerKnowledgeRoutes(app, opts) {
   app.get(rootPrefix + '/info', async (request, reply) => {
     const roots = getRoots(request);
     const root = roots.find(r => r.name === request.params.root);
-    if (!root) return reply.code(404).send({ error: 'root not found' });
+    if (!root) return reply.code(404).send({ error: t('root not found') });
     const filePath = request.query.path || '';
     const absolutePath = filePath ? path.resolve(root.path, filePath) : root.path;
-    if (!absolutePath.startsWith(root.path)) return reply.code(403).send({ error: 'forbidden' });
+    if (!absolutePath.startsWith(root.path)) return reply.code(403).send({ error: t('forbidden') });
     if (!existsSync(absolutePath)) return reply.code(404).send({ error: 'not found' });
     const st = statSync(absolutePath);
     const result = { type: st.isDirectory() ? 'directory' : 'file', path: filePath || '', size: st.size, mtime: st.mtime.toISOString(), birthtime: st.birthtime.toISOString() };
@@ -358,10 +359,10 @@ export function registerKnowledgeRoutes(app, opts) {
   app.delete(rootPrefix + '/raw/*', async (request, reply) => {
     const roots = getRoots(request);
     const root = roots.find(r => r.name === request.params.root);
-    if (!root) return reply.code(404).send({ error: 'root not found' });
+    if (!root) return reply.code(404).send({ error: t('root not found') });
     const filePath = request.params['*'];
     const absolutePath = path.resolve(root.path, filePath);
-    if (!absolutePath.startsWith(root.path)) return reply.code(403).send({ error: 'forbidden' });
+    if (!absolutePath.startsWith(root.path)) return reply.code(403).send({ error: t('forbidden') });
     if (!existsSync(absolutePath)) return reply.code(404).send({ error: 'not found' });
     rmSync(absolutePath, { recursive: true, force: true });
     return { ok: true };
@@ -370,11 +371,11 @@ export function registerKnowledgeRoutes(app, opts) {
   app.post(rootPrefix + '/mkdir/*', async (request, reply) => {
     const roots = getRoots(request);
     const root = roots.find(r => r.name === request.params.root);
-    if (!root) return reply.code(404).send({ error: 'root not found' });
+    if (!root) return reply.code(404).send({ error: t('root not found') });
     const filePath = request.params['*'];
     const absolutePath = path.resolve(root.path, filePath);
-    if (!absolutePath.startsWith(root.path)) return reply.code(403).send({ error: 'forbidden' });
-    if (existsSync(absolutePath)) return reply.code(409).send({ error: 'already exists' });
+    if (!absolutePath.startsWith(root.path)) return reply.code(403).send({ error: t('forbidden') });
+    if (existsSync(absolutePath)) return reply.code(409).send({ error: t('already exists') });
     mkdirSync(absolutePath, { recursive: true });
     return { ok: true, path: request.params['*'] };
   });
@@ -382,15 +383,15 @@ export function registerKnowledgeRoutes(app, opts) {
   app.post(rootPrefix + '/move', async (request, reply) => {
     const roots = getRoots(request);
     const { from, to } = request.body || {};
-    if (!from || !to) return reply.code(400).send({ error: 'from and to are required' });
+    if (!from || !to) return reply.code(400).send({ error: t('from and to are required') });
     const fromRoot = roots.find(r => from.startsWith(r.name + '/') || from === r.name);
     const toRoot = roots.find(r => to.startsWith(r.name + '/') || to === r.name);
-    if (!fromRoot || !toRoot) return reply.code(404).send({ error: 'root not found' });
+    if (!fromRoot || !toRoot) return reply.code(404).send({ error: t('root not found') });
     const fromPath = path.resolve(fromRoot.path, from.slice(fromRoot.name.length).replace(/^\//, ''));
     const toPath = path.resolve(toRoot.path, to.slice(toRoot.name.length).replace(/^\//, ''));
-    if (!fromPath.startsWith(fromRoot.path) || !toPath.startsWith(toRoot.path)) return reply.code(403).send({ error: 'forbidden' });
-    if (!existsSync(fromPath)) return reply.code(404).send({ error: 'source not found' });
-    if (existsSync(toPath)) return reply.code(409).send({ error: 'destination already exists' });
+    if (!fromPath.startsWith(fromRoot.path) || !toPath.startsWith(toRoot.path)) return reply.code(403).send({ error: t('forbidden') });
+    if (!existsSync(fromPath)) return reply.code(404).send({ error: t('source not found') });
+    if (existsSync(toPath)) return reply.code(409).send({ error: t('destination already exists') });
     mkdirSync(path.dirname(toPath), { recursive: true });
     const content = readFileSync(fromPath, 'utf-8');
     writeFileSync(toPath, content);

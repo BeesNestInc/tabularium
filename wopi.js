@@ -1,5 +1,6 @@
 import { readFileSync, statSync, existsSync, writeFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
+import { t } from './libs/i18n.js';
 
 const PREFIX = '';
 const MIME_MAP = {
@@ -71,8 +72,8 @@ async function wopiRoutes(app, opts) {
     const isContents = wildcard.endsWith('/contents');
     const fileId = isContents ? wildcard.slice(0, -'/contents'.length) : wildcard;
     const absolutePath = getFilePath(request, fileId);
-    if (!absolutePath) return reply.code(404).send({ error: 'not found' });
-    if (!existsSync(absolutePath) || !statSync(absolutePath).isFile()) return reply.code(404).send({ error: 'not found' });
+    if (!absolutePath) return reply.code(404).send({ error: t('not found') });
+    if (!existsSync(absolutePath) || !statSync(absolutePath).isFile()) return reply.code(404).send({ error: t('not found') });
 
     if (isContents) {
       const data = readFileSync(absolutePath);
@@ -108,7 +109,7 @@ async function wopiRoutes(app, opts) {
 
   app.post(`${PREFIX}/wopi/files/*`, async (request, reply) => {
     const wildcard = request.params['*'];
-    if (!wildcard.endsWith('/contents')) return reply.code(400).send({ error: 'only /contents is writable' });
+    if (!wildcard.endsWith('/contents')) return reply.code(400).send({ error: t('only /contents is writable') });
 
     const fileId = wildcard.slice(0, -'/contents'.length);
     const absolutePath = getFilePath(request, fileId);

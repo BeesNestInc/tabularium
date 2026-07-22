@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import yaml from 'yaml';
+import { t } from './i18n.js';
 
 export const ensureBookmarksDir = (dir) => {
   const bmDir = path.join(dir, '.bookmarks');
@@ -71,9 +72,9 @@ export const createBookmarkRoutes = (app, { splitRootPath, prefix = '' }) => {
 
   app.get(`${prefix}/knowledge/bookmarks`, async (request, reply) => {
     const p = request.query.path;
-    if (!p) return reply.code(400).send({ error: 'path required' });
+    if (!p) return reply.code(400).send({ error: t('path required') });
     const sr = splitRootPath(request, p);
-    if (!sr) return reply.code(404).send({ error: 'not found' });
+    if (!sr) return reply.code(404).send({ error: t('not found') });
     const dir = bmDirFromPath(sr.root, sr.filePath);
     const bookmarks = readBookmarks(dir).map((bm) => {
       let domain = '';
@@ -85,12 +86,12 @@ export const createBookmarkRoutes = (app, { splitRootPath, prefix = '' }) => {
 
   app.post(`${prefix}/knowledge/bookmarks`, async (request, reply) => {
     const { path: p, title, url } = request.body ?? {};
-    if (!p || !title || !url) return reply.code(400).send({ error: 'path, title, url required' });
+    if (!p || !title || !url) return reply.code(400).send({ error: t('path, title, url required') });
     const sr = splitRootPath(request, p);
-    if (!sr) return reply.code(404).send({ error: 'not found' });
+    if (!sr) return reply.code(404).send({ error: t('not found') });
     const dir = bmDirFromPath(sr.root, sr.filePath);
     const bookmarks = readBookmarks(dir);
-    if (bookmarks.some((b) => b.url === url)) return reply.code(409).send({ error: 'already exists' });
+    if (bookmarks.some((b) => b.url === url)) return reply.code(409).send({ error: t('already exists') });
     bookmarks.push({ title, url });
     writeBookmarks(dir, bookmarks);
     const indexMd = path.join(dir, 'index.md');
@@ -107,9 +108,9 @@ export const createBookmarkRoutes = (app, { splitRootPath, prefix = '' }) => {
 
   app.patch(`${prefix}/knowledge/bookmarks`, async (request, reply) => {
     const { path: p, oldUrl, newTitle, newUrl } = request.body ?? {};
-    if (!p || !oldUrl) return reply.code(400).send({ error: 'path and oldUrl required' });
+    if (!p || !oldUrl) return reply.code(400).send({ error: t('path and oldUrl required') });
     const sr = splitRootPath(request, p);
-    if (!sr) return reply.code(404).send({ error: 'not found' });
+    if (!sr) return reply.code(404).send({ error: t('not found') });
     const dir = bmDirFromPath(sr.root, sr.filePath);
     const bookmarks = readBookmarks(dir);
     const idx = bookmarks.findIndex((b) => b.url === oldUrl);
@@ -132,9 +133,9 @@ export const createBookmarkRoutes = (app, { splitRootPath, prefix = '' }) => {
 
   app.delete(`${prefix}/knowledge/bookmarks`, async (request, reply) => {
     const { path: p, url } = request.body ?? {};
-    if (!p || !url) return reply.code(400).send({ error: 'path and url required' });
+    if (!p || !url) return reply.code(400).send({ error: t('path and url required') });
     const sr = splitRootPath(request, p);
-    if (!sr) return reply.code(404).send({ error: 'not found' });
+    if (!sr) return reply.code(404).send({ error: t('not found') });
     const dir = bmDirFromPath(sr.root, sr.filePath);
     writeBookmarks(dir, readBookmarks(dir).filter((b) => b.url !== url));
     return { ok: true };
@@ -142,7 +143,7 @@ export const createBookmarkRoutes = (app, { splitRootPath, prefix = '' }) => {
 
   app.get(`${prefix}/knowledge/page-title`, async (request, reply) => {
     const url = request.query.url;
-    if (!url) return reply.code(400).send({ error: 'url required' });
+    if (!url) return reply.code(400).send({ error: t('url required') });
     try {
       const res = await fetch(url, {
         headers: { 'User-Agent': 'Mozilla/5.0' },

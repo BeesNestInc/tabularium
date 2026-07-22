@@ -3,6 +3,7 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import dotenv from 'dotenv';
+import { t } from './libs/i18n.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -35,22 +36,22 @@ function detectEngine() {
 
 function run(args, opts = {}) {
   const engine = detectEngine();
-  if (!engine) throw new Error('No container engine found (podman or docker)');
+  if (!engine) throw new Error(t('No container engine found (podman or docker)'));
   return spawn(engine, args, { stdio: opts.stdio ?? 'inherit', ...opts });
 }
 
 function runSync(args) {
   const engine = detectEngine();
-  if (!engine) throw new Error('No container engine found (podman or docker)');
+  if (!engine) throw new Error(t('No container engine found (podman or docker)'));
   const result = spawnSync(engine, args, { encoding: 'utf-8' });
   if (result.error) throw result.error;
-  if (result.status !== 0) throw new Error(result.stderr?.trim() || `Command failed with code ${result.status}`);
+  if (result.status !== 0) throw new Error(result.stderr?.trim() || t('Command failed with code {0}', result.status));
   return result.stdout;
 }
 
 export async function status() {
   const engine = detectEngine();
-  if (!engine) return { running: false, engine: null, error: 'No container engine found' };
+  if (!engine) return { running: false, engine: null, error: t('No container engine found') };
 
   try {
     const inspect = runSync(['ps', '-a', '--filter', `name=${CONTAINER_NAME}`, '--format', '{{.ID}}|{{.Status}}|{{.Image}}|{{.Ports}}']);
@@ -87,7 +88,7 @@ export async function status() {
 
 function runAndCapture(args) {
   const engine = detectEngine();
-  if (!engine) throw new Error('No container engine found (podman or docker)');
+  if (!engine) throw new Error(t('No container engine found (podman or docker)'));
   return new Promise((resolve, reject) => {
     const proc = spawn(engine, args, { stdio: ['inherit', 'inherit', 'pipe'] });
     let stderr = '';
@@ -101,10 +102,10 @@ function runAndCapture(args) {
 
 export async function start() {
   const engine = detectEngine();
-  if (!engine) return { ok: false, error: 'No container engine found (podman or docker)' };
+  if (!engine) return { ok: false, error: t('No container engine found (podman or docker)') };
 
   const st = await status();
-  if (st.running) return { ok: true, message: 'Container already running', containerName: CONTAINER_NAME };
+  if (st.running) return { ok: true, message: t('Container already running'), containerName: CONTAINER_NAME };
 
   const runArgs = ['run', '-d', '--name', CONTAINER_NAME, '--restart', 'unless-stopped', '-p', PORT_MAPPING];
 
@@ -136,30 +137,30 @@ export async function start() {
 
   const { code, stderr } = await runAndCapture(args);
   if (code === 0) {
-    return { ok: true, message: st.exists ? 'Container started' : 'Container created and started', containerName: CONTAINER_NAME };
+    return { ok: true, message: st.exists ? t('Container started') : t('Container created and started'), containerName: CONTAINER_NAME };
   }
-  return { ok: false, error: `Container start failed (code ${code}): ${stderr || 'unknown error'}` };
+  return { ok: false, error: t('Container start failed (code {0}): {1}', code, stderr || 'unknown error') };
 }
 
 export async function stop() {
   const engine = detectEngine();
-  if (!engine) return { ok: false, error: 'No container engine found' };
+  if (!engine) return { ok: false, error: t('No container engine found') };
 
   const st = await status();
-  if (!st.exists) return { ok: true, message: 'Container does not exist' };
-  if (!st.running) return { ok: true, message: 'Container already stopped' };
+  if (!st.exists) return { ok: true, message: t('Container does not exist') };
+  if (!st.running) return { ok: true, message: t('Container already stopped') };
 
   const { code, stderr } = await runAndCapture(['stop', CONTAINER_NAME]);
-  if (code === 0) return { ok: true, message: 'Container stopped', containerName: CONTAINER_NAME };
-  return { ok: false, error: `Container stop failed (code ${code}): ${stderr || 'unknown error'}` };
+  if (code === 0) return { ok: true, message: t('Container stopped'), containerName: CONTAINER_NAME };
+  return { ok: false, error: t('Container stop failed (code {0}): {1}', code, stderr || 'unknown error') };
 }
 
 export async function remove() {
   const engine = detectEngine();
-  if (!engine) return { ok: false, error: 'No container engine found' };
+  if (!engine) return { ok: false, error: t('No container engine found') };
 
   const st = await status();
-  if (!st.exists) return { ok: true, message: 'Container does not exist' };
+  if (!st.exists) return { ok: true, message: t('Container does not exist') };
 
   if (st.running) {
     const stopResult = await stop();
@@ -167,16 +168,16 @@ export async function remove() {
   }
 
   const { code, stderr } = await runAndCapture(['rm', CONTAINER_NAME]);
-  if (code === 0) return { ok: true, message: 'Container removed', containerName: CONTAINER_NAME };
-  return { ok: false, error: `Container remove failed (code ${code}): ${stderr || 'unknown error'}` };
+  if (code === 0) return { ok: true, message: t('Container removed'), containerName: CONTAINER_NAME };
+  return { ok: false, error: t('Container remove failed (code {0}): {1}', code, stderr || 'unknown error') };
 }
 
 export async function logs(lines = 50) {
   const engine = detectEngine();
-  if (!engine) return { ok: false, error: 'No container engine found' };
+  if (!engine) return { ok: false, error: t('No container engine found') };
 
   const st = await status();
-  if (!st.exists) return { ok: false, error: 'Container does not exist' };
+  if (!st.exists) return { ok: false, error: t('Container does not exist') };
 
   try {
     const output = runSync(['logs', '--tail', String(lines), CONTAINER_NAME]);

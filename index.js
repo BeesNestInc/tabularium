@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 import Fastify from 'fastify';
 import fastifyStatic from '@fastify/static';
 import dotenv from 'dotenv';
-import { t } from './libs/i18n.js';
+import { t, setLocale, parseAcceptLanguage } from './libs/i18n.js';
 import { createBookmarkRoutes } from './libs/bookmarks.js';
 import { registerKnowledgeRoutes } from './libs/knowledge-routes.js';
 import duckdb from 'duckdb';
@@ -489,6 +489,12 @@ const registerQueryRoutes = (app) => {
 
 const start = async () => {
   const app = Fastify({ logger: true });
+
+  // Per-request locale from browser Accept-Language
+  app.addHook('onRequest', async (request) => {
+    const lang = parseAcceptLanguage(request.headers['accept-language']);
+    if (lang) setLocale(lang);
+  });
 
   // Fake auth endpoints for shared Svelte frontend
   app.get('/api/auth/me', async () => ({ user: { id: 'wiki', name: 'Wiki', role: 'admin' } }));

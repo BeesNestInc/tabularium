@@ -16,17 +16,13 @@ Tabularium — 知識ベースサーバ兼SPA。知識ベース（ファイル�
 
 ## 言語
 
-環境変数 `LANG` で応答メッセージの言語を切り替えられます（デフォルト: `en`）。
-
-```bash
-LANG=ja npm run start    # 日本語
-LANG=en npm run start    # 英語
-```
+API のエラーメッセージはブラウザの `Accept-Language` ヘッダに応じて自動で切り替わります。
+サーバ全体のデフォルトは環境変数 `LANG` で指定できます（デフォルト: `en`）。
 
 ## インストール
 
 ```bash
-git clone github.ogochan:BeesNestInc/tabularium.git
+git clone git@github.com:BeesNestInc/tabularium.git
 cd tabularium
 npm install
 cd client && npm install && cd ..

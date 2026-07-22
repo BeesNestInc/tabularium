@@ -3,26 +3,48 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-let messages = {};
+const cache = new Map();
 
 const parseLang = (loc) => {
-  if (!loc) return 'en';
+  if (!loc) return null;
   return loc.split('.')[0].split('_')[0];
 };
 
-export const setLocale = (loc) => {
-  const lang = parseLang(loc);
+const loadLocale = (lang) => {
+  let msgs = cache.get(lang);
+  if (msgs !== undefined) return msgs;
   try {
     const file = path.join(__dirname, 'locales', `${lang}.json`);
     if (existsSync(file)) {
-      messages = JSON.parse(readFileSync(file, 'utf-8'));
+      msgs = JSON.parse(readFileSync(file, 'utf-8'));
     } else {
-      messages = {};
+      msgs = {};
     }
   } catch {
-    messages = {};
+    msgs = {};
   }
+  cache.set(lang, msgs);
+  return msgs;
+};
+
+// preload on startup
+const defaultLang = parseLang(process.env.LANG) || 'en';
+loadLocale('en');
+loadLocale('ja');
+
+let messages = loadLocale(defaultLang);
+
+export const setLocale = (loc) => {
+  const lang = loc ? parseLang(loc) : defaultLang;
+  if (lang) messages = loadLocale(lang);
+};
+
+export const parseAcceptLanguage = (header) => {
+  if (!header) return '';
+  // simple: first tag, strip weight, normalize
+  const tag = header.split(',')[0].trim().split(';')[0];
+  if (!tag) return '';
+  return tag;
 };
 
 const fmt = (msg, args) => {
@@ -38,5 +60,5 @@ export const t = (key, ...args) => {
   return fmt(msg, args);
 };
 
-// auto-init on import
+// auto-init from env
 setLocale(process.env.LANG);

@@ -50,7 +50,7 @@ const parseRootsFromEnv = () => {
   return [{ name, path: fallback }];
 };
 
-const ROOTS_FILE = path.join(__dirname, 'roots.json');
+const ROOTS_FILE = path.join(projectRoot, 'roots.json');
 
 const loadRootsFile = () => {
   try {
@@ -510,7 +510,7 @@ const start = async () => {
     splitRootPath: (request, path) => splitRootPath(path),
   });
 
-  const publicDir = path.join(__dirname, 'public');
+  const publicDir = path.join(projectRoot, 'public');
   const serveIndex = (reply) => {
     const indexFile = path.join(publicDir, 'wiki.html');
     if (existsSync(indexFile)) {

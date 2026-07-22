@@ -24,8 +24,8 @@ API のエラーメッセージはブラウザの `Accept-Language` ヘッダに
 ### 言語を追加するには
 
 **サーバ側**:
-1. `libs/locales/{lang}.json` を作成（`en.json` をコピーして翻訳）
-2. `libs/i18n.js` の preload 部分に `loadLocale('{lang}');` を追加
+1. `server/libs/locales/{lang}.json` を作成（`server/libs/locales/en.json` をコピーして翻訳）
+2. `server/libs/i18n.js` の preload 部分に `loadLocale('{lang}');` を追加
 
 **クライアント側**:
 1. `client/src/libs/i18n.js` に該当言語の翻訳オブジェクトを追加
@@ -37,18 +37,25 @@ API のエラーメッセージはブラウザの `Accept-Language` ヘッダに
 ```bash
 git clone https://github.com/BeesNestInc/tabularium.git
 cd tabularium
-npm install
-cd client && npm install && cd ..
+npm run setup
+```
+
+`npm run setup` は以下をまとめて実行します:
+- `npm install`（サーバ依存）
+- `cd client && npm install`（SPA依存）
+- `npm run build`（SPAビルド → `public/` に出力）
+
+### 個別の操作
+
+```bash
+npm install             # サーバ依存のインストール
+npm run build           # SPAのビルドのみ
 ```
 
 ## 起動
 
 ```bash
-# サーバ起動（SPAの事前ビルドが必要）
-npm run start
-
-# SPAをビルドしてから起動
-cd client && npm run build && cd .. && npm run start
+npm start
 ```
 
 ## 設定
@@ -77,19 +84,21 @@ KNOWLEDGE_ROOTS='[{"name":"wiki","path":"/path/to/knowledge"},{"name":"docs","pa
 
 ```
 tabularium/
-├── index.js              # サーバエントリポイント
-├── wopi.js               # WOPIプロトコルルート
-├── collabora.js          # Collaboraコンテナ管理
-├── libs/                 # サーバサイドライブラリ
-│   ├── knowledge-routes.js
-│   ├── bookmarks.js
-│   └── utils.js
+├── server/               # サーバサイド（Node.js + Fastify）
+│   ├── index.js          #   エントリポイント
+│   ├── wopi.js           #   WOPIプロトコルルート
+│   ├── collabora.js      #   Collaboraコンテナ管理
+│   └── libs/             #   サーバサイドライブラリ
+│       ├── knowledge-routes.js
+│       ├── bookmarks.js
+│       ├── i18n.js
+│       └── locales/      #      翻訳ファイル (en/ja/zh)
 ├── client/               # SPA（Svelte + Vite）
 │   ├── wiki.html
 │   └── src/
 │       ├── pages/Knowledge.svelte
-│       ├── libs/         # クライアントサイドライブラリ
-│       ├── lib/          # SPA内部ライブラリ
+│       ├── libs/         #   クライアントサイドライブラリ（i18n等）
+│       ├── lib/          #   SPA内部ライブラリ
 │       └── components/
 ├── public/               # SPAビルド成果物
 └── package.json

@@ -31,6 +31,7 @@ const loadLocale = (lang) => {
 const defaultLang = parseLang(process.env.LANG) || 'en';
 loadLocale('en');
 loadLocale('ja');
+loadLocale('zh');
 
 let messages = loadLocale(defaultLang);
 

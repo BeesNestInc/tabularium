@@ -370,12 +370,15 @@ const execPgQuery = async (connStr, sql) => {
       return { columns: [], rows: [], rowCount: 0 };
     }
     const columns = res.fields.map(f => ({ name: f.name, type: PG_TYPE_MAP[f.dataTypeID] || f.dataTypeID.toString() }));
+    const numericTypes = new Set([20, 21, 23, 700, 701, 1700]);
+    const pgColTypes = res.fields.reduce((acc, f, i) => { acc[f.name] = f.dataTypeID; return acc; }, {});
     const rows = (res.rows || []).map(row => {
       const newRow = {};
       for (const key in row) {
         const val = row[key];
         if (val instanceof Date) newRow[key] = val.toISOString();
         else if (typeof val === 'bigint') newRow[key] = Number(val);
+        else if (typeof val === 'string' && numericTypes.has(pgColTypes[key])) newRow[key] = parseFloat(val);
         else newRow[key] = val;
       }
       return newRow;

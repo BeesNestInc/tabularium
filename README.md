@@ -22,7 +22,7 @@ API のエラーメッセージはブラウザの `Accept-Language` ヘッダに
 ## インストール
 
 ```bash
-git clone git@github.com:BeesNestInc/tabularium.git
+git clone https://github.com/BeesNestInc/tabularium.git
 cd tabularium
 npm install
 cd client && npm install && cd ..

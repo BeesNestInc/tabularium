@@ -1,3 +1,5 @@
+import { t } from '../libs/i18n.js';
+
 const escapeHtml = (s) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
 const parseCsvRow = (line) => {
@@ -32,9 +34,9 @@ const parseCsv = (csv) => {
 };
 
 const csvToHtml = (csv) => {
-  if (!csv || !csv.trim()) return '<p class="text-muted">（空のファイルです）</p>';
+  if (!csv || !csv.trim()) return '<p class="text-muted">' + t('（空のファイルです）') + '</p>';
   const { headers, data } = parseCsv(csv);
-  if (headers.length === 0 && data.length === 0) return '<p class="text-muted">（空のファイルです）</p>';
+  if (headers.length === 0 && data.length === 0) return '<p class="text-muted">' + t('（空のファイルです）') + '</p>';
   let html = '<table class="table table-striped" style="margin:1em 0;">\n<thead>\n<tr>';
   html += headers.map((h) => '<th>' + escapeHtml(h) + '</th>').join('');
   html += '</tr>\n</thead>\n<tbody>\n';

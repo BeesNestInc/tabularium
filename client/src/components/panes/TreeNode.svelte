@@ -1,4 +1,5 @@
 <script>
+  import { t } from '../../libs/i18n.js';
   export let node;
   export let selectedPath = null;
   export let children = [];
@@ -69,11 +70,11 @@
   const formatTime = (iso) => {
     if (!iso) return '';
     const d = new Date(iso);
-    return d.toLocaleString('ja-JP');
+    return d.toLocaleString(navigator.language);
   };
 
   const doDelete = async () => {
-    if (!confirm(`"${node.name}" を削除しますか？（.trash/ に移動します）`)) return;
+    if (!confirm(t('"{0}" を削除しますか？（.trash/ に移動します）', node.name))) return;
     deleting = true;
     try {
       const res = await fetch(apiUrl(`/raw/${node.path}`), {
@@ -82,7 +83,7 @@
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       onDelete?.();
     } catch (e) {
-      alert(`削除失敗: ${e.message}`);
+      alert(t('削除失敗: {0}', e.message));
     } finally {
       deleting = false;
     }
@@ -140,28 +141,28 @@
   const ctxMenuItems = () => {
     if (node.type === 'directory') {
       const items = [
-        { label: '開く', action: () => onSelectFolder?.(node.path) },
-        { label: '新規ファイル', action: () => onNewFile?.(node.path) },
-        { label: '新規フォルダ', action: () => { window.createFolderFromPath?.(node.path); } },
+        { label: t('開く'), action: () => onSelectFolder?.(node.path) },
+        { label: t('新規ファイル'), action: () => onNewFile?.(node.path) },
+        { label: t('新規フォルダ'), action: () => { window.createFolderFromPath?.(node.path); } },
       ];
       if (isCutPending) {
-        items.push({ label: '貼り付け', action: () => onPaste?.(node.path) });
+        items.push({ label: t('貼り付け'), action: () => onPaste?.(node.path) });
       }
-      items.push({ label: '削除', action: doDelete, disabled: deleting });
+      items.push({ label: t('削除'), action: doDelete, disabled: deleting });
       return items;
     }
     if (isTrash) {
       return [
-        { label: '元に戻す', action: () => onRestore?.(node.path) },
-        { label: '削除', action: doDelete, disabled: deleting },
+        { label: t('元に戻す'), action: () => onRestore?.(node.path) },
+        { label: t('削除'), action: doDelete, disabled: deleting },
       ];
     }
     const items = [
-      { label: '編集', action: () => onEdit?.(node.path) },
-      { label: '印刷', action: () => { window.open('/' + node.path + '?mode=print', '_blank'); } },
-      { label: 'ダウンロード', action: () => { window.open(apiUrl('/file/' + node.path + '?dl=1'), '_blank'); } },
-      { label: '切り取り', action: () => onCut?.(node.path) },
-      { label: '削除', action: doDelete, disabled: deleting },
+      { label: t('編集'), action: () => onEdit?.(node.path) },
+      { label: t('印刷'), action: () => { window.open('/' + node.path + '?mode=print', '_blank'); } },
+      { label: t('ダウンロード'), action: () => { window.open(apiUrl('/file/' + node.path + '?dl=1'), '_blank'); } },
+      { label: t('切り取り'), action: () => onCut?.(node.path) },
+      { label: t('削除'), action: doDelete, disabled: deleting },
     ];
     return items;
   };
@@ -172,7 +173,7 @@
   {#if node.type === 'directory'}
     <div class="tree-dir-row" class:drag-over={node.type === 'directory'}
       ondragover={onDragOver} ondragenter={onDragEnter} ondrop={onDrop}>
-      <button class="tree-toggle-arrow" onclick={doToggle} disabled={loadingChildren} title="開閉">
+      <button class="tree-toggle-arrow" onclick={doToggle} disabled={loadingChildren} title={t('開閉')}>
         <span class="tree-arrow">{isOpen && children.length > 0 ? '▾' : '▸'}</span>
       </button>
       <a class="tree-toggle-folder" href="/{node.path}/" onclick={(e) => { e.preventDefault(); onSelectFolder?.(node.path); }}>

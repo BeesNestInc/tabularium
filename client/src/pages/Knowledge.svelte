@@ -5,6 +5,7 @@
   import * as bmUi from '../libs/bookmarks-ui.js';
   import * as api from '../libs/knowledge-api.js';
   import { createMd } from '../libs/markdown-render.js';
+  import { t } from '../libs/i18n.js';
   import { parseCsvRow, parseCsv, csvToHtml } from '../lib/csv.js';
   import { isImageExt, isTextExt, isCsvExt, isDrawioExt, isOfficeExt, isCalendarExt, getEditorLang } from '../lib/file-utils.js';
   import { fileTemplates } from '../lib/file-templates.js';
@@ -88,7 +89,7 @@ import EditMode from '../components/knowledge/EditMode.svelte';
         _link(`/${name}?mode=edit`, { replace: true });
       }
     } catch (e) {
-      alert(`作成失敗: ${e.message}`);
+      alert(t('作成失敗: {0}', e.message));
     } finally {
       creating = false;
     }
@@ -122,12 +123,12 @@ import EditMode from '../components/knowledge/EditMode.svelte';
   };
 
   const deleteRoot = async (name) => {
-    if (!confirm(`ルート「${name}」を削除しますか？`)) return;
+    if (!confirm(t('ルート「{0}」を削除しますか？', name))) return;
     try {
       roots = await apiDeleteRoot(name);
       treeReload++;
     } catch (e) {
-      alert(`削除失敗: ${e.message}`);
+      alert(t('削除失敗: {0}', e.message));
     }
   };
   const apiUrl = (path) => `/api/knowledge${path}`;
@@ -144,7 +145,7 @@ import EditMode from '../components/knowledge/EditMode.svelte';
         drawioXml = raw.content || fileTemplates['.drawio']();
         contentHtml = '<div class="drawio-placeholder">Loading diagram...</div>';
       } catch {
-        contentHtml = '<div class="alert alert-danger">ファイルが存在しません</div>';
+        contentHtml = '<div class="alert alert-danger">' + t('ファイルが存在しません') + '</div>';
         drawioXml = '';
       }
     } else if (isCsvExt(filePath)) {
@@ -154,7 +155,7 @@ import EditMode from '../components/knowledge/EditMode.svelte';
         csvDirty = false;
         contentHtml = csvToHtml(csvContent);
       } catch {
-        contentHtml = '<div class="alert alert-danger">ファイルが存在しません</div>';
+        contentHtml = '<div class="alert alert-danger">' + t('ファイルが存在しません') + '</div>';
         csvContent = '';
       }
     } else if (isImageExt(filePath)) {
@@ -168,7 +169,7 @@ import EditMode from '../components/knowledge/EditMode.svelte';
       } catch {
         calendarRawContent = '';
         calendarError = true;
-        contentHtml = '<div class="alert alert-danger">ファイルが存在しません</div>';
+        contentHtml = '<div class="alert alert-danger">' + t('ファイルが存在しません') + '</div>';
       }
     } else if (isTextExt(filePath)) {
       try {
@@ -176,7 +177,7 @@ import EditMode from '../components/knowledge/EditMode.svelte';
         const escaped = (raw.content || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
         contentHtml = '<pre style="white-space:pre-wrap;word-break:break-all;background:#f4f4f4;padding:12px;border-radius:4px;font-size:0.85em">' + escaped + '</pre>';
       } catch {
-        contentHtml = '<div class="alert alert-danger">ファイルが存在しません</div>';
+        contentHtml = '<div class="alert alert-danger">' + t('ファイルが存在しません') + '</div>';
       }
     } else if (isOfficeExt(filePath)) {
       contentLoading = false;
@@ -191,7 +192,7 @@ import EditMode from '../components/knowledge/EditMode.svelte';
         autoRunDone = false;
         queryResults = {};
       } else {
-        contentHtml = '<p class="text-muted">このファイルはプレビューできません。<br><a href="' + api.fetchFile(filePath) + '?dl=1" class="btn btn-sm btn-outline-secondary mt-2">ダウンロード</a></p>';
+        contentHtml = '<p class="text-muted">' + t('このファイルはプレビューできません。') + '<br><a href="' + api.fetchFile(filePath) + '?dl=1" class="btn btn-sm btn-outline-secondary mt-2">' + t('ダウンロード') + '</a></p>';
         evidenceCharts = [];
       }
     }
@@ -233,11 +234,11 @@ import EditMode from '../components/knowledge/EditMode.svelte';
         credentials: 'include',
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      saveMessage = '保存しました';
+      saveMessage = t('保存しました');
       setTimeout(() => { saveMessage = ''; }, 3000);
       return true;
     } catch (e) {
-      saveMessage = `保存失敗: ${e.message}`;
+      saveMessage = t('保存失敗: {0}', e.message);
       return false;
     } finally {
       saving = false;
@@ -256,11 +257,11 @@ import EditMode from '../components/knowledge/EditMode.svelte';
         credentials: 'include',
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      saveMessage = '保存しました';
+      saveMessage = t('保存しました');
       csvDirty = false;
       setTimeout(() => { saveMessage = ''; }, 3000);
     } catch (e) {
-      saveMessage = `保存失敗: ${e.message}`;
+      saveMessage = t('保存失敗: {0}', e.message);
     } finally {
       saving = false;
     }
@@ -278,11 +279,11 @@ import EditMode from '../components/knowledge/EditMode.svelte';
         credentials: 'include',
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      saveMessage = '保存しました';
+      saveMessage = t('保存しました');
       calendarDirty = false;
       setTimeout(() => { saveMessage = ''; }, 3000);
     } catch (e) {
-      saveMessage = `保存失敗: ${e.message}`;
+      saveMessage = t('保存失敗: {0}', e.message);
     } finally {
       saving = false;
     }
@@ -393,7 +394,7 @@ import EditMode from '../components/knowledge/EditMode.svelte';
       const id = 'ev-' + Math.random().toString(36).slice(2, 8);
       config.id = id;
       charts.push(config);
-      return `<div class="ev-chart-placeholder" data-ev-id="${id}" style="min-height:40px;padding:8px;margin:8px 0;border:1px dashed #ccc;border-radius:6px;color:#999;text-align:center;font-size:0.85em">${tagName} (data={${config.queryName}}) — ▶ Runでクエリを実行</div>`;
+      return `<div class="ev-chart-placeholder" data-ev-id="${id}" style="min-height:40px;padding:8px;margin:8px 0;border:1px dashed #ccc;border-radius:6px;color:#999;text-align:center;font-size:0.85em">${tagName} (data={${config.queryName}}) — ${t('▶ Runでクエリを実行')}</div>`;
     });
     return { html: processed, charts };
   };
@@ -417,7 +418,7 @@ import EditMode from '../components/knowledge/EditMode.svelte';
     if (!container) return;
     const echartOpt = buildEvidenceOption(chartConfig, queryData);
     if (!echartOpt) {
-      container.innerHTML = '<p class="text-muted">グラフに適したカラムがありません</p>';
+      container.innerHTML = '<p class="text-muted">' + t('グラフに適したカラムがありません') + '</p>';
       return;
     }
     import('echarts').then(({ init }) => {
@@ -429,7 +430,7 @@ import EditMode from '../components/knowledge/EditMode.svelte';
   };
 
   const renderSqlTable = (data) => {
-    if (!data.columns || data.columns.length === 0) return '<p class="text-muted">空です</p>';
+    if (!data.columns || data.columns.length === 0) return '<p class="text-muted">' + t('空です') + '</p>';
     let html = '<table class="table table-sm table-striped"><thead><tr>';
     html += data.columns.map(c => `<th>${c.name}</th>`).join('');
     html += '</tr></thead><tbody>';
@@ -479,7 +480,7 @@ import EditMode from '../components/knowledge/EditMode.svelte';
 
   const executeSql = async (sql, queryName, resultDiv, statusEl, btn) => {
     if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
-    if (statusEl) statusEl.textContent = '実行中...';
+    if (statusEl) statusEl.textContent = t('実行中...');
     if (resultDiv) resultDiv.style.display = 'none';
     try {
       const meta = getPageMeta();
@@ -525,12 +526,12 @@ import EditMode from '../components/knowledge/EditMode.svelte';
 
   const renderSqlResult = (container, data) => {
     if (!data.columns || data.columns.length === 0) {
-      container.innerHTML = '<p class="text-muted">クエリ結果は空です</p>';
+      container.innerHTML = '<p class="text-muted">' + t('クエリ結果は空です') + '</p>';
       return;
     }
     const id = 'sql-result-' + Math.random().toString(36).slice(2, 8);
-    let html = '<div class="sql-result-tabs"><button class="sql-tab-btn active" data-tab="' + id + '-table">表</button>';
-    html += '<button class="sql-tab-btn" data-tab="' + id + '-chart">グラフ</button></div>';
+    let html = '<div class="sql-result-tabs"><button class="sql-tab-btn active" data-tab="' + id + '-table">' + t('表') + '</button>';
+    html += '<button class="sql-tab-btn" data-tab="' + id + '-chart">' + t('グラフ') + '</button></div>';
     html += '<div id="' + id + '-table" class="sql-tab-content">' + renderSqlTable(data) + '</div>';
     html += '<div id="' + id + '-chart" class="sql-tab-content sql-chart-container" style="display:none"></div>';
     container.innerHTML = html;
@@ -554,7 +555,7 @@ import EditMode from '../components/knowledge/EditMode.svelte';
     const numericCols = data.columns.filter(c => c.type === 'number' || c.type === 'bigint' || c.type === 'integer');
     const stringCols = data.columns.filter(c => c.type === 'string' || c.type === 'varchar');
     if (numericCols.length === 0 || data.rows.length === 0) {
-      container.innerHTML = '<p class="text-muted">グラフに適したカラムがありません（数値カラムが必要です）</p>';
+      container.innerHTML = '<p class="text-muted">' + t('グラフに適したカラムがありません（数値カラムが必要です）') + '</p>';
       return;
     }
     const xCol = stringCols.length > 0 ? stringCols[0].name : null;
@@ -587,7 +588,7 @@ import EditMode from '../components/knowledge/EditMode.svelte';
       const ro = new ResizeObserver(() => chart.resize());
       ro.observe(container);
     } catch {
-      container.innerHTML = '<p class="text-muted">グラフの初期化に失敗しました</p>';
+      container.innerHTML = '<p class="text-muted">' + t('グラフの初期化に失敗しました') + '</p>';
     }
   };
 
@@ -618,7 +619,7 @@ import EditMode from '../components/knowledge/EditMode.svelte';
     } else if (msg.event === 'exit') {
       if (msg.modified) {
         // 編集内容がある場合、自動保存するか確認
-        if (confirm('図が変更されています。保存しますか？')) {
+        if (confirm(t('図が変更されています。保存しますか？'))) {
           saveDrawioXml(msg.xml);
         } else {
           isDrawioEditing = false;
@@ -655,7 +656,7 @@ import EditMode from '../components/knowledge/EditMode.svelte';
         xml = new TextDecoder('utf-8').decode(bytes);
       } catch {
         drawioSaving = false;
-        drawioSaveMessage = 'SVGデコード失敗';
+        drawioSaveMessage = t('SVGデコード失敗');
         return;
       }
     }
@@ -670,12 +671,12 @@ import EditMode from '../components/knowledge/EditMode.svelte';
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       drawioSaving = false;
-      drawioSaveMessage = `SVG保存完了 → ${svgPath}`;
+      drawioSaveMessage = t('SVG保存完了 → {0}', svgPath);
       setTimeout(() => { drawioSaveMessage = ''; }, 5000);
       loadTree();
     } catch (err) {
       drawioSaving = false;
-      drawioSaveMessage = `SVG保存失敗: ${err.message}`;
+      drawioSaveMessage = t('SVG保存失敗: {0}', err.message);
     }
   };
 
@@ -692,11 +693,11 @@ import EditMode from '../components/knowledge/EditMode.svelte';
       drawioXml = xml;
       if (exitAfterSave) isDrawioEditing = false;
       drawioSaving = false;
-      drawioSaveMessage = '保存しました';
+      drawioSaveMessage = t('保存しました');
       setTimeout(() => { drawioSaveMessage = ''; }, 3000);
     } catch (err) {
       drawioSaving = false;
-      drawioSaveMessage = `保存失敗: ${err.message}`;
+      drawioSaveMessage = t('保存失敗: {0}', err.message);
     }
   };
 
@@ -734,17 +735,17 @@ import EditMode from '../components/knowledge/EditMode.svelte';
       var u = url || prompt('URL:');
       if (!u) return;
       api.fetchPageTitle(u).then(function(data) {
-        var t = prompt('タイトル:', data.title || u);
-        if (!t) return;
-        api.bookmarkAdd(fp, t, u).then(function() {
+        var pTitle = prompt(t('タイトル:'), data.title || u);
+        if (!pTitle) return;
+        api.bookmarkAdd(fp, pTitle, u).then(function() {
           loadDirectory(fp);
-        }).catch(function(e) { alert('追加失敗: ' + e.message); });
+        }).catch(function(e) { alert(t('追加失敗: {0}', e.message)); });
       }).catch(function() {
-        var t = prompt('タイトル:', u);
-        if (!t) return;
-        api.bookmarkAdd(fp, t, u).then(function() {
+        var pTitle = prompt(t('タイトル:'), u);
+        if (!pTitle) return;
+        api.bookmarkAdd(fp, pTitle, u).then(function() {
           loadDirectory(fp);
-        }).catch(function(e) { alert('追加失敗: ' + e.message); });
+        }).catch(function(e) { alert(t('追加失敗: {0}', e.message)); });
       });
     };
     window.deleteBookmark = (idx) => {
@@ -754,44 +755,44 @@ import EditMode from '../components/knowledge/EditMode.svelte';
       if (!fp) return;
       api.bookmarkDelete(fp, bm.url).then(function() {
         loadDirectory(fp);
-      }).catch(function(e) { alert('削除失敗: ' + e.message); });
+      }).catch(function(e) { alert(t('削除失敗: {0}', e.message)); });
     };
     window.editBookmark = (idx) => {
       var bm = bookmarks[idx];
       if (!bm) return;
       var fp = selectedPath ? selectedPath.replace(/\/$/, '') : '';
       if (!fp) return;
-      var newTitle = prompt('タイトル:', bm.title);
+      var newTitle = prompt(t('タイトル:'), bm.title);
       if (!newTitle) return;
       var newUrl = prompt('URL:', bm.url);
       if (!newUrl) return;
       api.bookmarkEdit(fp, bm.url, newTitle, newUrl).then(function() {
         loadDirectory(fp);
-      }).catch(function(e) { alert('更新失敗: ' + e.message); });
+      }).catch(function(e) { alert(t('更新失敗: {0}', e.message)); });
     };
     window.createFolderFromPath = async (dirPath) => {
       var fp = dirPath || (selectedPath ? selectedPath.replace(/\/$/, '') : '');
       if (!fp) return;
-      var name = prompt('フォルダ名:');
+      var name = prompt(t('フォルダ名:'));
       if (!name) return;
-      if (name.includes('/') || name.includes('\\')) { alert('フォルダ名にパス区切り文字は使えません'); return; }
+      if (name.includes('/') || name.includes('\\')) { alert(t('フォルダ名にパス区切り文字は使えません')); return; }
       try {
         var res = await fetch(apiUrl('/mkdir/' + fp + '/' + name), { method: 'POST', credentials: 'include' });
         if (!res.ok) { var d = await res.json(); throw new Error(d.error || 'HTTP ' + res.status); }
         treeReload++;
         var cur = selectedPath ? selectedPath.replace(/\/$/, '') : '';
         if (cur && (cur === fp || cur.startsWith(fp + '/'))) loadDirectory(cur);
-      } catch (e) { alert('作成失敗: ' + e.message); }
+      } catch (e) { alert(t('作成失敗: {0}', e.message)); }
     };
     window.createFolder = async () => window.createFolderFromPath(selectedPath ? selectedPath.replace(/\/$/, '') : '');
     window.deleteEntry = async (path) => {
-      if (!confirm('"' + path.split('/').pop() + '" を削除しますか？')) return;
+      if (!confirm(t('"{0}" を削除しますか？', path.split('/').pop()))) return;
       try {
         var res = await fetch(apiUrl('/raw/' + path), { method: 'DELETE', credentials: 'include' });
         if (!res.ok) { var d = await res.json(); throw new Error(d.error || 'HTTP ' + res.status); }
         var fp = selectedPath ? selectedPath.replace(/\/$/, '') : '';
         if (fp) loadDirectory(fp);
-      } catch (e) { alert('削除失敗: ' + e.message); }
+      } catch (e) { alert(t('削除失敗: {0}', e.message)); }
     };
     // File info tooltip for entry list
     var tooltipTimer = null;
@@ -800,7 +801,7 @@ import EditMode from '../components/knowledge/EditMode.svelte';
       if (!tip) return;
       tip.style.left = e.clientX + 'px';
       tip.style.top = e.clientY + 'px';
-      tip.innerHTML = '\u8AAD\u307F\u8FBC\u307F\u4E2D...';
+      tip.innerHTML = t('読み込み中...');
       tip.classList.remove('hidden');
       clearTimeout(tooltipTimer);
       tooltipTimer = setTimeout(function() {
@@ -850,18 +851,18 @@ import EditMode from '../components/knowledge/EditMode.svelte';
     var doAdd = function(title, u) {
       api.bookmarkAdd(dir, title, u).then(function() {
         loadDirectory(dir);
-      }).catch(function(e) { alert('追加失敗: ' + e.message); });
+      }).catch(function(e) { alert(t('追加失敗: {0}', e.message)); });
     };
     api.fetchPageTitle(clean)
       .then(function(r) { return r.json(); })
       .then(function(data) {
-        var t = prompt('タイトル:', data.title || clean);
-        if (!t) return;
-        doAdd(t, clean);
+        var pTitle = prompt(t('タイトル:'), data.title || clean);
+        if (!pTitle) return;
+        doAdd(pTitle, clean);
       }).catch(function() {
-        var t = prompt('タイトル:', clean);
-        if (!t) return;
-        doAdd(t, clean);
+        var pTitle = prompt(t('タイトル:'), clean);
+        if (!pTitle) return;
+        doAdd(pTitle, clean);
       });
   };
 
@@ -898,7 +899,7 @@ import EditMode from '../components/knowledge/EditMode.svelte';
       contentHtml = html + folderHtml;
     } catch (e) {
       console.error('loadDirectory error:', e);
-      contentHtml = '<div class="alert alert-danger">ディレクトリが見つかりません: ' + folderPath + '</div>';
+      contentHtml = `<div class="alert alert-danger">${t('ディレクトリが見つかりません: {0}', folderPath)}</div>`;
     }
     contentLoading = false;
   };
@@ -979,20 +980,20 @@ import EditMode from '../components/knowledge/EditMode.svelte';
         {#if selectedPath !== null && (contentHtml || isOfficeExt(selectedPath))}
           <div class="header-buttons">
             {#if !window.location.pathname.endsWith('/')}
-              <a class="btn btn-sm btn-outline-secondary" href="/api/knowledge/file/{selectedPath}?dl=1" download>ダウンロード</a>
+              <a class="btn btn-sm btn-outline-secondary" href="/api/knowledge/file/{selectedPath}?dl=1" download>{t('ダウンロード')}</a>
               {#if isDrawioExt(selectedPath)}
                 {#if isDrawioEditing}
-                  <button class="btn btn-sm btn-primary" onclick={saveDrawio} disabled={drawioSaving}>{drawioSaving ? '保存中...' : '保存'}</button>
-                  <button class="btn btn-sm btn-outline-secondary" onclick={() => { isDrawioEditing = false; }}>取消</button>
+                  <button class="btn btn-sm btn-primary" onclick={saveDrawio} disabled={drawioSaving}>{drawioSaving ? t('保存中...') : t('保存')}</button>
+                  <button class="btn btn-sm btn-outline-secondary" onclick={() => { isDrawioEditing = false; }}>{t('取消')}</button>
                 {:else}
-                  <button class="btn btn-sm btn-outline-secondary" onclick={exportDrawioSvg} disabled={drawioSaving}>{drawioSaving ? '出力中...' : 'SVG出力'}</button>
-                  <button class="btn btn-sm btn-outline-secondary" onclick={() => { isDrawioEditing = true; }}>編集</button>
+                  <button class="btn btn-sm btn-outline-secondary" onclick={exportDrawioSvg} disabled={drawioSaving}>{drawioSaving ? t('出力中...') : t('SVG出力')}</button>
+                  <button class="btn btn-sm btn-outline-secondary" onclick={() => { isDrawioEditing = true; }}>{t('編集')}</button>
                 {/if}
               {:else if !isCsvExt(selectedPath) && !isOfficeExt(selectedPath)}
-                <button class="btn btn-sm btn-outline-secondary" onclick={() => _link('/' + selectedPath + '?mode=edit', { replace: true })}>編集</button>
+                <button class="btn btn-sm btn-outline-secondary" onclick={() => _link('/' + selectedPath + '?mode=edit', { replace: true })}>{t('編集')}</button>
               {/if}
             {/if}
-            <button class="btn btn-sm btn-outline-secondary" onclick={printContent}>印刷</button>
+            <button class="btn btn-sm btn-outline-secondary" onclick={printContent}>{t('印刷')}</button>
           </div>
         {/if}
       </div>
@@ -1002,7 +1003,7 @@ import EditMode from '../components/knowledge/EditMode.svelte';
             <span class="csv-edit-message" class:error={saveMessage.includes('失敗')}>{saveMessage}</span>
           {/if}
           <div class="csv-edit-actions">
-            <button class="btn btn-sm btn-primary" onclick={saveCsvContent} disabled={saving}>{saving ? '保存中...' : '保存'}</button>
+            <button class="btn btn-sm btn-primary" onclick={saveCsvContent} disabled={saving}>{saving ? t('保存中...') : t('保存')}</button>
           </div>
         </div>
       {/if}
@@ -1012,15 +1013,15 @@ import EditMode from '../components/knowledge/EditMode.svelte';
             <span class="csv-edit-message" class:error={saveMessage.includes('失敗')}>{saveMessage}</span>
           {/if}
           <div class="csv-edit-actions">
-            <button class="btn btn-sm btn-primary" onclick={saveCalendarContent} disabled={saving}>{saving ? '保存中...' : '保存'}</button>
+            <button class="btn btn-sm btn-primary" onclick={saveCalendarContent} disabled={saving}>{saving ? t('保存中...') : t('保存')}</button>
           </div>
         </div>
       {/if}
       <div class="pane-body">
         {#if contentLoading}
-          <div class="text-muted">読み込み中...</div>
+          <div class="text-muted">{t('読み込み中...')}</div>
         {:else if selectedPath === null}
-          <div class="text-muted">ファイルを選択してください</div>
+          <div class="text-muted">{t('ファイルを選択してください')}</div>
         {:else if isCsvExt(selectedPath)}
           <Spreadsheet csvData={csvContent} on:change={(e) => { csvContent = e.detail.value; csvDirty = true; }} readonly={false} />
         {:else if isDrawioExt(selectedPath)}
@@ -1049,17 +1050,17 @@ import EditMode from '../components/knowledge/EditMode.svelte';
 {#if showNewDialog}
   <div class="modal-overlay" onclick={() => { showNewDialog = false; newFileName = ''; }}>
     <div class="modal-dialog-sm" onclick={(e) => e.stopPropagation()}>
-      <div class="modal-header">新規ファイル作成</div>
+      <div class="modal-header">{t('新規ファイル作成')}</div>
       <div class="modal-body">
-        <div class="modal-path">{newFileName || '(ルート)'}</div>
-        <input class="form-control" placeholder="ファイル名" bind:value={newFileName} onkeydown={(e) => e.key === 'Enter' && createFile()} disabled={creating} autofocus />
+        <div class="modal-path">{newFileName || t('(ルート)')}</div>
+        <input class="form-control" placeholder={t('ファイル名')} bind:value={newFileName} onkeydown={(e) => e.key === 'Enter' && createFile()} disabled={creating} autofocus />
         <div class="file-type-select">
           {#each [
             { ext: '.md', label: 'Markdown' },
-            { ext: '.ical', label: 'カレンダー' },
-            { ext: '.mycal', label: 'カレンダー一覧' },
-            { ext: '.drawio', label: '図 (draw.io)' },
-            { ext: '.mmd', label: '図 (Mermaid)' },
+            { ext: '.ical', label: t('カレンダー') },
+            { ext: '.mycal', label: t('カレンダー一覧') },
+            { ext: '.drawio', label: t('図 (draw.io)') },
+            { ext: '.mmd', label: t('図 (Mermaid)') },
             { ext: '.csv', label: 'CSV' },
           ] as ft}
             <button class="ft-btn" class:selected={newFileType === ft.ext}
@@ -1067,12 +1068,12 @@ import EditMode from '../components/knowledge/EditMode.svelte';
           {/each}
         </div>
         <div class="text-muted small" style="margin-top:4px">
-          ファイル名に拡張子が含まれない場合、選択した種類の拡張子を自動付与します
+          {t('ファイル名に拡張子が含まれない場合、選択した種類の拡張子を自動付与します')}
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-sm btn-primary" onclick={createFile} disabled={creating || !newFileName.trim()}>{creating ? '作成中...' : '作成'}</button>
-        <button class="btn btn-sm btn-outline-secondary" onclick={() => { showNewDialog = false; newFileName = ''; }}>取消</button>
+        <button class="btn btn-sm btn-primary" onclick={createFile} disabled={creating || !newFileName.trim()}>{creating ? t('作成中...') : t('作成')}</button>
+        <button class="btn btn-sm btn-outline-secondary" onclick={() => { showNewDialog = false; newFileName = ''; }}>{t('取消')}</button>
       </div>
     </div>
   </div>
@@ -1081,7 +1082,7 @@ import EditMode from '../components/knowledge/EditMode.svelte';
 {#if showRootDialog}
   <div class="modal-overlay" onclick={() => { showRootDialog = false; newRootName = ''; newRootPath = ''; rootError = ''; }}>
     <div class="modal-dialog-sm" onclick={(e) => e.stopPropagation()}>
-      <div class="modal-header">ルート設定</div>
+      <div class="modal-header">{t('ルート設定')}</div>
       <div class="modal-body">
         {#if roots.length > 0}
           <div class="mb-2">
@@ -1090,21 +1091,21 @@ import EditMode from '../components/knowledge/EditMode.svelte';
                 <span class="root-item-name">{root.name}</span>
                 <span class="root-item-path">{root.path}</span>
                 <span class="root-item-status" class:accessible={root.accessible} class:inaccessible={!root.accessible}>{root.accessible ? 'OK' : 'NG'}</span>
-                <button class="btn btn-sm btn-outline-danger" onclick={() => deleteRoot(root.name)}>削除</button>
+                <button class="btn btn-sm btn-outline-danger" onclick={() => deleteRoot(root.name)}>{t('削除')}</button>
               </div>
             {/each}
           </div>
           <hr>
         {/if}
-        <input class="form-control mb-1" placeholder="ルート名 (例: wiki)" bind:value={newRootName} disabled={rootManaging} />
-        <input class="form-control mb-1" placeholder="パス (例: /path/to/dir)" bind:value={newRootPath} disabled={rootManaging} />
+        <input class="form-control mb-1" placeholder={t('ルート名 (例: wiki)')} bind:value={newRootName} disabled={rootManaging} />
+        <input class="form-control mb-1" placeholder={t('パス (例: /path/to/dir)')} bind:value={newRootPath} disabled={rootManaging} />
         {#if rootError}
           <div class="text-danger small">{rootError}</div>
         {/if}
       </div>
       <div class="modal-footer">
-        <button class="btn btn-sm btn-primary" onclick={addRoot} disabled={rootManaging || !newRootName.trim() || !newRootPath.trim()}>{rootManaging ? '追加中...' : '追加'}</button>
-        <button class="btn btn-sm btn-outline-secondary" onclick={() => { showRootDialog = false; newRootName = ''; newRootPath = ''; rootError = ''; }}>閉じる</button>
+        <button class="btn btn-sm btn-primary" onclick={addRoot} disabled={rootManaging || !newRootName.trim() || !newRootPath.trim()}>{rootManaging ? t('追加中...') : t('追加')}</button>
+        <button class="btn btn-sm btn-outline-secondary" onclick={() => { showRootDialog = false; newRootName = ''; newRootPath = ''; rootError = ''; }}>{t('閉じる')}</button>
       </div>
     </div>
   </div>

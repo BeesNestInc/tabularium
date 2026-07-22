@@ -1,4 +1,5 @@
 import { createMd } from '../../libs/markdown-render.js';
+import { t } from '../../libs/i18n.js';
 import { fetchRaw, fetchFile } from '../../libs/knowledge-api.js';
 import { parse } from 'yaml';
 
@@ -36,6 +37,6 @@ export const load = async (path) => {
     }
     return html;
   } catch {
-    return '<div class="alert alert-danger">ファイルが存在しません</div>';
+    return '<div class="alert alert-danger">' + t('ファイルが存在しません') + '</div>';
   }
 };

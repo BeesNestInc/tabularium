@@ -1,3 +1,5 @@
+import { t } from '../libs/i18n.js';
+
 const stripFrontMatter = (text) => {
   return text.replace(/^---[\s\S]*?\n---\n?/, '');
 };
@@ -7,7 +9,7 @@ export const renderPreview = (el, value, md) => {
   const previousScrollTop = el.scrollTop;
   const raw = stripFrontMatter(value || '');
   if (!raw.trim()) {
-    el.innerHTML = '<p class="text-muted">（編集中の内容がここにプレビューされます）</p>';
+    el.innerHTML = '<p class="text-muted">' + t('（編集中の内容がここにプレビューされます）') + '</p>';
     el.scrollTop = 0;
     return;
   }

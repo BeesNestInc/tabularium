@@ -1,6 +1,7 @@
 <script>
   import { createEventDispatcher, onMount } from 'svelte';
   import TreeNode from '../panes/TreeNode.svelte';
+  import { t } from '../../libs/i18n.js';
 
   export let selectedPath = null;
   export let reload = 0;
@@ -84,7 +85,7 @@
       cutPath = null;
       loadTree();
     } catch (e) {
-      alert(`移動失敗: ${e.message}`);
+      alert(t('移動失敗: {0}', e.message));
     }
   };
   const doMove = async (fromPath, toDir) => {
@@ -103,7 +104,7 @@
       }
       loadTree();
     } catch (e) {
-      alert(`移動失敗: ${e.message}`);
+      alert(t('移動失敗: {0}', e.message));
     }
   };
   const doRestore = async (trashFilePath) => {
@@ -124,7 +125,7 @@
       }
       loadTree();
     } catch (e) {
-      alert(`復元失敗: ${e.message}`);
+      alert(t('復元失敗: {0}', e.message));
     }
   };
 
@@ -160,20 +161,20 @@
 
 <aside class="knowledge-tree-pane">
   <div class="pane-header">
-    <span>ナレッジ</span>
+    <span>{t('ナレッジ')}</span>
     <div class="header-buttons">
-      <button class="btn btn-sm btn-outline-secondary" onclick={() => dispatch('openRootDialog')} title="ルート設定">⚙</button>
-      <button class="btn btn-sm btn-outline-secondary" onclick={() => { showHidden = !showHidden; loadTree(); }} title="隠しファイルを表示">{showHidden ? '📂' : '📁'}</button>
-      <button class="btn btn-sm btn-outline-secondary" onclick={() => dispatch('openNewDialog')}>新規</button>
+      <button class="btn btn-sm btn-outline-secondary" onclick={() => dispatch('openRootDialog')} title={t('ルート設定')}>⚙</button>
+      <button class="btn btn-sm btn-outline-secondary" onclick={() => { showHidden = !showHidden; loadTree(); }} title={t('隠しファイルを表示')}>{showHidden ? '📂' : '📁'}</button>
+      <button class="btn btn-sm btn-outline-secondary" onclick={() => dispatch('openNewDialog')}>{t('新規')}</button>
     </div>
   </div>
   <div class="pane-body">
     {#if loading}
-      <div class="text-muted">読み込み中...</div>
+      <div class="text-muted">{t('読み込み中...')}</div>
     {:else if error}
       <div class="alert alert-danger small">{error}</div>
     {:else if !tree[''] || tree[''].length === 0}
-      <div class="text-muted">ナレッジがありません。</div>
+      <div class="text-muted">{t('ナレッジがありません。')}</div>
     {:else}
       <div class="tree-view">
         {#each tree[''] as node}

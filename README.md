@@ -19,6 +19,19 @@ Tabularium — 知識ベースサーバ兼SPA。知識ベース（ファイル�
 API のエラーメッセージはブラウザの `Accept-Language` ヘッダに応じて自動で切り替わります。
 サーバ全体のデフォルトは環境変数 `LANG` で指定できます（デフォルト: `en`）。
 
+対応言語: `en` / `ja` / `zh`
+
+### 言語を追加するには
+
+**サーバ側**:
+1. `libs/locales/{lang}.json` を作成（`en.json` をコピーして翻訳）
+2. `libs/i18n.js` の preload 部分に `loadLocale('{lang}');` を追加
+
+**クライアント側**:
+1. `client/src/libs/i18n.js` に該当言語の翻訳オブジェクトを追加
+2. `dicts` オブジェクトに追加
+3. `zh` と同様のキー構造で翻訳値を埋める
+
 ## インストール
 
 ```bash

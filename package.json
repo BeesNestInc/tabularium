@@ -11,14 +11,19 @@
   "license": "AGPL-3.0-or-later",
   "dependencies": {
     "@fastify/static": "^9.0.0",
+    "dotenv": "^17.3.1",
+    "duckdb": "^1.4.3",
     "fastify": "^5.7.4",
     "markdown-it": "^14.2.0",
     "markdown-it-anchor": "^9.2.0",
     "markdown-it-attrs": "^5.0.0",
     "markdown-it-emoji": "^3.0.0",
     "markdown-it-prism": "^3.0.1",
+    "pg": "^8.22.0",
     "prismjs": "^1.30.0",
-    "dotenv": "^17.3.1",
     "yaml": "^2.9.0"
+  },
+  "allowScripts": {
+    "duckdb@1.4.3": true
   }
 }

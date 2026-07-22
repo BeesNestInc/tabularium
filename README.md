@@ -7,7 +7,9 @@ Tabularium — 知識ベースサーバ兼SPA。知識ベース（ファイル�
 - **知識ベースAPI**: ファイルツリーの取得、Markdown/各種ファイルの閲覧・編集
 - **マルチルート**: 複数のディレクトリを束ねて1つのツリーとして表示
 - **SQL実行**: DuckDB / PostgreSQL へのインラインクエリ実行
-- **Markdownレンダリング**: Prism.js シンタックスハイライト、Mermaid図、draw.io図
+- **Markdownレンダリング**: Prism.js シンタックスハイライト、Mermaid図
+- **draw.io図**: ブラウザ上で編集・SVG出力
+- **CSV**: スプレッドシートとしてその場で編集
 - **WOPI連携**: Collabora Online によるOfficeドキュメント編集
 - **ブックマーク管理**: URLの保存・ファビコン/OGPサムネイルの自動取得
 - **カレンダー**: iCal/YAML形式のカレンダーファイルの閲覧・編集

@@ -25,6 +25,6 @@
     "yaml": "^2.9.0"
   },
   "allowScripts": {
-    "duckdb@1.4.3": true
+    "duckdb@1.4.4": true
   }
 }

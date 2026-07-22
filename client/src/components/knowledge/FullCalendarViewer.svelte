@@ -9,7 +9,7 @@
   import allLocales from '@fullcalendar/core/locales-all';
   import yaml from 'yaml';
   import { v4 as uuidv4 } from 'uuid';
-  import { yamlToFullCalendarEvents, getColorForCategories, icalToYaml, yamlToIcal } from '../libs/calendar-utils.js';
+  import { yamlToFullCalendarEvents, getColorForCategories, icalToYaml, yamlToIcal } from '../../libs/calendar-utils.js';
 
   const dispatch = createEventDispatcher();
   const API = (path) => `/api/knowledge/raw/${path}`;

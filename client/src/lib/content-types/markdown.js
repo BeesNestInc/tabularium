@@ -1,5 +1,5 @@
-import { createMd } from '../libs/markdown-render.js';
-import { fetchRaw, fetchFile } from '../libs/knowledge-api.js';
+import { createMd } from '../../libs/markdown-render.js';
+import { fetchRaw, fetchFile } from '../../libs/knowledge-api.js';
 import { parse } from 'yaml';
 
 let _md;
@@ -28,7 +28,9 @@ export const load = async (path) => {
     const html = getMd().render(body);
     const engine = frontmatter.engine || (frontmatter.databases || frontmatter.database ? 'duckdb' : null);
     if (engine) {
-      const databases = frontmatter.databases || (frontmatter.database ? { default: frontmatter.database } : {});
+      let databases = frontmatter.databases || frontmatter.database;
+      if (typeof databases === 'string') databases = { default: databases };
+      else if (!databases) databases = {};
       const meta = JSON.stringify({ engine, databases }).replace(/"/g, '&quot;');
       return `<div data-page-meta="${meta}">${html}</div>`;
     }

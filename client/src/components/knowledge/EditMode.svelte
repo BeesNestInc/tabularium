@@ -2,7 +2,7 @@
   import { createEventDispatcher } from 'svelte';
   import Editor from '../editor/Editor.svelte';
   import Spreadsheet from '../editor/Spreadsheet.svelte';
-  import { createMd } from '../libs/markdown-render.js';
+  import { createMd } from '../../libs/markdown-render.js';
   import { renderPreview, queuePreview as qp } from '../../lib/preview.js';
   import { isCsvExt } from '../../lib/file-utils.js';
   import { isCalendarExt } from '../../lib/file-utils.js';

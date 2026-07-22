@@ -5,3 +5,4 @@ public/assets/
 public/wiki.html
 logs/
 *.log
+package-lock.json

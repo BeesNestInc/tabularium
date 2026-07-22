@@ -4,8 +4,8 @@ import { fileURLToPath } from 'node:url';
 import Fastify from 'fastify';
 import fastifyStatic from '@fastify/static';
 import dotenv from 'dotenv';
-import { createBookmarkRoutes } from '../src/libs/bookmarks.js';
-import { registerKnowledgeRoutes } from '../src/libs/knowledge-routes.js';
+import { createBookmarkRoutes } from './libs/bookmarks.js';
+import { registerKnowledgeRoutes } from './libs/knowledge-routes.js';
 import duckdb from 'duckdb';
 import pg from 'pg';
 

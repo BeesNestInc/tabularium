@@ -1,0 +1,7 @@
+node_modules/
+.env
+roots.json
+public/assets/
+public/wiki.html
+logs/
+*.log

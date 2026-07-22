@@ -1,0 +1,293 @@
+/* ========================================
+   マークダウンコンテンツスタイル
+   ウェブ表示と印刷で完全共有
+   編集はこのファイル ONLY
+   ======================================== */
+
+$primary: #0862f0;
+
+.markdown-body,
+.preview-content {
+  line-height: 1.7;
+  font-size: 0.95rem;
+
+  .mermaid-wrapper {
+    text-align: center;
+    margin: 16px 0;
+
+    svg {
+      max-width: 100%;
+      height: auto;
+    }
+  }
+
+  .sql-block {
+    margin: 12px 0;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .sql-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: #f8f9fa;
+    border-top: 1px solid #eee;
+  }
+  .sql-status { font-size: 0.85em; color: #666; }
+  .sql-result {
+    max-height: 400px;
+    overflow: auto;
+    padding: 8px 12px;
+    border-top: 1px solid #eee;
+  }
+  .sql-result table { font-size: 0.85em; width: auto; max-width: 100%; margin-bottom: 0; }
+  .sql-result table th small { font-weight: normal; font-size: 0.8em; }
+  .sql-run-btn:disabled { opacity: 0.6; cursor: wait; }
+  .sql-result-tabs { display: flex; gap: 0; border-bottom: 1px solid #ddd; background: #f8f9fa; }
+  .sql-tab-btn {
+    padding: 4px 16px; border: none; background: transparent; cursor: pointer;
+    font-size: 0.85em; color: #666; border-bottom: 2px solid transparent;
+  }
+  .sql-tab-btn.active { color: #0862f0; border-bottom-color: #0862f0; }
+  .sql-chart-container { height: 300px; padding: 8px; }
+  .ev-chart-placeholder { min-height: 40px; padding: 8px; margin: 8px 0; border: 1px dashed #ccc; border-radius: 6px; }
+  .ev-chart-render { height: 300px; width: 100%; }
+
+  h1, h2, h3, h4 {
+    margin-top: 1.5em;
+    margin-bottom: 0.5em;
+    font-weight: 600;
+  }
+  h1 { font-size: 1.6rem; }
+  h2 { font-size: 1.35rem; }
+  h3 { font-size: 1.15rem; }
+
+  p { margin-bottom: 0.75em; }
+
+  code {
+    background: #f4f4f4;
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-size: 0.85em;
+  }
+
+  pre {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 12px;
+    border-radius: 4px;
+    overflow-x: auto;
+  }
+
+  pre code {
+    background: transparent;
+    padding: 0;
+  }
+
+  blockquote {
+    border-left: 4px solid var(--bs-primary);
+    padding-left: 12px;
+    color: #666;
+    margin: 1em 0;
+  }
+
+  table {
+    width: 100%;
+    margin-bottom: 1em;
+  }
+
+  th, td {
+    padding: 6px 10px;
+    border: 1px solid #ddd;
+  }
+
+  th {
+    background: #f8fefe;
+    font-weight: 600;
+  }
+
+  img { max-width: 100%; }
+  a { color: var(--bs-link-color); }
+  ul, ol { padding-left: 1.5em; margin-bottom: 0.75em; }
+  li { margin-bottom: 0.25em; }
+}
+
+// preview-content only overrides
+.preview-content {
+  h1 { font-size: 1.5rem; }
+  h2 { font-size: 1.3rem; }
+  h3 { font-size: 1.1rem; }
+}
+
+/* Prism syntax highlighting */
+.markdown-body {
+  code[class*="language-"],
+  pre[class*="language-"] {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.85em;
+    direction: ltr;
+    text-align: left;
+    white-space: pre;
+    word-spacing: normal;
+    word-break: normal;
+    line-height: 1.5;
+    tab-size: 2;
+    hyphens: none;
+  }
+
+  pre[class*="language-"] {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 12px;
+    border-radius: 4px;
+    overflow-x: auto;
+    margin: 0.5em 0;
+  }
+
+  .token {
+    &.comment, &.prolog, &.doctype, &.cdata { color: #6a9955; }
+    &.punctuation { color: #d4d4d4; }
+    &.property, &.tag, &.boolean, &.number,
+    &.constant, &.symbol, &.deleted { color: #b5cea8; }
+    &.selector, &.attr-name, &.string, &.char,
+    &.builtin, &.inserted { color: #ce9178; }
+    &.operator, &.entity, &.url { color: #d4d4d4; }
+    &.atrule, &.attr-value, &.keyword { color: #569cd6; }
+    &.function, &.class-name { color: #dcdcaa; }
+    &.regex, &.important, &.variable { color: #d16969; }
+    &.bold { font-weight: bold; }
+    &.italic { font-style: italic; }
+  }
+
+  .line-numbers .line-numbers-rows {
+    border-right: 1px solid #404040;
+    padding-right: 8px;
+    margin-right: 8px;
+  }
+}
+
+/* .document / .markdown クラス (web では markdown-body と併用) */
+.document,
+.markdown {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  background-color: #fff;
+
+  p { color: #63616a; }
+
+  h1 {
+    font-weight: bold;
+    margin: 2em 0 0.5em;
+    font-size: 1.7em;
+    line-height: 1.2em;
+    padding: 0.5em;
+    border: 6px double $primary;
+  }
+
+  h2 {
+    font-weight: bold;
+    margin: 2em 0 0.5em;
+    font-size: 1.7em;
+    line-height: 1.2em;
+    padding: 0.5em 0;
+    border-top: 6px double $primary;
+    border-bottom: 6px double $primary;
+  }
+
+  h3 {
+    color: #1d1e1f;
+    margin: 2em 0 0.5em;
+    font-size: 2em;
+    padding-bottom: 0.5em;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid $primary;
+  }
+
+  h4 {
+    margin: 2em 0 0.5em;
+    font-size: 1.7em;
+    padding-bottom: 0.5em;
+    border-bottom: 1px solid $primary;
+  }
+
+  h5 {
+    font-size: 1.2em;
+    font-weight: bold;
+    text-align: center;
+  }
+
+  tr, td, th { vertical-align: middle; }
+  th { text-align: center; }
+  li ul { margin-bottom: 0; margin-top: 0; }
+  ul { margin-bottom: 1rem; margin-top: 1rem; }
+  li p { margin-bottom: 0; }
+  img { max-width: 100%; }
+
+  blockquote {
+    margin-left: 100px;
+    border-left: solid #AAA 5px;
+  }
+
+  blockquote p { margin-left: 20px; }
+  dl dd { margin-left: 48px; }
+}
+
+/* 印刷 */
+@media print {
+  @page { size: A4 portrait; margin: 25mm; }
+
+  html, body, .app-layout, .body-area, .main-body {
+    height: auto !important;
+    overflow: visible !important;
+    max-height: none !important;
+    min-height: 0 !important;
+  }
+  .app-layout, .body-area, .main-body {
+    display: block !important;
+  }
+  .main-header, .main-sidebar, .knowledge-tree-pane, .pane-header {
+    display: none !important;
+  }
+
+  .knowledge-layout {
+    display: block !important;
+    height: auto !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    gap: 0 !important;
+  }
+
+  .knowledge-content-pane {
+    border: none !important;
+    border-radius: 0 !important;
+    overflow: visible !important;
+  }
+
+  .pane-body {
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  .markdown-body {
+    max-width: none !important;
+    padding: 0 !important;
+
+    .mermaid-wrapper {
+      display: block !important;
+      page-break-inside: avoid;
+    }
+
+    pre, code {
+      overflow: visible !important;
+    }
+  }
+
+  .sql-block { page-break-inside: avoid; }
+
+  h1, h2, h3, h4 { page-break-after: avoid; orphans: 3; widows: 3; }
+  table tr { page-break-inside: avoid; }
+  img, pre, code, blockquote { page-break-inside: avoid; }
+  .page-break { page-break-after: always; }
+}

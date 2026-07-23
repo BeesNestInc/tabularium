@@ -28,10 +28,10 @@ Open http://localhost:8888.
 
 ## Documentation
 
-- [API Reference](@documents/api.md)
-- [Configuration](@documents/configuration.md)
-- [Dependencies](@documents/dependencies.md)
-- [Usage Guide](@documents/usage.md)
+- [API Reference](documents/en/api.md)
+- [Configuration](documents/en/configuration.md)
+- [Dependencies](documents/en/dependencies.md)
+- [Usage Guide](documents/en/usage.md)
 
 ## Languages
 

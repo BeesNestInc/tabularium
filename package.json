@@ -2,27 +2,26 @@
   "name": "tabularium",
   "version": "1.0.0",
   "type": "module",
-  "description": "Tabularium - Knowledge base server",
+  "description": "Knowledge base server with built-in single-page application",
+  "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",
     "build": "cd client && npm run build",
-    "build:client": "cd client && npm run build",
     "setup": "npm install && cd client && npm install && npm run build"
   },
   "author": "Masami Ogoshi (ogochan@beesnest-inc.com)",
   "license": "AGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BeesNestInc/tabularium.git"
+  },
+  "keywords": ["knowledge-base", "wiki", "collabora", "wopi", "svelte"],
   "dependencies": {
     "@fastify/static": "^9.0.0",
     "dotenv": "^17.3.1",
     "duckdb": "^1.4.3",
     "fastify": "^5.7.4",
-    "markdown-it": "^14.2.0",
-    "markdown-it-anchor": "^9.2.0",
-    "markdown-it-attrs": "^5.0.0",
-    "markdown-it-emoji": "^3.0.0",
-    "markdown-it-prism": "^3.0.1",
     "pg": "^8.22.0",
-    "prismjs": "^1.30.0",
     "yaml": "^2.9.0"
   },
   "allowScripts": {

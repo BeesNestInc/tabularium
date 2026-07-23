@@ -914,6 +914,11 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
       }
       const folderHtml = bmUi.folderViewHtml(folderPath, pageData.entries || [], bookmarks, fvViewMode, true);
       contentHtml = html + folderHtml;
+      // poll for pending thumbnails
+      if (bookmarks.some(b => b.url && !b.thumb)) {
+        clearTimeout(bookmarkPollTimer);
+        bookmarkPollTimer = setTimeout(() => loadDirectory(folderPath), 3000);
+      }
     } catch (e) {
       console.error('loadDirectory error:', e);
       contentHtml = `<div class="alert alert-danger">${t('directoryNotFound', folderPath)}</div>`;
@@ -992,7 +997,7 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
     <main class="knowledge-content-pane"
       ondragenter={(e) => { e.preventDefault(); dragCounter++; if (selectedPath !== null && (selectedPath === '' || selectedPath.endsWith('/'))) e.currentTarget.classList.add('bm-dragover'); }}
       ondragleave={(e) => { e.preventDefault(); dragCounter--; if (dragCounter <= 0) { dragCounter = 0; e.currentTarget.classList.remove('bm-dragover'); } }}
-      ondragover={(e) => e.preventDefault()}
+      ondragover={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; }}
       ondrop={handleDrop}>
       <div class="pane-header">
         <span>/{selectedPath || ''}</span>

@@ -859,22 +859,22 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
     e.preventDefault();
     dragCounter = 0;
     e.currentTarget.classList.remove('bm-dragover');
-    console.log('DnD drop on', selectedPath, e.dataTransfer.types);
-    if (!selectedPath || !selectedPath.endsWith('/')) { console.log('  rejected: not a directory'); return; }
+    if (!selectedPath || !selectedPath.endsWith('/')) return;
     var dt = e.dataTransfer;
-    var url = dt.getData('text/uri-list') || dt.getData('text/plain') || dt.getData('text/x-moz-url') || '';
-    // Chrome may separate URL and title with \r\n or \n
-    url = url.split('\n')[0].split('\r')[0].trim();
-    // fallback: chrome may embed the URL in html
+    // Try text/x-moz-url (URL + title), then text/uri-list, then text/plain
+    var raw = dt.getData('text/x-moz-url') || dt.getData('text/uri-list') || dt.getData('text/plain') || '';
+    var url = raw.split('\n')[0].split('\r')[0].trim();
+    // fallback: extract href from html
     if (!url) {
       var html = dt.getData('text/html') || '';
       var m = html.match(/href="([^"]+)"/);
       if (m) url = m[1];
     }
     if (!url) return;
-    var clean = url.trim();
+    // ensure protocol
+    if (!url.startsWith('http://') && !url.startsWith('https://')) url = 'https://' + url;
+    var clean = url;
     if (clean.startsWith('<') && clean.endsWith('>')) clean = clean.slice(1, -1);
-    if (!clean.startsWith('http://') && !clean.startsWith('https://')) { console.warn('dropped non-URL:', clean); return; }
     var dir = selectedPath.replace(/\/$/, '');
     var doAdd = function(title, u) {
       api.bookmarkAdd(dir, title, u).then(function() {

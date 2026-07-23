@@ -65,7 +65,7 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
     var idx = sizes.indexOf(fvViewMode);
     fvViewMode = sizes[(idx + 1) % sizes.length];
     var cur = selectedPath;
-    if (cur && cur.endsWith('/')) loadDirectory(cur.replace(/\/$/, ''));
+    if (cur && cur.endsWith('/')) _link('/' + cur.replace(/\/$/, '') + '/');
   };
 
   let coolConfig = null;

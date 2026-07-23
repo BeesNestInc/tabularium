@@ -6,7 +6,7 @@
   import * as api from '../libs/knowledge-api.js';
   import { createMd } from '../libs/markdown-render.js';
   import { t } from '../libs/i18n.js';
-  import { parseCsvRow, parseCsv, csvToHtml } from '../lib/csv.js';
+  import { parseCsvRow, parseCsv, csvToHtml, escapeHtml } from '../lib/csv.js';
   import { isImageExt, isTextExt, isCsvExt, isDrawioExt, isOfficeExt, isCalendarExt, getEditorLang } from '../lib/file-utils.js';
   import { fileTemplates } from '../lib/file-templates.js';
   import { fetchRoots, addRoot as apiAddRoot, deleteRoot as apiDeleteRoot } from '../lib/roots.js';
@@ -808,6 +808,7 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
       try {
         var res = await fetch(apiUrl('/raw/' + path), { method: 'DELETE', credentials: 'include' });
         if (!res.ok) { var d = await res.json(); throw new Error(d.error || 'HTTP ' + res.status); }
+        treeReload++;
         var fp = selectedPath ? selectedPath.replace(/\/$/, '') : '';
         if (fp) loadDirectory(fp);
       } catch (e) { alert(t('deleteFailed', e.message)); }
@@ -847,6 +848,17 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
           }).catch(function() { tip.classList.add('hidden'); });
       }, 500);
     };
+    window.showBookmarkInfo = function(e, url, title, domain) {
+      var tip = document.getElementById('bmTooltip');
+      if (!tip) return;
+      tip.style.left = e.clientX + 'px';
+      tip.style.top = e.clientY + 'px';
+      tip.innerHTML = '<div class="bm-tt-section"><div class="bm-tt-row"><span class="bm-tt-key">title</span><span class="bm-tt-val">' + escapeHtml(title) + '</span></div>'
+        + '<div class="bm-tt-row"><span class="bm-tt-key">url</span><span class="bm-tt-val" style="word-break:break-all">' + escapeHtml(url) + '</span></div></div>';
+      tip.classList.remove('hidden');
+      var r = tip.getBoundingClientRect();
+      if (r.right > window.innerWidth) tip.style.left = (e.clientX - r.width - 20) + 'px';
+    };
     window.hideFileInfo = function() {
       clearTimeout(tooltipTimer);
       var tip = document.getElementById('bmTooltip');
@@ -861,6 +873,77 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
     e.currentTarget.classList.remove('bm-dragover');
     if (!selectedPath || !selectedPath.endsWith('/')) return;
     var dir = selectedPath.replace(/\/$/, '');
+    // Check for directory drop via webkitGetAsEntry / getAsEntry
+    var items = e.dataTransfer.items;
+    var hasDir = false;
+    if (items && items.length > 0) {
+      for (var di = 0; di < items.length; di++) {
+        var ent = (items[di].getAsEntry || items[di].webkitGetAsEntry) && (items[di].getAsEntry || items[di].webkitGetAsEntry).call(items[di]);
+        if (ent && ent.isDirectory) { hasDir = true; break; }
+      }
+    }
+    if (hasDir) {
+      var allEntries = [];
+      for (var si = 0; si < items.length; si++) {
+        var en = (items[si].getAsEntry || items[si].webkitGetAsEntry) && (items[si].getAsEntry || items[si].webkitGetAsEntry).call(items[si]);
+        if (en) allEntries.push(en);
+      }
+      // Recursively process entries
+      function processEntry(entry, basePath) {
+        if (entry.isDirectory) {
+          var folderPath = basePath + '/' + entry.name;
+          return api.createDirectory(folderPath).then(function() {
+            return new Promise(function(resolve, reject) {
+              var dirReader = entry.createReader();
+              var batch = [];
+              function readBatch() {
+                dirReader.readEntries(function(entries) {
+                  if (entries.length === 0) {
+                    resolve(Promise.all(batch));
+                  } else {
+                    for (var bi = 0; bi < entries.length; bi++) {
+                      batch.push(processEntry(entries[bi], folderPath));
+                    }
+                    readBatch();
+                  }
+                }, reject);
+              }
+              readBatch();
+            });
+          });
+        } else if (entry.isFile) {
+          return new Promise(function(resolve) {
+            entry.file(function(f) {
+              var textExts = ['.md','.mmd','.txt','.csv','.json','.yaml','.yml','.xml','.html','.htm','.css','.js','.ts','.mjs','.sh','.env','.ini','.log','.conf','.cfg'];
+              var ext = f.name.lastIndexOf('.') >= 0 ? f.name.slice(f.name.lastIndexOf('.')).toLowerCase() : '';
+              var reader = new FileReader();
+              reader.onload = function(ev) {
+                var data = ev.target.result;
+                var filePath = basePath + '/' + f.name;
+                if (typeof data === 'string') {
+                  api.saveRaw(filePath, data).then(resolve).catch(function(e) { alert(t('saveFailed', e.message)); resolve(); });
+                } else {
+                  fetch('/api/knowledge/raw/' + encodeURIComponent(filePath), {
+                    method: 'PUT', headers: { 'Content-Type': 'application/octet-stream' },
+                    body: data, credentials: 'include',
+                  }).then(function(r) {
+                    if (!r.ok) r.json().then(function(d) { alert(d.error || 'HTTP ' + r.status); });
+                    resolve();
+                  }).catch(function(e) { alert(t('saveFailed', e.message)); resolve(); });
+                }
+              };
+              reader.onerror = function() { resolve(); };
+              if (textExts.indexOf(ext) !== -1) reader.readAsText(f);
+              else reader.readAsArrayBuffer(f);
+            }, function() { resolve(); });
+          });
+        }
+        return Promise.resolve();
+      }
+      Promise.all(allEntries.map(function(entry) { return processEntry(entry, dir); }))
+        .then(function() { loadDirectory(dir); });
+      return;
+    }
     var files = e.dataTransfer.files;
     if (files && files.length > 0) {
       var pending = files.length;
@@ -887,7 +970,6 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
             }
           };
           reader.onerror = function() { alert(t('loadFileFailed')); pending--; };
-          // binary files need ArrayBuffer, text files need text
           var ext = f.name.lastIndexOf('.') >= 0 ? f.name.slice(f.name.lastIndexOf('.')).toLowerCase() : '';
           var TEXT_EXTS = ['.md','.mmd','.txt','.csv','.json','.yaml','.yml','.xml','.html','.htm','.css','.js','.ts','.mjs','.sh','.env','.ini','.log','.conf','.cfg'];
           if (TEXT_EXTS.indexOf(ext) !== -1) {
@@ -953,6 +1035,8 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
       if (pageData.index) {
         const raw = pageData.index.raw.replace(/^---[\s\S]*?\n---\n?/, '');
         html = getMd().render(raw);
+        var bmInline = bmUi.bookmarkInlineListHtml(bookmarks, folderPath);
+        if (bmInline) html = html.replace('<%= bookmarks %>', bmInline).replace('&lt;%= bookmarks %&gt;', bmInline);
         const result = processEvidenceTags(html);
         html = result.html;
         evidenceCharts = result.charts;

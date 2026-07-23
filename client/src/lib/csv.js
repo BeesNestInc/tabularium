@@ -47,4 +47,4 @@ const csvToHtml = (csv) => {
   return html;
 };
 
-export { parseCsvRow, parseCsv, csvToHtml };
+export { parseCsvRow, parseCsv, csvToHtml, escapeHtml };

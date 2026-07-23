@@ -94,8 +94,9 @@ export const createBookmarkRoutes = (app, { splitRootPath, prefix = '' }) => {
     if (bookmarks.some((b) => b.url === url)) return reply.code(409).send({ error: t('already exists') });
     bookmarks.push({ title, url });
     writeBookmarks(dir, bookmarks);
-    const indexMd = path.join(dir, 'index.md');
-    if (!existsSync(indexMd)) writeFileSync(indexMd, '<%= bookmarks %>\n', 'utf-8');
+    // disabled: auto-creates index.md with EJS directive — too aggressive
+    // const indexMd = path.join(dir, 'index.md');
+    // if (!existsSync(indexMd)) writeFileSync(indexMd, '<%= bookmarks %>\n', 'utf-8');
     fetchFavicon(url, dir);
     fetchOgImage(url, dir).then((thumb) => {
       if (!thumb) return;

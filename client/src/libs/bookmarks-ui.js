@@ -2,7 +2,7 @@ import { t } from './i18n.js';
 
 export const esc = (s) => {
   if (s === undefined || s === null) return '';
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 };
 
 export const fileListingHtml = (entries, dirPath) => {
@@ -50,13 +50,14 @@ export const bookmarkItemHtml = (bm, i, folderPath, mode) => {
       + '</div>';
   }
   // thumbnail card mode
+  var bmHover = ' onmouseenter="window.showBookmarkInfo(event,\'' + esc(bm.url) + '\',\'' + esc(bm.title) + '\',\'' + esc(bm.domain || '') + '\')" onmouseleave="window.hideFileInfo()"';
   return '<div class="fv-thumb-card">'
-    + '<a href="' + esc(bm.url) + '" target="_blank" rel="noopener noreferrer">'
-    + (bm.thumb ? '<img class="fv-thumb-img" src="' + esc(tUrl) + '" alt="" loading="lazy">'
+    + '<a href="' + esc(bm.url) + '"' + bmHover + ' target="_blank" rel="noopener noreferrer">'
+    + (bm.thumb ? '<img class="fv-thumb-img" src="' + esc(tUrl) + '" alt="" loading="lazy" onerror="this.style.display=\'none\';var p=this.parentElement;if(p&&!p.querySelector(\'.fv-thumb-fallback\')){var d=document.createElement(\'div\');d.className=\'fv-thumb-fallback\';d.style.fontSize=\'40px\';d.textContent=\'?\';p.insertBefore(d,this.nextSibling)}">'
       : '<div class="fv-thumb-fallback">'
         + (fUrl ? '<img class="fv-favicon" src="' + esc(fUrl) + '" alt="" loading="lazy" onerror="this.parentElement.textContent=\'?\';this.remove()">' : '?')
         + '</div>')
-    + '<div class="fv-thumb-info"><div class="fv-title">' + esc(bm.title) + '</div><div class="fv-domain">' + esc(bm.domain) + '</div></div></a>'
+    + '<div class="fv-thumb-info"><div class="fv-title">' + esc(bm.title) + '</div></div></a>'
     + '<button class="fv-edit-btn" onclick="window.editBookmark(' + i + ')" title="' + t('edit') + '">✎</button>'
     + '<button class="fv-del-btn" onclick="window.deleteBookmark(' + i + ')" title="' + t('delete') + '">✕</button>'
     + '</div>';
@@ -91,22 +92,25 @@ export const folderViewHtml = (folderPath, entries, bookmarks, mode, hasIndex) =
         return a.name.localeCompare(b.name);
       })) {
         const ext = e.name.split('.').pop().toLowerCase();
-        const imgExts = ['png','jpg','jpeg','gif','webp','svg','bmp','ico'];
+        const imgExts = ['png','jpg','jpeg','jfif','gif','webp','svg','bmp','ico','tif','tiff','avif','heic','heif'];
         const isImage = imgExts.indexOf(ext) !== -1;
         var thumbHref = '/' + esc(e.path) + (e.type === 'directory' ? '/' : '');
         var thumbClick = e.type === 'directory'
           ? 'window.selectFolder(\'' + esc(e.path) + '\')'
           : 'window.selectTreeFile(\'' + esc(e.path) + '\')';
         var thumbHover = ' onmouseenter="window.showFileInfo(event,\'' + esc(e.path) + '\')" onmouseleave="window.hideFileInfo()"';
-        html += '<a class="fv-thumb-card" href="' + thumbHref + '"' + thumbHover + ' onclick="event.preventDefault();' + thumbClick + ';return false">';
+        html += '<div class="fv-thumb-card">'
+          + '<a href="' + thumbHref + '"' + thumbHover + ' onclick="event.preventDefault();' + thumbClick + ';return false">';
         if (isImage) {
-          html += '<img class="fv-thumb-img" src="' + esc('/api/knowledge/file/' + e.path) + '" alt="" loading="lazy">';
+          html += '<img class="fv-thumb-img" src="' + esc('/api/knowledge/file/' + e.path) + '" alt="" loading="lazy" onerror="this.alt=\'?\';this.style.display=\'none\';var p=this.parentElement;if(p&&!p.querySelector(\'.fv-thumb-fallback\')){var d=document.createElement(\'div\');d.className=\'fv-thumb-fallback\';d.style.fontSize=\'40px\';d.textContent=\'📄\';p.insertBefore(d,this.nextSibling)}">';
         } else {
           html += '<div class="fv-thumb-fallback" style="font-size:40px">'
             + (e.type === 'directory' ? '\ud83d\udcc1' : (e.name.endsWith('.md') ? '\ud83d\udcdd' : '\ud83d\udcc4'))
             + '</div>';
         }
-        html += '<div class="fv-thumb-info"><div class="fv-title">' + esc(e.name) + '</div></div></a>';
+        html += '<div class="fv-thumb-info"><div class="fv-title">' + esc(e.name) + '</div></div></a>'
+          + '<button class="fv-del-btn" onclick="event.stopPropagation();window.deleteEntry(\'' + esc(e.path) + '\')" title="' + t('delete') + '">✕</button>'
+          + '</div>';
       }
     }
     for (const [i, bm] of (bookmarks || []).entries()) {

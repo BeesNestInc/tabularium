@@ -864,6 +864,12 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
     var url = dt.getData('text/uri-list') || dt.getData('text/plain') || dt.getData('text/x-moz-url') || '';
     // Chrome may separate URL and title with \r\n or \n
     url = url.split('\n')[0].split('\r')[0].trim();
+    // fallback: chrome may embed the URL in html
+    if (!url) {
+      var html = dt.getData('text/html') || '';
+      var m = html.match(/href="([^"]+)"/);
+      if (m) url = m[1];
+    }
     if (!url) return;
     var clean = url.trim();
     if (clean.startsWith('<') && clean.endsWith('>')) clean = clean.slice(1, -1);
@@ -998,7 +1004,7 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
       on:openRootDialog={() => { showRootDialog = true; }} />
 
     <main class="knowledge-content-pane"
-      ondragenter={(e) => { e.preventDefault(); dragCounter++; if (selectedPath !== null && (selectedPath === '' || selectedPath.endsWith('/'))) e.currentTarget.classList.add('bm-dragover'); }}
+      ondragenter={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; dragCounter++; if (selectedPath !== null && (selectedPath === '' || selectedPath.endsWith('/'))) e.currentTarget.classList.add('bm-dragover'); }}
       ondragleave={(e) => { e.preventDefault(); dragCounter--; if (dragCounter <= 0) { dragCounter = 0; e.currentTarget.classList.remove('bm-dragover'); } }}
       ondragover={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; }}
       ondrop={handleDrop}>

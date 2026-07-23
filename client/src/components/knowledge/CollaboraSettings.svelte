@@ -13,112 +13,91 @@
   const COOL_API = '/api/collabora';
 
   const fetchStatus = async () => {
-    try {
-      const res = await fetch(COOL_API + '/status');
-      status = await res.json();
-    } catch {}
+    try { const r = await fetch(COOL_API + '/status'); status = await r.json(); } catch {}
   };
-
   const fetchConfig = async () => {
-    try {
-      const res = await fetch(COOL_API + '/config');
-      config = await res.json();
-    } catch {}
+    try { const r = await fetch(COOL_API + '/config'); config = await r.json(); } catch {}
   };
-
   const fetchLogs = async () => {
-    try {
-      const res = await fetch(COOL_API + '/logs?lines=20');
-      const data = await res.json();
-      logs = data.logs || data.error || '';
-    } catch {}
+    try { const r = await fetch(COOL_API + '/logs?lines=20'); const d = await r.json(); logs = d.logs || d.error || ''; } catch {}
   };
 
-  const doStart = async () => {
+  const act = async (fn) => {
     loading = true; error = '';
-    try {
-      const res = await fetch(COOL_API + '/start', { method: 'POST' });
-      const data = await res.json();
-      if (!data.ok) { error = data.error; }
-      else { await fetchStatus(); await fetchLogs(); }
-    } catch (e) { error = e.message; }
+    try { const r = await fn(); if (!r.ok) error = r.error; else { await fetchStatus(); await fetchLogs(); } }
+    catch (e) { error = e.message; }
     loading = false;
   };
 
-  const doStop = async () => {
-    loading = true; error = '';
-    try {
-      const res = await fetch(COOL_API + '/stop', { method: 'POST' });
-      const data = await res.json();
-      if (!data.ok) { error = data.error; }
-      else { await fetchStatus(); await fetchLogs(); }
-    } catch (e) { error = e.message; }
-    loading = false;
-  };
+  const doStart = () => act(fetch(COOL_API + '/start', { method: 'POST' }).then(r => r.json()));
+  const doStop = () => act(fetch(COOL_API + '/stop', { method: 'POST' }).then(r => r.json()));
 
-  onMount(() => {
-    fetchStatus();
-    fetchConfig();
-    fetchLogs();
-  });
+  onMount(() => { fetchStatus(); fetchConfig(); fetchLogs(); });
 </script>
 
 {#if show}
   <div class="modal-overlay" onclick={() => show = false}>
-    <div class="modal-dialog" onclick={(e) => e.stopPropagation()}>
-      <div class="modal-header">Collabora Online {t('ルート設定')}</div>
-      <div class="modal-body" style="max-height:60vh;overflow-y:auto">
+    <div class="modal-dialog-sm" onclick={(e) => e.stopPropagation()}>
+      <div class="modal-header">Collabora Online</div>
+      <div class="modal-body">
         {#if status}
-          <div style="margin-bottom:12px">
-            <strong>{t('状態')}:</strong>
-            <span class="root-item-status" class:accessible={status.running} class:inaccessible={!status.running}>
-              {status.running ? t('実行中') : t('停止中')}
-            </span>
+          <div class="cool-status-row">
+            <span class="cool-label">{t('status')}:</span>
+            <span class="cool-status" class:running={status.running}>{status.running ? t('running') : t('stopped')}</span>
           </div>
-          <div style="margin-bottom:8px;font-size:0.85rem">
-            <div>{t('コンテナ')}: {status.containerName || '-'}</div>
-            <div>{t('エンジン')}: {status.engine || '-'}</div>
-            <div>{t('イメージ')}: {status.image || '-'}</div>
-            <div>{t('ホストポート')}: {status.hostPort || '-'}</div>
+          <div class="cool-info">
+            <div><span class="cool-label">{t('container')}:</span> {status.containerName || '-'}</div>
+            <div><span class="cool-label">{t('engine')}:</span> {status.engine || '-'}</div>
+            <div><span class="cool-label">{t('image')}:</span> {status.image || '-'}</div>
+            <div><span class="cool-label">{t('hostPort')}:</span> {status.hostPort || '-'}</div>
           </div>
         {:else}
-          <div class="text-muted">{t('読み込み中...')}</div>
+          <div class="text-muted">{t('loading')}</div>
         {/if}
 
         {#if config}
-          <hr>
-          <div style="font-size:0.85rem;margin-bottom:8px">
-            <div>WOPI: {config.wopiHost}</div>
-            <div>Collabora: {config.coolHost}</div>
+          <hr class="cool-hr">
+          <div class="cool-info">
+            <div><span class="cool-label">WOPI:</span> {config.wopiHost}</div>
+            <div><span class="cool-label">Collabora:</span> {config.coolHost}</div>
           </div>
         {/if}
 
-        <div style="display:flex;gap:6px;margin:12px 0">
+        <div class="cool-actions">
           <button class="btn btn-sm btn-primary" onclick={doStart} disabled={loading || status?.running}>
-            {loading ? t('実行中...') : t('起動')}
+            {loading ? t('saving') : t('start')}
           </button>
           <button class="btn btn-sm btn-outline-danger" onclick={doStop} disabled={loading || !status?.running}>
-            {loading ? t('実行中...') : t('停止')}
+            {loading ? t('saving') : t('stop')}
           </button>
-          <button class="btn btn-sm btn-outline-secondary" onclick={fetchLogs}>{t('ログ更新')}</button>
+          <button class="btn btn-sm btn-outline-secondary" onclick={fetchLogs}>{t('reloadLog')}</button>
         </div>
 
         {#if error}
-          <div class="alert alert-danger small">{error}</div>
+          <div class="cool-error">{error}</div>
         {/if}
 
         {#if logs}
-          <hr>
-          <pre style="font-size:0.75rem;background:#f4f4f4;padding:8px;border-radius:4px;max-height:200px;overflow-y:auto;white-space:pre-wrap">{logs}</pre>
+          <hr class="cool-hr">
+          <pre class="cool-log">{logs}</pre>
         {/if}
       </div>
       <div class="modal-footer">
-        <button class="btn btn-sm btn-outline-secondary" onclick={() => show = false}>{t('閉じる')}</button>
+        <button class="btn btn-sm btn-outline-secondary" onclick={() => show = false}>{t('close')}</button>
       </div>
     </div>
   </div>
 {/if}
 
 <style>
-  .modal-dialog { width: 520px; max-width: 90vw; }
+  .cool-status-row { margin-bottom: 12px; }
+  .cool-label { font-weight: 600; color: #555; margin-right: 6px; }
+  .cool-status { font-size: 0.85rem; padding: 2px 10px; border-radius: 3px; }
+  .cool-status.running { background: #d4edda; color: #155724; }
+  .cool-status:not(.running) { background: #f8d7da; color: #721c24; }
+  .cool-info { font-size: 0.85rem; line-height: 1.7; color: #333; }
+  .cool-hr { border: none; border-top: 1px solid #ddd; margin: 12px 0; }
+  .cool-actions { display: flex; gap: 6px; margin: 12px 0; }
+  .cool-error { font-size: 0.85rem; padding: 6px 10px; background: #f8d7da; color: #721c24; border-radius: 4px; margin-bottom: 8px; }
+  .cool-log { font-size: 0.75rem; background: #f5f5f5; padding: 8px; border-radius: 4px; max-height: 200px; overflow-y: auto; white-space: pre-wrap; color: #333; border: 1px solid #e0e0e0; }
 </style>

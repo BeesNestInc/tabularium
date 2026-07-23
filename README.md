@@ -1,7 +1,7 @@
 # Tabularium
 
-Tabularium is a knowledge base server with a built-in single-page application.
-It exposes filesystem directories as a REST API and provides a browser interface for browsing and editing.
+Tabularium is an open, file-based knowledge workspace for humans and AI.
+It brings Markdown, spreadsheets, calendars, Office documents, diagrams, bookmarks, and data analytics into a unified browser interface.
 
 ## Quick start
 
@@ -41,7 +41,7 @@ Open http://localhost:8888.
 | `ja`   | 日本語 | `Accept-Language: ja` |
 | `zh`   | 简体中文 | `Accept-Language: zh` |
 
-See [Adding a language](@documents/configuration.md#adding-a-language).
+See [Adding a language](documents/en/configuration.md#adding-a-language).
 
 ## Project structure
 
@@ -60,11 +60,11 @@ tabularium/
 │   ├── wiki.html
 │   └── src/
 │       ├── pages/Knowledge.svelte
-│       ├── libs/         #   Client libraries (i18n, etc.）
+│       ├── libs/         #   Client libraries (i18n, etc.)
 │       ├── lib/          #   SPA internal libraries
 │       └── components/
-├── @documents/           # Documentation
-├── public/               # SPA build output
+├── documents/            # Documentation (en/ja)
+├── public/               # SPA build output + draw.io static files
 └── package.json
 ```
 

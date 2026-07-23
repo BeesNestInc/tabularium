@@ -65,7 +65,7 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
     var idx = sizes.indexOf(fvViewMode);
     fvViewMode = sizes[(idx + 1) % sizes.length];
     var cur = selectedPath;
-    if (cur && cur.endsWith('/')) _link('/' + cur.replace(/\/$/, '') + '/');
+    if (cur && cur.endsWith('/')) loadDirectory(cur.replace(/\/$/, ''));
   };
 
   let coolConfig = null;
@@ -1138,6 +1138,8 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
 <div id="bmTooltip" class="bm-tooltip hidden"></div>
 
 <style lang="scss">
-  @import '../styles/original.scss';
-  @import '../styles/knowledge.scss';
+  :global {
+    @import '../styles/markdown-content.scss';
+    @import '../styles/knowledge.scss';
+  }
 </style>

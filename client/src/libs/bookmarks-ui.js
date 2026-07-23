@@ -71,7 +71,6 @@ export const bookmarkListHtml = (bookmarks, folderPath, mode) => {
 
 export const folderViewHtml = (folderPath, entries, bookmarks, mode, hasIndex) => {
   let html = '<div class="folder-view">';
-  html += '<div class="folder-view-header">' + esc(folderPath) + '</div>';
   if (mode === 'list') {
     html += fileListingHtml(entries, folderPath);
     if (entries && entries.length) html += '<div style="border-top:1px solid var(--border);margin:12px 0"></div>';

@@ -27,7 +27,11 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
   let drawioSaveError = false;
   let drawioSaveMessage = '';
   let appConfig = null;
-  const drawioUrl = () => { const u = (appConfig && appConfig.drawio) || 'https://embed.diagrams.net'; return u.endsWith('/') ? u : u + '/'; };
+  const drawioUrl = (edit) => {
+    const base = (appConfig && appConfig.drawio) || 'https://embed.diagrams.net';
+    const sep = base.includes('?') ? '&' : '?';
+    return base.replace(/\/?$/, '/') + sep + 'embed=1&proto=json' + (edit ? '&ui=min' : '&stealth=1');
+  };
   let contentLoading = false;
   let isEditMode = false;
   let editorContent = '';
@@ -614,7 +618,7 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
 
   const handleDrawioMessage = (e) => {
     let msg;
-    try { msg = JSON.parse(e.data); } catch { return; }
+    try { msg = JSON.parse(e.data); } catch (ex) { console.warn('drawio msg parse error:', ex.message, e.data?.slice(0,200)); return; }
     if (!msg) return;
     console.log('drawio message:', msg);
     if (msg.event === 'init') {
@@ -1037,7 +1041,7 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
             {#if drawioSaveMessage}
               <div class="drawio-save-msg" class:error={drawioSaveError}>{drawioSaveMessage}</div>
             {/if}
-            <iframe src={isDrawioEditing ? drawioUrl() + '?embed=1&proto=json&ui=min' : drawioUrl() + '?embed=1&proto=json&stealth=1'} class="drawio-frame" title="draw.io diagram" frameborder="0"></iframe>
+            <iframe src={isDrawioEditing ? drawioUrl(true) : drawioUrl(false)} class="drawio-frame" title="draw.io diagram" frameborder="0"></iframe>
           </div>
         {:else if isCalendarExt(selectedPath) && !calendarError}
           <FullCalendarViewer rawContent={calendarRawContent} filePath={selectedPath} on:change={(e) => { calendarRawContent = e.detail.value; calendarDirty = true; }} />

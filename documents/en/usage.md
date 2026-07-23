@@ -57,12 +57,28 @@ WOPI_SRC=http://your-host:8888
 COLLABORA_SERVER_NAME=your-host:9980
 ```
 
+`WOPI_SRC` must be a URL reachable from **inside the Collabora container**.
+If the container uses `--network host` (the default when started from tabularium),
+`http://localhost:8888` works. If the container uses a bridge network, use the
+host machine's LAN IP or hostname instead.
+
+`COLLABORA_HOST` can be explicitly set when auto-detection doesn't produce the
+correct value (default: derived from the current request's hostname).
+
 Optional admin credentials:
 
 ```env
 COLLABORA_USERNAME=admin
 COLLABORA_PASSWORD=secret
 ```
+
+### Troubleshooting
+
+| Symptom | Likely cause | Fix |
+|---|---|---|
+| "プロキシの設定が…" / Collabora UI loads but document doesn't render | Container can't reach the WOPI server | Ensure `WOPI_SRC` is set to a hostname reachable from inside the container. Recreate the container: `node server/collabora.js remove && node server/collabora.js start` (this applies `--network host`) |
+| "Server not found" when loading the Collabora iframe | Collabora container not running | Check with `node server/collabora.js status`, start with `node server/collabora.js start` |
+| Office file opens as blank / download only | File extension not recognized by Collabora | Supported: `.doc`, `.docx`, `.odt`, `.xls`, `.xlsx`, `.ods`, `.ppt`, `.pptx`, `.odp`, `.rtf`, `.csv`, `.txt` |
 
 ## SQL Execution
 

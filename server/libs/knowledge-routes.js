@@ -5,6 +5,11 @@ import { matter } from './utils.js';
 
 export function registerKnowledgeRoutes(app, opts) {
   const rootPath = opts.rootPath || '/knowledge';
+
+  // Accept binary uploads (octet-stream) alongside JSON
+  app.addContentTypeParser('application/octet-stream', { parseAs: 'buffer' }, (_req, body, done) => {
+    done(null, body);
+  });
   const resolvePath = (request, p) => opts.resolvePath
     ? opts.resolvePath(request, p)
     : opts.splitRootPath(p);
@@ -150,7 +155,11 @@ export function registerKnowledgeRoutes(app, opts) {
     const absolutePath = path.resolve(root.path, filePath);
     if (!absolutePath.startsWith(root.path)) return reply.code(403).send({ error: t('forbidden') });
     mkdirSync(path.dirname(absolutePath), { recursive: true });
-    writeFileSync(absolutePath, request.body.content || '');
+    if (Buffer.isBuffer(request.body)) {
+      writeFileSync(absolutePath, request.body);
+    } else {
+      writeFileSync(absolutePath, request.body.content || '', 'utf-8');
+    }
     return { ok: true };
   });
 

@@ -142,6 +142,18 @@ const en = {
   fri: 'Fri',
   sat: 'Sat',
   sun: 'Sun',
+  // Collabora
+  status: 'Status',
+  running: 'Running',
+  stopped: 'Stopped',
+  container: 'Container',
+  engine: 'Engine',
+  image: 'Image',
+  hostPort: 'Host Port',
+  start: 'Start',
+  stop: 'Stop',
+  reloadLog: 'Reload Log',
+  settings: 'Settings',
 };
 
 const ja = {
@@ -282,6 +294,18 @@ const ja = {
   fri: '金',
   sat: '土',
   sun: '日',
+  // Collabora
+  status: '状態',
+  running: '実行中',
+  stopped: '停止中',
+  container: 'コンテナ',
+  engine: 'エンジン',
+  image: 'イメージ',
+  hostPort: 'ホストポート',
+  start: '起動',
+  stop: '停止',
+  reloadLog: 'ログ更新',
+  settings: '設定',
 };
 
 let locale = detectLocale();
@@ -361,7 +385,19 @@ const zh = {
   dropUrlToBookmark: '📥 拖入URL以添加书签',
   blue: '蓝色', red: '红色', green: '绿色', orange: '橙色',
   purple: '紫色', cyan: '青色', gray: '灰色',
-  mon: '一', tue: '二', wed: '三', thu: '四', fri: '五', sat: '六', sun: '日',
+  mon: '一', tue: '二', wed: '三', thu: '四', fri: '五', sat: '六',   sun: '日',
+  // Collabora
+  status: '状态',
+  running: '运行中',
+  stopped: '已停止',
+  container: '容器',
+  engine: '引擎',
+  image: '镜像',
+  hostPort: '主机端口',
+  start: '启动',
+  stop: '停止',
+  reloadLog: '刷新日志',
+  settings: '设置',
 };
 
 const dicts = { en, ja, zh };

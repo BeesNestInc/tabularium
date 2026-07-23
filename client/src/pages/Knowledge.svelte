@@ -13,8 +13,9 @@
 import { renderAll } from '../lib/mermaid.js';
 import { resolve as resolveContentType } from '../lib/content-types/index.js';
 import EditMode from '../components/knowledge/EditMode.svelte';
-  import TreeSidebar from '../components/knowledge/TreeSidebar.svelte';
-  import FullCalendarViewer from '../components/knowledge/FullCalendarViewer.svelte';
+import TreeSidebar from '../components/knowledge/TreeSidebar.svelte';
+import FullCalendarViewer from '../components/knowledge/FullCalendarViewer.svelte';
+import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte';
   import yaml from 'yaml';
 
   let treeData = [];
@@ -43,6 +44,7 @@ import EditMode from '../components/knowledge/EditMode.svelte';
   let calendarDirty = false;
   let calendarError = false;
   let showRootDialog = false;
+  let showCoolDialog = false;
   let newRootName = '';
   let newRootPath = '';
   let rootManaging = false;
@@ -994,6 +996,7 @@ import EditMode from '../components/knowledge/EditMode.svelte';
               {/if}
             {/if}
             <button class="btn btn-sm btn-outline-secondary" onclick={printContent}>{t('print')}</button>
+            <button class="btn btn-sm btn-outline-secondary" onclick={() => showCoolDialog = true} title="Collabora">{t('設定')}</button>
           </div>
         {/if}
       </div>
@@ -1110,6 +1113,8 @@ import EditMode from '../components/knowledge/EditMode.svelte';
     </div>
   </div>
 {/if}
+
+<CollaboraSettings bind:show={showCoolDialog} />
 
 <div id="bmTooltip" class="bm-tooltip hidden"></div>
 

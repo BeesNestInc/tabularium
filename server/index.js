@@ -204,9 +204,9 @@ const registerCollaboraRoutes = (app) => {
     const lines = parseInt(request.query.lines, 10) || 50;
     return coolLogs(lines);
   });
-  app.get('/api/collabora/config', async () => {
-    const wopiHost = process.env.WOPI_SRC || `http://localhost:${PORT}`;
-    const coolHost = process.env.COLLABORA_HOST || `http://localhost:9980`;
+  app.get('/api/collabora/config', async (request) => {
+    const wopiHost = process.env.WOPI_SRC || `http://${request.hostname}:${PORT}`;
+    const coolHost = process.env.COLLABORA_HOST || `http://${request.hostname}:9980`;
     const coolBrowserPath = process.env.COLLABORA_BROWSER_PATH || '/browser/de013a57f9/cool.html';
     return { coolHost, coolBrowserPath, wopiHost };
   });

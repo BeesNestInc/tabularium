@@ -23,7 +23,7 @@ if (existsSync(envLocal)) {
 }
 
 const PORT = parseInt(process.env.PORT || '8888', 10);
-const HOST = process.env.HOST || '0.0.0.0';
+const HOST = process.env.HOST || '::';
 
 // --- multi-root setup ---
 
@@ -506,7 +506,7 @@ const start = async () => {
   registerQueryRoutes(app);
   await app.register(wopiRoutes, {
     knowledgeBase: roots[0]?.path || resolvePath(process.env.KNOWLEDGE_BASE || 'knowledge'),
-    wopiSrc: process.env.WOPI_SRC || `http://localhost:${PORT}`,
+    wopiSrc: process.env.WOPI_SRC || `http://127.0.0.1:${PORT}`,
     splitRootPath: (request, path) => splitRootPath(path),
   });
 
@@ -541,7 +541,7 @@ const start = async () => {
 
   try {
     await app.listen({ port: PORT, host: HOST });
-    const hostname = HOST === '0.0.0.0' ? 'localhost' : HOST;
+    const hostname = HOST === '0.0.0.0' || HOST === '::' ? 'localhost' : HOST;
     console.log(t('Wiki server running at http://{0}:{1}', hostname, PORT));
     console.log(t('Knowledge roots ({0}):', roots.length), roots.map(r => `${r.name}: ${r.path}`).join(', '));
   } catch (err) {

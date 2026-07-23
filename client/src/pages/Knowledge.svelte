@@ -859,7 +859,8 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
     e.preventDefault();
     dragCounter = 0;
     e.currentTarget.classList.remove('bm-dragover');
-    if (!selectedPath || !selectedPath.endsWith('/')) return;
+    console.log('DnD drop on', selectedPath, e.dataTransfer.types);
+    if (!selectedPath || !selectedPath.endsWith('/')) { console.log('  rejected: not a directory'); return; }
     var dt = e.dataTransfer;
     var url = dt.getData('text/uri-list') || dt.getData('text/plain') || dt.getData('text/x-moz-url') || '';
     // Chrome may separate URL and title with \r\n or \n

@@ -29,8 +29,8 @@
     loading = false;
   };
 
-  const doStart = () => act(fetch(COOL_API + '/start', { method: 'POST' }).then(r => r.json()));
-  const doStop = () => act(fetch(COOL_API + '/stop', { method: 'POST' }).then(r => r.json()));
+  const doStart = () => act(async () => { const r = await fetch(COOL_API + '/start', { method: 'POST' }); return r.json(); });
+  const doStop = () => act(async () => { const r = await fetch(COOL_API + '/stop', { method: 'POST' }); return r.json(); });
 
   onMount(() => { fetchStatus(); fetchConfig(); fetchLogs(); });
 </script>
@@ -70,7 +70,6 @@
           <button class="btn btn-sm btn-outline-danger" onclick={doStop} disabled={loading || !status?.running}>
             {loading ? t('saving') : t('stop')}
           </button>
-          <button class="btn btn-sm btn-outline-secondary" onclick={fetchLogs}>{t('refresh')}</button>
         </div>
 
         {#if error}

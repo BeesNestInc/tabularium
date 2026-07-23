@@ -64,6 +64,8 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
     var sizes = ['list', 'thumb-sm', 'thumb-md', 'thumb-lg'];
     var idx = sizes.indexOf(fvViewMode);
     fvViewMode = sizes[(idx + 1) % sizes.length];
+    var cur = selectedPath;
+    if (cur && cur.endsWith('/')) loadDirectory(cur.replace(/\/$/, ''));
   };
 
   let coolConfig = null;

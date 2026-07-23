@@ -55,3 +55,5 @@ tabularium/
 ## 许可证
 
 AGPL-3.0-or-later
+
+本软件包含 [draw.io](https://github.com/jgraph/drawio) (AGPL-3.0) 用于图表编辑。

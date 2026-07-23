@@ -71,3 +71,5 @@ tabularium/
 ## License
 
 AGPL-3.0-or-later
+
+This software bundles [draw.io](https://github.com/jgraph/drawio) (AGPL-3.0) for diagram editing.

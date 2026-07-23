@@ -55,3 +55,5 @@ tabularium/
 ## ライセンス
 
 AGPL-3.0-or-later
+
+このソフトウェアには図編集のために [draw.io](https://github.com/jgraph/drawio) (AGPL-3.0) が同梱されています。

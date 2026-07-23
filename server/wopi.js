@@ -58,16 +58,25 @@ async function wopiRoutes(app, opts) {
         return absPath.startsWith(knowledgeDir) ? absPath : null;
       };
 
+  // CORS for WOPI (Collabora iframe calls back to us)
+  const corsHeaders = (reply) => {
+    reply.header('Access-Control-Allow-Origin', '*');
+    reply.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    reply.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  };
+
   app.addContentTypeParser('application/octet-stream', { parseAs: 'buffer' }, (_req, body, done) => {
     done(null, body);
   });
 
   app.get(`${PREFIX}/hosting/discovery`, async (request, reply) => {
+    corsHeaders(reply);
     reply.type('application/xml');
     return discoveryXml(wopiSrc);
   });
 
   app.get(`${PREFIX}/wopi/files/*`, async (request, reply) => {
+    corsHeaders(reply);
     const wildcard = request.params['*'];
     const isContents = wildcard.endsWith('/contents');
     const fileId = isContents ? wildcard.slice(0, -'/contents'.length) : wildcard;
@@ -108,6 +117,7 @@ async function wopiRoutes(app, opts) {
   });
 
   app.post(`${PREFIX}/wopi/files/*`, async (request, reply) => {
+    corsHeaders(reply);
     const wildcard = request.params['*'];
     if (!wildcard.endsWith('/contents')) return reply.code(400).send({ error: t('only /contents is writable') });
 

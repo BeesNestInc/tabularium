@@ -1,6 +1,7 @@
 import { readFileSync, readdirSync, statSync, existsSync, writeFileSync, mkdirSync, rmSync, accessSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import os from 'node:os';
 import Fastify from 'fastify';
 import fastifyStatic from '@fastify/static';
 import dotenv from 'dotenv';
@@ -193,6 +194,10 @@ import { status as coolStatus, start as coolStart, stop as coolStop, logs as coo
 import wopiRoutes from './wopi.js';
 
 const registerCollaboraRoutes = (app) => {
+
+  const serverIp = Object.values(os.networkInterfaces()).flat()
+    .find(a => !a.internal && a.family === 'IPv4')?.address || '127.0.0.1';
+
   app.get('/api/collabora/status', async () => coolStatus());
   app.post('/api/collabora/start', async (request, reply) => {
     try { return await coolStart(); } catch (err) { return reply.code(500).send({ ok: false, error: err.message }); }
@@ -206,7 +211,7 @@ const registerCollaboraRoutes = (app) => {
   });
   app.get('/api/collabora/config', async (request) => {
     const wopiHost = process.env.WOPI_SRC || `http://${request.hostname}:${PORT}`;
-    const coolHost = process.env.COLLABORA_HOST || `http://${request.hostname}:9980`;
+    const coolHost = process.env.COLLABORA_HOST || `http://${serverIp}:9980`;
     const coolBrowserPath = process.env.COLLABORA_BROWSER_PATH || '/browser/de013a57f9/cool.html';
     return { coolHost, coolBrowserPath, wopiHost };
   });

@@ -116,7 +116,7 @@ async function wopiRoutes(app, opts) {
     };
   });
 
-  app.post(`${PREFIX}/wopi/files/*`, async (request, reply) => {
+  app.post(`${PREFIX}/wopi/files/*`, { bodyLimit: 200 * 1024 * 1024 }, async (request, reply) => {
     corsHeaders(reply);
     const wildcard = request.params['*'];
     if (!wildcard.endsWith('/contents')) return reply.code(400).send({ error: t('only /contents is writable') });

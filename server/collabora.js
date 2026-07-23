@@ -107,7 +107,7 @@ export async function start() {
   const st = await status();
   if (st.running) return { ok: true, message: t('Container already running'), containerName: CONTAINER_NAME };
 
-  const runArgs = ['run', '-d', '--name', CONTAINER_NAME, '--restart', 'unless-stopped', '-p', PORT_MAPPING];
+  const runArgs = ['run', '-d', '--name', CONTAINER_NAME, '--restart', 'unless-stopped', '--network', 'host', '-p', PORT_MAPPING];
 
   if (WOPI_SRC) {
     runArgs.push('-e', `domain=.*`);

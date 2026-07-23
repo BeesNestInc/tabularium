@@ -6,7 +6,7 @@
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",
-    "build": "cd client && npm run build",
+    "build": "rm -rf public/assets public/wiki.html && cd client && npm run build",
     "setup": "npm install && cd client && npm install && node scripts/download-drawio.js && npm run build"
   },
   "author": "Masami Ogoshi (ogochan@beesnest-inc.com)",

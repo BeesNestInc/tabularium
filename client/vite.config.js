@@ -8,7 +8,7 @@ export default defineConfig({
   base: '/',
   build: {
     outDir: resolve(__dirname, '..', 'public'),
-    emptyOutDir: true,
+    emptyOutDir: false,
     rollupOptions: {
       input: {
         wiki: resolve(__dirname, 'wiki.html'),

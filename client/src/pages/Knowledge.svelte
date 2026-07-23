@@ -860,11 +860,14 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
     dragCounter = 0;
     e.currentTarget.classList.remove('bm-dragover');
     if (!selectedPath || !selectedPath.endsWith('/')) return;
-    var url = e.dataTransfer.getData('text/uri-list') || e.dataTransfer.getData('text/plain');
+    var dt = e.dataTransfer;
+    var url = dt.getData('text/uri-list') || dt.getData('text/plain') || dt.getData('text/x-moz-url') || '';
+    // Chrome may separate URL and title with \r\n or \n
+    url = url.split('\n')[0].split('\r')[0].trim();
     if (!url) return;
     var clean = url.trim();
     if (clean.startsWith('<') && clean.endsWith('>')) clean = clean.slice(1, -1);
-    if (!clean.startsWith('http://') && !clean.startsWith('https://')) return;
+    if (!clean.startsWith('http://') && !clean.startsWith('https://')) { console.warn('dropped non-URL:', clean); return; }
     var dir = selectedPath.replace(/\/$/, '');
     var doAdd = function(title, u) {
       api.bookmarkAdd(dir, title, u).then(function() {

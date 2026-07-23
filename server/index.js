@@ -506,6 +506,11 @@ const start = async () => {
   app.post('/api/auth/logout', async () => ({}));
   app.post('/api/auth/login', async () => ({ ok: true }));
 
+  // Frontend configuration exposed to the SPA
+  app.get('/api/config', async () => ({
+    drawio: process.env.DRAWIO_URL || '/drawio',
+  }));
+
   registerWikiKnowledgeRoutes(app);
   registerCollaboraRoutes(app);
   registerQueryRoutes(app);

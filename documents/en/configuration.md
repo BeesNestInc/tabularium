@@ -36,8 +36,8 @@ KNOWLEDGE_ROOTS='[{"name":"wiki","path":"/path/to/knowledge"},{"name":"docs","pa
 
 | Variable | Default | Description |
 |---|---|---|
-| `WOPI_SRC` | `http://localhost:8888` | Base URL of this server for WOPI protocol |
-| `COLLABORA_HOST` | `http://localhost:9980` | Collabora Online host |
+| `WOPI_SRC` | — | WOPI server base URL (must be reachable from inside the container) |
+| `COLLABORA_HOST` | auto | Collabora Online host |
 | `COLLABORA_BROWSER_PATH` | `/browser/de013a57f9/cool.html` | Collabora browser client path |
 | `COLLABORA_ENGINE` | `podman` | Container engine (only Podman is supported) |
 | `COLLABORA_IMAGE` | `docker.io/collabora/code` | Container image |
@@ -46,6 +46,12 @@ KNOWLEDGE_ROOTS='[{"name":"wiki","path":"/path/to/knowledge"},{"name":"docs","pa
 | `COLLABORA_USERNAME` | — | Admin console username |
 | `COLLABORA_PASSWORD` | — | Admin console password |
 | `COLLABORA_SERVER_NAME` | — | Server hostname:port |
+
+### Draw.io
+
+| Variable | Default | Description |
+|---|---|---|
+| `DRAWIO_URL` | `/drawio` | draw.io editor URL. Default uses built-in static files served by Tabularium. Set to `https://embed.diagrams.net` to use the cloud version, or `http://localhost:8080` for a self-hosted instance. |
 | `COLLABORA_EXTRA_ARGS` | — | Extra command-line arguments for container engine |
 
 ## Root Persistence

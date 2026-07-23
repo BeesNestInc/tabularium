@@ -24,9 +24,10 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
   let drawioXml = '';
   let isDrawioEditing = false;
   let drawioSaving = false;
+  let drawioSaveError = false;
   let drawioSaveMessage = '';
-  const DRAWIO_EMBED_VIEW = 'https://embed.diagrams.net/?embed=1&proto=json&stealth=1';
-  const DRAWIO_EMBED_EDIT = 'https://embed.diagrams.net/?embed=1&proto=json&ui=min';
+  let appConfig = null;
+  const drawioUrl = () => (appConfig && appConfig.drawio) || 'https://embed.diagrams.net';
   let contentLoading = false;
   let isEditMode = false;
   let editorContent = '';
@@ -607,7 +608,7 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
     const iframe = document.querySelector('.drawio-frame');
     if (!iframe || !selectedPath) return;
     drawioSaving = true;
-    drawioSaveMessage = '';
+    drawioSaveError = false; drawioSaveMessage = '';
     iframe.contentWindow.postMessage(JSON.stringify({ action: 'export', format: 'xml' }), '*');
   };
 
@@ -643,7 +644,7 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
     const iframe = document.querySelector('.drawio-frame');
     if (!iframe) return;
     drawioSaving = true;
-    drawioSaveMessage = '';
+    drawioSaveError = false; drawioSaveMessage = '';
     iframe.contentWindow.postMessage(JSON.stringify({ action: 'export', format: 'svg' }), '*');
   };
 
@@ -660,7 +661,7 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
         xml = new TextDecoder('utf-8').decode(bytes);
       } catch {
         drawioSaving = false;
-        drawioSaveMessage = t('svgDecodeFailed');
+        drawioSaveError = true; drawioSaveMessage = t('svgDecodeFailed');
         return;
       }
     }
@@ -675,12 +676,12 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       drawioSaving = false;
-      drawioSaveMessage = t('svgSaved', svgPath);
-      setTimeout(() => { drawioSaveMessage = ''; }, 5000);
+      drawioSaveError = false; drawioSaveMessage = t('svgSaved', svgPath);
+      setTimeout(() => { drawioSaveMessage = ''; drawioSaveError = false; }, 5000);
       loadTree();
     } catch (err) {
       drawioSaving = false;
-      drawioSaveMessage = t('svgSaveFailed', err.message);
+      drawioSaveError = true; drawioSaveMessage = t('svgSaveFailed', err.message);
     }
   };
 
@@ -697,11 +698,11 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
       drawioXml = xml;
       if (exitAfterSave) isDrawioEditing = false;
       drawioSaving = false;
-      drawioSaveMessage = t('saved');
-      setTimeout(() => { drawioSaveMessage = ''; }, 3000);
+      drawioSaveError = false; drawioSaveMessage = t('saved');
+      setTimeout(() => { drawioSaveMessage = ''; drawioSaveError = false; }, 3000);
     } catch (err) {
       drawioSaving = false;
-      drawioSaveMessage = t('saveFailed', err.message);
+      drawioSaveError = true; drawioSaveMessage = t('saveFailed', err.message);
     }
   };
 
@@ -912,6 +913,7 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
     registerBmGlobals();
     loadMermaid();
     fetch('/api/collabora/config').then(r => r.json()).then(c => coolConfig = c).catch(() => {});
+    fetch('/api/config').then(r => r.json()).then(c => appConfig = c).catch(() => {});
     loadRoots().then(() => {
       const urlPath = window.location.pathname + window.location.search;
       handleUrlChange(urlPath);
@@ -1033,9 +1035,9 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
         {:else if isDrawioExt(selectedPath)}
           <div class="drawio-container">
             {#if drawioSaveMessage}
-              <div class="drawio-save-msg" class:error={drawioSaveMessage.includes('失敗')}>{drawioSaveMessage}</div>
+              <div class="drawio-save-msg" class:error={drawioSaveError}>{drawioSaveMessage}</div>
             {/if}
-            <iframe src={isDrawioEditing ? DRAWIO_EMBED_EDIT : DRAWIO_EMBED_VIEW} class="drawio-frame" title="draw.io diagram" frameborder="0"></iframe>
+            <iframe src={isDrawioEditing ? drawioUrl() + '/?embed=1&proto=json&ui=min' : drawioUrl() + '/?embed=1&proto=json&stealth=1'} class="drawio-frame" title="draw.io diagram" frameborder="0"></iframe>
           </div>
         {:else if isCalendarExt(selectedPath) && !calendarError}
           <FullCalendarViewer rawContent={calendarRawContent} filePath={selectedPath} on:change={(e) => { calendarRawContent = e.detail.value; calendarDirty = true; }} />

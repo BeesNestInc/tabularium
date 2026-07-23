@@ -872,7 +872,6 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
       }).catch(function(e) { alert(t('addFailed', e.message)); });
     };
     api.fetchPageTitle(clean)
-      .then(function(r) { return r.json(); })
       .then(function(data) {
         var pTitle = prompt(t('titlePrompt'), data.title || clean);
         if (!pTitle) return;

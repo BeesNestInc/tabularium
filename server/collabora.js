@@ -51,19 +51,18 @@ function detectEngine() {
     return result.status === 0;
   };
   if (check('podman')) return 'podman';
-  if (check('docker')) return 'docker';
   return null;
 }
 
 function run(args, opts = {}) {
   const engine = detectEngine();
-  if (!engine) throw new Error(t('No container engine found (podman or docker)'));
+  if (!engine) throw new Error(t('Podman not found'));
   return spawn(engine, args, { stdio: opts.stdio ?? 'inherit', ...opts });
 }
 
 function runSync(args) {
   const engine = detectEngine();
-  if (!engine) throw new Error(t('No container engine found (podman or docker)'));
+  if (!engine) throw new Error(t('Podman not found'));
   const result = spawnSync(engine, args, { encoding: 'utf-8' });
   if (result.error) throw result.error;
   if (result.status !== 0) throw new Error(result.stderr?.trim() || t('Command failed with code {0}', result.status));
@@ -72,7 +71,7 @@ function runSync(args) {
 
 export async function status() {
   const engine = detectEngine();
-  if (!engine) return { running: false, engine: null, error: t('No container engine found') };
+  if (!engine) return { running: false, engine: null, error: t('Podman not found') };
 
   try {
     const inspect = runSync(['ps', '-a', '--filter', `name=${CONTAINER_NAME}`, '--format', '{{.ID}}|{{.Status}}|{{.Image}}|{{.Ports}}']);
@@ -109,7 +108,7 @@ export async function status() {
 
 function runAndCapture(args) {
   const engine = detectEngine();
-  if (!engine) throw new Error(t('No container engine found (podman or docker)'));
+  if (!engine) throw new Error(t('Podman not found'));
   return new Promise((resolve, reject) => {
     const proc = spawn(engine, args, { stdio: ['inherit', 'inherit', 'pipe'] });
     let stderr = '';
@@ -123,7 +122,7 @@ function runAndCapture(args) {
 
 export async function start() {
   const engine = detectEngine();
-  if (!engine) return { ok: false, error: t('No container engine found (podman or docker)') };
+  if (!engine) return { ok: false, error: t('Podman not found') };
 
   const st = await status();
   if (st.running) return { ok: true, message: t('Container already running'), containerName: CONTAINER_NAME };
@@ -157,7 +156,7 @@ export async function start() {
 
 export async function stop() {
   const engine = detectEngine();
-  if (!engine) return { ok: false, error: t('No container engine found') };
+  if (!engine) return { ok: false, error: t('Podman not found') };
 
   const st = await status();
   if (!st.exists) return { ok: true, message: t('Container does not exist') };
@@ -170,7 +169,7 @@ export async function stop() {
 
 export async function remove() {
   const engine = detectEngine();
-  if (!engine) return { ok: false, error: t('No container engine found') };
+  if (!engine) return { ok: false, error: t('Podman not found') };
 
   const st = await status();
   if (!st.exists) return { ok: true, message: t('Container does not exist') };
@@ -187,7 +186,7 @@ export async function remove() {
 
 export async function logs(lines = 50) {
   const engine = detectEngine();
-  if (!engine) return { ok: false, error: t('No container engine found') };
+  if (!engine) return { ok: false, error: t('Podman not found') };
 
   const st = await status();
   if (!st.exists) return { ok: false, error: t('Container does not exist') };
@@ -254,12 +253,7 @@ Commands:
   remove         Stop and remove container
   engine         Show detected container engine
 
-Environment:
-  COLLABORA_ENGINE         Force engine (podman|docker)
-  COLLABORA_IMAGE          Container image (default: collabora/code)
-  COLLABORA_PORT           Port mapping (default: 9980:9980)
-  COLLABORA_CONTAINER_NAME Container name (default: legion-cool)
-  COLLABORA_EXTRA_ARGS     Extra arguments for podman/docker run
+Requires Podman: https://podman.io
 `);
       process.exit(1);
   }

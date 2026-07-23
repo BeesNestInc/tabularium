@@ -32,7 +32,12 @@ Office文書（.docx, .xlsx, .pptx）をブラウザ上で編集できます。
 
 ### セットアップ
 
+[Podman](https://podman.io) をインストールしておきます。
+
 ```bash
+# Collaboraイメージを取得
+podman pull docker.io/collabora/code
+
 # Collaboraコンテナ起動
 node server/collabora.js start
 

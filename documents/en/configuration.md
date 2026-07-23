@@ -39,7 +39,7 @@ KNOWLEDGE_ROOTS='[{"name":"wiki","path":"/path/to/knowledge"},{"name":"docs","pa
 | `WOPI_SRC` | `http://localhost:8888` | Base URL of this server for WOPI protocol |
 | `COLLABORA_HOST` | `http://localhost:9980` | Collabora Online host |
 | `COLLABORA_BROWSER_PATH` | `/browser/de013a57f9/cool.html` | Collabora browser client path |
-| `COLLABORA_ENGINE` | auto | Container engine (`podman` or `docker`) |
+| `COLLABORA_ENGINE` | `podman` | Container engine (only Podman is supported) |
 | `COLLABORA_IMAGE` | `docker.io/collabora/code` | Container image |
 | `COLLABORA_CONTAINER_NAME` | `legion-cool` | Container name |
 | `COLLABORA_PORT` | `9980:9980` | Port mapping |

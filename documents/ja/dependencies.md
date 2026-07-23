@@ -35,4 +35,4 @@
 | ソフトウェア | 用途 |
 |---|---|
 | **Collabora Online** | Officeドキュメント編集（WOPIプロトコル） |
-| **Podman** または **Docker** | Collabora Online のコンテナ実行環境 |
+| **Podman** | Collabora Online のコンテナ実行環境 |

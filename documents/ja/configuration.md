@@ -32,7 +32,7 @@
 |---|---|---|
 | `WOPI_SRC` | `http://localhost:8888` | WOPIサーバのベースURL |
 | `COLLABORA_HOST` | `http://localhost:9980` | Collabora Online ホスト |
-| `COLLABORA_ENGINE` | 自動検出 | コンテナエンジン（podman/docker） |
+| `COLLABORA_ENGINE` | `podman` | コンテナエンジン（Podmanのみ対応） |
 | `COLLABORA_IMAGE` | `docker.io/collabora/code` | コンテナイメージ |
 | `COLLABORA_CONTAINER_NAME` | `legion-cool` | コンテナ名 |
 | `COLLABORA_PORT` | `9980:9980` | ポートマッピング |

@@ -32,10 +32,13 @@ Tabularium can integrate with Collabora Online to edit Office documents (`.docx`
 
 ### Setup
 
-Install Podman or Docker, then:
+Install [Podman](https://podman.io), then:
 
 ```bash
-# Start the Collabora container
+# Pull the Collabora image
+podman pull docker.io/collabora/code
+
+# Start the container
 node server/collabora.js start
 
 # Check status
@@ -76,7 +79,7 @@ COLLABORA_PASSWORD=secret
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| "プロキシの設定が…" / Collabora UI loads but document doesn't render | Container can't reach the WOPI server | Ensure `WOPI_SRC` is set to a hostname reachable from inside the container. Recreate the container: `node server/collabora.js remove && node server/collabora.js start` (this applies `--network host`) |
+| "プロキシの設定が…" / Collabora UI loads but document doesn't render | Container can't reach the WOPI server | Ensure `WOPI_SRC` is set to a hostname reachable from inside the container. Recreate the container: `node server/collabora.js remove && node server/collabora.js start`. Requires [Podman](https://podman.io). |
 | "Server not found" when loading the Collabora iframe | Collabora container not running | Check with `node server/collabora.js status`, start with `node server/collabora.js start` |
 | Office file opens as blank / download only | File extension not recognized by Collabora | Supported: `.doc`, `.docx`, `.odt`, `.xls`, `.xlsx`, `.ods`, `.ppt`, `.pptx`, `.odp`, `.rtf`, `.csv`, `.txt` |
 

@@ -36,4 +36,4 @@
 | Software | Purpose |
 |---|---|
 | **Collabora Online** | Office document editing via WOPI protocol |
-| **Podman** or **Docker** | Container runtime for Collabora Online |
+| **Podman** | Container runtime for Collabora Online |

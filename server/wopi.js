@@ -65,10 +65,6 @@ async function wopiRoutes(app, opts) {
     reply.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
   };
 
-  app.addContentTypeParser('application/octet-stream', { parseAs: 'buffer' }, (_req, body, done) => {
-    done(null, body);
-  });
-
   app.get(`${PREFIX}/hosting/discovery`, async (request, reply) => {
     corsHeaders(reply);
     reply.type('application/xml');

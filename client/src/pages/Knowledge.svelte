@@ -860,6 +860,22 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
     dragCounter = 0;
     e.currentTarget.classList.remove('bm-dragover');
     if (!selectedPath || !selectedPath.endsWith('/')) return;
+    var dir = selectedPath.replace(/\/$/, '');
+    var files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      // file upload
+      for (var i = 0; i < files.length; i++) {
+        var file = files[i];
+        var reader = new FileReader();
+        reader.onload = function(f) { return function(ev) {
+          var content = ev.target.result;
+          api.saveRaw(f.path || f.name, content).catch(function(e) { alert(t('saveFailed', e.message)); });
+        }; }(file);
+        reader.readAsText(file);
+      }
+      setTimeout(function() { loadDirectory(dir); }, 500);
+      return;
+    }
     var dt = e.dataTransfer;
     // Try text/x-moz-url (URL + title), then text/uri-list, then text/plain
     var raw = dt.getData('text/x-moz-url') || dt.getData('text/uri-list') || dt.getData('text/plain') || '';

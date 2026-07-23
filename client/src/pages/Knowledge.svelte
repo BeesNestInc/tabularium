@@ -924,10 +924,18 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
       }
       const folderHtml = bmUi.folderViewHtml(folderPath, pageData.entries || [], bookmarks, fvViewMode, true);
       contentHtml = html + folderHtml;
-      // poll for pending thumbnails
+      // poll once for pending thumbnails
       if (bookmarks.some(b => b.url && !b.thumb)) {
         clearTimeout(bookmarkPollTimer);
-        bookmarkPollTimer = setTimeout(() => loadDirectory(folderPath), 3000);
+        bookmarkPollTimer = setTimeout(async () => {
+          const bmRes = await api.fetchBookmarks(folderPath).catch(() => null);
+          if (!bmRes) return;
+          var updated = bmRes.bookmarks || [];
+          if (updated.some(b => b.thumb)) {
+            bookmarks = updated;
+            contentHtml = html + bmUi.folderViewHtml(folderPath, pageData.entries || [], bookmarks, fvViewMode, true);
+          }
+        }, 3000);
       }
     } catch (e) {
       console.error('loadDirectory error:', e);

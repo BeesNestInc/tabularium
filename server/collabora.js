@@ -127,6 +127,7 @@ export async function start() {
     '--o:ssl.enable=false',
     '--o:net.allowed_websocket_origins[0].origin=*',
     `--o:net.content_security_policy=script-src 'self' 'unsafe-eval' 'unsafe-inline'`,
+    '--o:limit_load_secs=300',
   ];
   if (process.env.COLLABORA_EXTRA_PARAMS) {
     extraParams.push(...process.env.COLLABORA_EXTRA_PARAMS.split(/\s+/));

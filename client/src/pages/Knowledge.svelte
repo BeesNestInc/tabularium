@@ -27,7 +27,7 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
   let drawioSaveError = false;
   let drawioSaveMessage = '';
   let appConfig = null;
-  const drawioUrl = () => (appConfig && appConfig.drawio) || 'https://embed.diagrams.net';
+  const drawioUrl = () => { const u = (appConfig && appConfig.drawio) || 'https://embed.diagrams.net'; return u.endsWith('/') ? u : u + '/'; };
   let contentLoading = false;
   let isEditMode = false;
   let editorContent = '';
@@ -1037,7 +1037,7 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
             {#if drawioSaveMessage}
               <div class="drawio-save-msg" class:error={drawioSaveError}>{drawioSaveMessage}</div>
             {/if}
-            <iframe src={isDrawioEditing ? drawioUrl() + '/?embed=1&proto=json&ui=min' : drawioUrl() + '/?embed=1&proto=json&stealth=1'} class="drawio-frame" title="draw.io diagram" frameborder="0"></iframe>
+            <iframe src={isDrawioEditing ? drawioUrl() + '?embed=1&proto=json&ui=min' : drawioUrl() + '?embed=1&proto=json&stealth=1'} class="drawio-frame" title="draw.io diagram" frameborder="0"></iframe>
           </div>
         {:else if isCalendarExt(selectedPath) && !calendarError}
           <FullCalendarViewer rawContent={calendarRawContent} filePath={selectedPath} on:change={(e) => { calendarRawContent = e.detail.value; calendarDirty = true; }} />

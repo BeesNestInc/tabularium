@@ -85,7 +85,15 @@ async function wopiRoutes(app, opts) {
     if (!existsSync(absolutePath) || !statSync(absolutePath).isFile()) return reply.code(404).send({ error: t('not found') });
 
     if (isContents) {
-      return reply.type('application/octet-stream').send(readFileSync(absolutePath));
+      const st = statSync(absolutePath);
+      const size = st.size;
+      request.log.info({ file: fileId, size }, 'WOPI contents requested');
+      const buf = readFileSync(absolutePath);
+      request.log.info({ file: fileId, size: buf.length }, 'WOPI contents read');
+      reply.raw.on('finish', () => request.log.info({ file: fileId, size }, 'WOPI contents sent ok'));
+      reply.raw.on('close', () => request.log.info({ file: fileId, size, event: 'close' }, 'WOPI contents stream closed'));
+      reply.raw.on('error', (err) => request.log.error({ file: fileId, size, err: err.message }, 'WOPI contents send error'));
+      return reply.type('application/octet-stream').send(buf);
     }
 
     const stats = statSync(absolutePath);

@@ -863,17 +863,21 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
     var dir = selectedPath.replace(/\/$/, '');
     var files = e.dataTransfer.files;
     if (files && files.length > 0) {
-      // file upload
+      var TEXT_EXTS = ['.md','.mmd','.txt','.csv','.json','.yaml','.yml','.xml','.html','.css','.js','.ts','.sh','.env','.ini','.cfg','.conf','.log'];
       var pending = files.length;
       for (var i = 0; i < files.length; i++) {
         (function(f) {
+          var ext = f.name.lastIndexOf('.') >= 0 ? f.name.slice(f.name.lastIndexOf('.')).toLowerCase() : '';
+          if (TEXT_EXTS.indexOf(ext) === -1) { pending--; return; }
           var reader = new FileReader();
           reader.onload = function(ev) {
-            var filePath = dir + '/' + f.name;
-            api.saveRaw(filePath, ev.target.result)
+            var text = ev.target.result;
+            if (text == null || text === '') { pending--; return; }
+            api.saveRaw(dir + '/' + f.name, text)
               .then(function() { pending--; if (pending <= 0) loadDirectory(dir); })
               .catch(function(e) { alert(t('saveFailed', e.message)); pending--; });
           };
+          reader.onerror = function() { alert(t('loadFileFailed')); pending--; };
           reader.readAsText(f);
         })(files[i]);
       }

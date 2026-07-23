@@ -618,7 +618,7 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
 
   const handleDrawioMessage = (e) => {
     let msg;
-    try { msg = JSON.parse(e.data); } catch (ex) { console.warn('drawio msg parse error:', ex.message, e.data?.slice(0,200)); return; }
+    try { msg = JSON.parse(e.data); } catch { return; }
     if (!msg) return;
     console.log('drawio message:', msg);
     if (msg.event === 'init') {

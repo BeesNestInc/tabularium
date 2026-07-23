@@ -1,4 +1,4 @@
-import { readFileSync, statSync, existsSync, writeFileSync, mkdirSync, createReadStream } from 'node:fs';
+import { readFileSync, statSync, existsSync, writeFileSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { t } from './libs/i18n.js';
 
@@ -85,8 +85,7 @@ async function wopiRoutes(app, opts) {
     if (!existsSync(absolutePath) || !statSync(absolutePath).isFile()) return reply.code(404).send({ error: t('not found') });
 
     if (isContents) {
-      const stream = createReadStream(absolutePath);
-      return reply.type('application/octet-stream').send(stream);
+      return reply.type('application/octet-stream').send(readFileSync(absolutePath));
     }
 
     const stats = statSync(absolutePath);

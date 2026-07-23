@@ -45,6 +45,7 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
   let csvContent = '';
   let csvDirty = false;
   let csvLoadKey = 0;
+  let fvViewMode = 'list';
   let calendarRawContent = '';
   let calendarDirty = false;
   let calendarError = false;
@@ -58,6 +59,12 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
   let bookmarks = [];
   let dragCounter = 0;
   let bookmarkPollTimer = null;
+
+  const toggleFvView = () => {
+    var sizes = ['list', 'thumb-sm', 'thumb-md', 'thumb-lg'];
+    var idx = sizes.indexOf(fvViewMode);
+    fvViewMode = sizes[(idx + 1) % sizes.length];
+  };
 
   let coolConfig = null;
   const getCoolIframeUrl = (filePath) => {
@@ -904,7 +911,7 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
       } else {
         evidenceCharts = [];
       }
-      const folderHtml = bmUi.folderViewHtml(folderPath, pageData.entries || [], bookmarks, 'list', true);
+      const folderHtml = bmUi.folderViewHtml(folderPath, pageData.entries || [], bookmarks, fvViewMode, true);
       contentHtml = html + folderHtml;
     } catch (e) {
       console.error('loadDirectory error:', e);
@@ -1005,6 +1012,9 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
               {/if}
             {/if}
             <button class="btn btn-sm btn-outline-secondary" onclick={printContent}>{t('print')}</button>
+            {#if selectedPath?.endsWith('/')}
+              <button class="btn btn-sm btn-outline-secondary" onclick={toggleFvView}>{fvViewMode === 'thumb-lg' ? '☰' : '⊞'}</button>
+            {/if}
             <button class="btn btn-sm btn-outline-secondary" onclick={() => showCoolDialog = true} title="Collabora">{t('設定')}</button>
           </div>
         {/if}

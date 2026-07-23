@@ -70,7 +70,7 @@
           <button class="btn btn-sm btn-outline-danger" onclick={doStop} disabled={loading || !status?.running}>
             {loading ? t('saving') : t('stop')}
           </button>
-          <button class="btn btn-sm btn-outline-secondary" onclick={fetchLogs}>{t('reloadLog')}</button>
+          <button class="btn btn-sm btn-outline-secondary" onclick={fetchLogs}>{t('refresh')}</button>
         </div>
 
         {#if error}

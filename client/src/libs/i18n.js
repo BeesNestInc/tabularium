@@ -152,7 +152,7 @@ const en = {
   hostPort: 'Host Port',
   start: 'Start',
   stop: 'Stop',
-  reloadLog: 'Reload Log',
+  refresh: 'Refresh',
   settings: 'Settings',
 };
 
@@ -304,7 +304,7 @@ const ja = {
   hostPort: 'ホストポート',
   start: '起動',
   stop: '停止',
-  reloadLog: 'ログ更新',
+  refresh: '更新',
   settings: '設定',
 };
 
@@ -396,7 +396,7 @@ const zh = {
   hostPort: '主机端口',
   start: '启动',
   stop: '停止',
-  reloadLog: '刷新日志',
+  refresh: '刷新',
   settings: '设置',
 };
 

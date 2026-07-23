@@ -193,9 +193,9 @@
 .fv-file-list { margin: 0 0 4px; }
 .fv-file-item { display: flex; align-items: center; gap: 2px; text-align: left; padding: 2px 4px; border: none; background: transparent; cursor: pointer; border-radius: 3px; font-size: inherit; color: inherit; min-width: 0; overflow: hidden; white-space: nowrap; }
 .fv-file-item:hover { background: #f0f0f0; }
-.fv-file-row { display: flex; align-items: center; gap: 2px; border-radius: 3px; padding-right: 4px; }
+.fv-file-row { display: flex; align-items: flex-end; gap: 2px; border-radius: 3px; padding-right: 4px; }
 .fv-file-row:hover { background: #f0f0f0; }
-.fv-file-row .fv-del-btn { visibility: hidden; margin-left: auto; }
+.fv-file-row .fv-del-btn { margin-left: auto; visibility: visible; }
 .fv-file-row:hover .fv-del-btn { visibility: visible; }
 .fv-file-icon { flex-shrink: 0; width: 18px; text-align: center; }
 .fv-file-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

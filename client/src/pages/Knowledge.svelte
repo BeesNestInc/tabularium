@@ -864,16 +864,19 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
     var files = e.dataTransfer.files;
     if (files && files.length > 0) {
       // file upload
+      var pending = files.length;
       for (var i = 0; i < files.length; i++) {
-        var file = files[i];
-        var reader = new FileReader();
-        reader.onload = function(f) { return function(ev) {
-          var content = ev.target.result;
-          api.saveRaw(f.path || f.name, content).catch(function(e) { alert(t('saveFailed', e.message)); });
-        }; }(file);
-        reader.readAsText(file);
+        (function(f) {
+          var reader = new FileReader();
+          reader.onload = function(ev) {
+            var filePath = dir + '/' + f.name;
+            api.saveRaw(filePath, ev.target.result)
+              .then(function() { pending--; if (pending <= 0) loadDirectory(dir); })
+              .catch(function(e) { alert(t('saveFailed', e.message)); pending--; });
+          };
+          reader.readAsText(f);
+        })(files[i]);
       }
-      setTimeout(function() { loadDirectory(dir); }, 500);
       return;
     }
     var dt = e.dataTransfer;

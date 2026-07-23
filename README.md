@@ -38,8 +38,8 @@ Open http://localhost:8888.
 | Locale | Language | Auto-detection |
 |--------|----------|----------------|
 | `en`   | English (default) | `Accept-Language: en` |
-| `ja`   | 日本語 | `Accept-Language: ja` |
-| `zh`   | 简体中文 | `Accept-Language: zh` |
+| `ja`   | [日本語](README_ja.md) | `Accept-Language: ja` |
+| `zh`   | [简体中文](README_zh.md) | `Accept-Language: zh` |
 
 See [Adding a language](documents/en/configuration.md#adding-a-language).
 

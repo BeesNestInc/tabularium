@@ -1,6 +1,7 @@
 # Tabularium
 
-Tabularium — 知識ベースサーバ兼SPA。ファイルシステム上のディレクトリをREST APIで公開し、ブラウザ上で閲覧・編集するためのWebインタフェースを提供します。
+Tabularium — オープンなファイルベース知識ワークスペース。人間とAIのためのナレッジベースサーバ兼SPAです。
+Markdown、スプレッドシート、カレンダー、Office文書、図、ブックマーク、データ分析を統合したブラウザインタフェースを提供します。
 
 ## クイックスタート
 
@@ -36,9 +37,9 @@ http://localhost:8888 をブラウザで開いてください。
 
 | ロケール | 言語 | 自動検出 |
 |---|---|---|
-| `en` | English | `Accept-Language: en` |
+| `en` | [English](README.md) | `Accept-Language: en` |
 | `ja` | 日本語 | `Accept-Language: ja` |
-| `zh` | 简体中文 | `Accept-Language: zh` |
+| `zh` | [简体中文](README_zh.md) | `Accept-Language: zh` |
 
 ## プロジェクト構成
 

@@ -535,6 +535,12 @@ const start = async () => {
   };
 
   if (existsSync(publicDir)) {
+    // CORS for Vite-generated assets (with crossorigin attribute)
+    app.addHook('onRequest', async (request, reply) => {
+      if (request.url.startsWith('/assets/')) {
+        reply.header('Access-Control-Allow-Origin', '*');
+      }
+    });
     await app.register(fastifyStatic, {
       root: publicDir,
       prefix: '/',

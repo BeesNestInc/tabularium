@@ -125,7 +125,7 @@ export async function start() {
 
   const extraParams = [
     '--o:ssl.enable=false',
-    '--o:net.cors_origins=*',
+    '--o:net.allowed_websocket_origins[0].origin=*',
     `--o:net.content_security_policy=script-src 'self' 'unsafe-eval' 'unsafe-inline'`,
   ];
   if (process.env.COLLABORA_EXTRA_PARAMS) {

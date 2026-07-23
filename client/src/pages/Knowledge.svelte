@@ -53,11 +53,13 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
   let bookmarks = [];
   let dragCounter = 0;
   let bookmarkPollTimer = null;
-  const HOST = window.location.hostname;
-  const PORT = window.location.port || '80';
-  const COOL_HOST = `http://${HOST}:9980`;
-  const COOL_BROWSER = `${COOL_HOST}/browser/de013a57f9/cool.html`;
-  const WOPI_HOST = `http://${HOST}:${PORT}`;
+
+  let coolConfig = null;
+  const getCoolIframeUrl = (filePath) => {
+    if (!coolConfig) return '';
+    const w = coolConfig.wopiHost + '/wopi/files/' + filePath;
+    return coolConfig.coolHost + coolConfig.coolBrowserPath + '?WOPISrc=' + encodeURIComponent(w) + '&access_token=dev';
+  };
 
   let treeReload = 0;
   let editorLang = 'text';
@@ -909,6 +911,7 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
   onMount(() => {
     registerBmGlobals();
     loadMermaid();
+    fetch('/api/collabora/config').then(r => r.json()).then(c => coolConfig = c).catch(() => {});
     loadRoots().then(() => {
       const urlPath = window.location.pathname + window.location.search;
       handleUrlChange(urlPath);
@@ -1038,7 +1041,7 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
           <FullCalendarViewer rawContent={calendarRawContent} filePath={selectedPath} on:change={(e) => { calendarRawContent = e.detail.value; calendarDirty = true; }} />
         {:else if isOfficeExt(selectedPath)}
           <div class="cool-doc-container">
-            <iframe src={(() => { const w = WOPI_HOST + '/wopi/files/' + selectedPath; return COOL_BROWSER + '?WOPISrc=' + encodeURIComponent(w) + '&access_token=dev'; })()} class="cool-iframe" allowfullscreen></iframe>
+            <iframe src={getCoolIframeUrl(selectedPath)} class="cool-iframe" allowfullscreen></iframe>
           </div>
         {:else}
           <div class="markdown-body markdown document">

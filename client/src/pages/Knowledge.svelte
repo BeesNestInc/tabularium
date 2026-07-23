@@ -1014,9 +1014,7 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
               {/if}
             {/if}
             <button class="btn btn-sm btn-outline-secondary" onclick={printContent}>{t('print')}</button>
-            {#if selectedPath?.endsWith('/')}
-              <button class="btn btn-sm btn-outline-secondary" onclick={toggleFvView}>{fvViewMode === 'thumb-lg' ? '☰' : '⊞'}</button>
-            {/if}
+            <button class="btn btn-sm btn-outline-secondary" onclick={toggleFvView}>{fvViewMode === 'thumb-lg' ? '☰' : '⊞'}</button>
             <button class="btn btn-sm btn-outline-secondary" onclick={() => showCoolDialog = true} title="Collabora">{t('設定')}</button>
           </div>
         {/if}

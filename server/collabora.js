@@ -16,12 +16,33 @@ if (existsSync(envLocal)) {
   dotenv.config({ path: envParent });
 }
 
-const ENGINE = process.env.COLLABORA_ENGINE || ''; // force 'podman' or 'docker'
+const ENGINE = process.env.COLLABORA_ENGINE || '';
 const IMAGE = process.env.COLLABORA_IMAGE || 'docker.io/collabora/code';
 const CONTAINER_NAME = process.env.COLLABORA_CONTAINER_NAME || 'legion-cool';
 const PORT_MAPPING = process.env.COLLABORA_PORT || '9980:9980';
 const EXTRA_ARGS = process.env.COLLABORA_EXTRA_ARGS || '';
 const WOPI_SRC = process.env.WOPI_SRC || '';
+
+// --network host: required. The Collabora container must reach the
+// Tabularium WOPI server (localhost:PORT). Without host networking, the
+// container only sees its own loopback, not the host's.
+//
+// --o:limit_load_secs=300: default is 100s. Large Office documents
+// (50MB+ pptx) take longer to download, unzip, and render.
+//
+// --o:net.allowed_websocket_origins[0].origin=*: Collabora auto-detects
+// its server address as the first non-loopback IP (e.g. 10.2.254.11).
+// The browser's WebSocket Origin may differ (e.g. shibuya.local:9980)
+// depending on how the user accessed the page. This setting bypasses
+// the strict origin check. Tabularium's /api/collabora/config endpoint
+// already returns the LAN IP as coolHost, but this is a safety net
+// for other hostnames or reverse-proxy setups.
+const EXTRA_PARAMS = [
+  '--o:ssl.enable=false',
+  '--o:net.allowed_websocket_origins[0].origin=*',
+  `--o:net.content_security_policy=script-src 'self' 'unsafe-eval' 'unsafe-inline'`,
+  '--o:limit_load_secs=300',
+];
 
 function detectEngine() {
   if (ENGINE) return ENGINE;
@@ -123,16 +144,7 @@ export async function start() {
     runArgs.push('-e', `server_name=${coolServerName}`);
   }
 
-  const extraParams = [
-    '--o:ssl.enable=false',
-    `--o:net.content_security_policy=script-src 'self' 'unsafe-eval' 'unsafe-inline'`,
-    '--o:limit_load_secs=300',
-  ];
-  if (process.env.COLLABORA_EXTRA_PARAMS) {
-    extraParams.push(...process.env.COLLABORA_EXTRA_PARAMS.split(/\s+/));
-  }
-
-  runArgs.push(...EXTRA_ARGS.split(/\s+/).filter(Boolean), IMAGE, ...extraParams);
+  runArgs.push(...EXTRA_ARGS.split(/\s+/).filter(Boolean), IMAGE, ...EXTRA_PARAMS);
 
   const args = st.exists ? ['start', CONTAINER_NAME] : runArgs;
 

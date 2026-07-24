@@ -8,7 +8,7 @@ import dotenv from 'dotenv';
 import { t, setLocale, parseAcceptLanguage } from './libs/i18n.js';
 import { createBookmarkRoutes } from './libs/bookmarks.js';
 import { registerKnowledgeRoutes } from './libs/knowledge-routes.js';
-import { setupAuth, makeAuthGuard } from './libs/auth-plugin.js';
+import authPlugin from './libs/auth-plugin.js';
 import duckdb from 'duckdb';
 import pg from 'pg';
 
@@ -502,10 +502,7 @@ const start = async () => {
     if (lang) setLocale(lang);
   });
 
-  await setupAuth(app);
-
-  const authGuard = makeAuthGuard();
-  if (authGuard) app.addHook('preHandler', authGuard);
+  await app.register(authPlugin);
 
   // Frontend configuration exposed to the SPA
   app.get('/api/config', async () => ({

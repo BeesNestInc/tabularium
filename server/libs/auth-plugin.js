@@ -1,17 +1,14 @@
 import { randomBytes, createHmac } from 'node:crypto';
-import bcrypt from 'bcryptjs';
 import cookie from '@fastify/cookie';
 import secureSession from '@fastify/secure-session';
-import { t } from './i18n.js';
+import fp from 'fastify-plugin';
+import { authenticate, getUser, getUsers, findByLoginId, createUser, countUsers } from './auth/index.js';
 
-const WIKI_PASSWORD = process.env.WIKI_PASSWORD || '';
 const SESSION_KEY_HEX = process.env.WIKI_SESSION_KEY || randomBytes(32).toString('hex');
-const isAuthEnabled = !!WIKI_PASSWORD;
-
 const sessionKey = Buffer.from(SESSION_KEY_HEX.padEnd(64, '0').slice(0, 64), 'hex');
 
-function createWopiToken(filePath) {
-  const payload = { path: filePath, iat: Math.floor(Date.now() / 1000), exp: Math.floor(Date.now() / 1000) + 300, sub: 'wiki' };
+function createWopiToken(loginId) {
+  const payload = { sub: loginId, iat: Math.floor(Date.now() / 1000), exp: Math.floor(Date.now() / 1000) + 300 };
   const raw = JSON.stringify(payload);
   const payloadStr = Buffer.from(raw).toString('base64url');
   const sig = createHmac('sha256', sessionKey).update(payloadStr).digest('base64url');
@@ -26,68 +23,83 @@ function verifyWopiToken(token) {
     const [payloadStr, sig] = parts;
     const expected = createHmac('sha256', sessionKey).update(payloadStr).digest('base64url');
     if (sig !== expected) return null;
-    const raw = Buffer.from(payloadStr, 'base64url').toString('utf-8');
-    const payload = JSON.parse(raw);
+    const payload = JSON.parse(Buffer.from(payloadStr, 'base64url').toString('utf-8'));
     if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) return null;
     return payload;
   } catch { return null; }
 }
 
-let passwordHash = '';
-if (isAuthEnabled) {
-  passwordHash = bcrypt.hashSync(WIKI_PASSWORD, 10);
-  console.log('[auth] password hashing done, session key: ' + SESSION_KEY_HEX.slice(0, 16) + '...');
-}
+export { createWopiToken, verifyWopiToken };
 
-export { isAuthEnabled, createWopiToken, verifyWopiToken };
-
-export async function setupAuth(app) {
-  if (!isAuthEnabled) {
-    app.get('/api/auth/me', async () => ({ user: { id: 'wiki', name: 'Wiki', role: 'admin' } }));
-    app.post('/api/auth/logout', async () => ({}));
-    app.post('/api/auth/login', async () => ({ ok: true }));
-    return;
-  }
-
+export default fp(async function authPlugin(app) {
   await app.register(cookie);
   await app.register(secureSession, {
     key: sessionKey,
-    cookie: { path: '/', httpOnly: true, sameSite: 'lax', maxAge: 86400 },
+    cookie: { path: '/', httpOnly: true, sameSite: 'lax', maxAge: 86400 * 7 },
+  });
+
+  app.decorateRequest('user', null);
+
+  app.post('/api/auth/signup', async (request, reply) => {
+    const { loginId, name, password } = request.body || {};
+    if (!loginId || !name || !password) {
+      return reply.code(400).send({ ok: false, error: 'loginId, name, password required' });
+    }
+    if (findByLoginId(loginId)) {
+      return reply.code(409).send({ ok: false, error: 'loginId already exists' });
+    }
+    const user = createUser({ loginId, name, password });
+    request.session.set('user', user);
+    request.user = user;
+    return { ok: true, user };
   });
 
   app.post('/api/auth/login', async (request, reply) => {
-    const { password } = request.body || {};
-    if (!password) return reply.code(400).send({ error: 'password required' });
-    if (!await bcrypt.compare(password, passwordHash)) return reply.code(401).send({ error: 'invalid password' });
-    request.session.set('user', { id: 'wiki', name: 'Wiki', role: 'admin' });
-    return { ok: true, user: { id: 'wiki', name: 'Wiki', role: 'admin' } };
-  });
-
-  app.get('/api/auth/me', async (request, reply) => {
-    const user = request.session?.get?.('user');
-    if (!user) return reply.code(401).send({ error: 'unauthorized' });
-    return { user };
+    const { loginId, password } = request.body || {};
+    if (!loginId || !password) {
+      return reply.code(400).send({ ok: false, error: 'loginId and password required' });
+    }
+    const user = authenticate(loginId, password);
+    if (!user) return reply.code(401).send({ ok: false, error: 'invalid credentials' });
+    request.session.set('user', user);
+    request.user = user;
+    return { ok: true, user };
   });
 
   app.post('/api/auth/logout', async (request, reply) => {
-    request.session?.delete?.();
-    return {};
+    request.session.delete();
+    request.user = null;
+    return { ok: true };
+  });
+
+  app.get('/api/auth/me', async (request, reply) => {
+    const sessionUser = request.session?.get?.('user');
+    if (!sessionUser) return reply.code(401).send({ error: 'unauthorized' });
+    const user = getUser(sessionUser.id);
+    if (!user) {
+      request.session.delete();
+      return reply.code(401).send({ error: 'user not found' });
+    }
+    return { user };
+  });
+
+  app.get('/api/auth/users', async (request, reply) => {
+    const sessionUser = request.session?.get?.('user');
+    if (!sessionUser) return reply.code(401).send({ error: 'unauthorized' });
+    if (sessionUser.role !== 'admin') return reply.code(403).send({ error: 'forbidden' });
+    return { users: getUsers() };
   });
 
   app.get('/api/auth/wopi-token', async (request, reply) => {
-    const user = request.session?.get?.('user');
-    if (!user) return reply.code(401).send({ error: 'unauthorized' });
-    const { path: filePath } = request.query;
-    if (!filePath) return reply.code(400).send({ error: 'path required' });
-    return { token: createWopiToken(filePath) };
+    const sessionUser = request.session?.get?.('user');
+    if (!sessionUser) return reply.code(401).send({ error: 'unauthorized' });
+    return { token: createWopiToken(sessionUser.loginId) };
   });
-}
 
-export function makeAuthGuard() {
-  if (!isAuthEnabled) return null;
-  return async (request, reply) => {
+  // Auth guard: protects /api/* and /wopi/* (except /api/auth/*, /hosting/discovery)
+  app.addHook('onRequest', async (request, reply) => {
     const url = request.url;
-    if (url === '/api/auth/login' || url.startsWith('/api/auth/')) return;
+    if (url.startsWith('/api/auth/')) return;
     if (url === '/hosting/discovery') return;
     if (!url.startsWith('/api/') && !url.startsWith('/wopi/')) return;
     const user = request.session?.get?.('user');
@@ -96,5 +108,6 @@ export function makeAuthGuard() {
       if (token && verifyWopiToken(token)) return;
       return reply.code(401).send({ error: 'unauthorized' });
     }
-  };
-}
+    request.user = user;
+  });
+});

@@ -61,9 +61,17 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
   let bookmarkPollTimer = null;
 
   let isAuthenticated = null;
+  let loginTab = 'login';
+  let loginId = '';
   let loginPassword = '';
   let loginError = '';
   let loginLoading = false;
+  let signupLoginId = '';
+  let signupName = '';
+  let signupPassword = '';
+  let signupError = '';
+  let signupLoading = false;
+  let currentUser = null;
   let mounted = false;
   let wopiToken = '';
 
@@ -1084,7 +1092,7 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
   const checkAuth = async () => {
     try {
       const res = await fetch('/api/auth/me', { credentials: 'include' });
-      if (res.ok) { isAuthenticated = true; return true; }
+      if (res.ok) { const d = await res.json(); currentUser = d.user; isAuthenticated = true; return true; }
     } catch {}
     isAuthenticated = false;
     return false;
@@ -1097,11 +1105,14 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: loginPassword }),
+        body: JSON.stringify({ loginId: loginId, password: loginPassword }),
         credentials: 'include',
       });
       if (res.ok) {
+        const d = await res.json();
+        currentUser = d.user;
         loginPassword = '';
+        loginId = '';
         window.location.reload();
       } else {
         const d = await res.json().catch(() => ({}));
@@ -1112,6 +1123,40 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
     } finally {
       loginLoading = false;
     }
+  };
+
+  const handleSignup = async () => {
+    signupLoading = true;
+    signupError = '';
+    try {
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ loginId: signupLoginId, name: signupName, password: signupPassword }),
+        credentials: 'include',
+      });
+      if (res.ok) {
+        const d = await res.json();
+        currentUser = d.user;
+        signupLoginId = '';
+        signupName = '';
+        signupPassword = '';
+        window.location.reload();
+      } else {
+        const d = await res.json().catch(() => ({}));
+        signupError = d.error || t('signupFailed');
+      }
+    } catch (e) {
+      signupError = e.message;
+    } finally {
+      signupLoading = false;
+    }
+  };
+
+  const handleLogout = async () => {
+    await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+    currentUser = null;
+    window.location.reload();
   };
 
   onMount(async () => {
@@ -1178,16 +1223,36 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
   <div class="loading-screen">
     <div class="login-box">
       <h2>Tabularium</h2>
-      <form onsubmit={(e) => { e.preventDefault(); handleLogin(); }}>
-        <input type="password" class="form-control login-input" bind:value={loginPassword}
-          placeholder={t('password')} disabled={loginLoading} />
-        {#if loginError}
-          <div class="text-danger small mt-1">{loginError}</div>
-        {/if}
-        <button class="btn btn-primary btn-login" type="submit" disabled={loginLoading || !loginPassword}>
-          {loginLoading ? t('loggingIn') : t('logIn')}
-        </button>
-      </form>
+      <div class="login-tabs">
+        <button class="login-tab" class:active={loginTab === 'login'} onclick={() => loginTab = 'login'}>{t('logIn')}</button>
+        <button class="login-tab" class:active={loginTab === 'signup'} onclick={() => loginTab = 'signup'}>{t('signUp')}</button>
+      </div>
+      {#if loginTab === 'login'}
+        <form onsubmit={(e) => { e.preventDefault(); handleLogin(); }}>
+          <input class="form-control login-input" bind:value={loginId} placeholder={t('loginId')} disabled={loginLoading} />
+          <input type="password" class="form-control login-input" bind:value={loginPassword}
+            placeholder={t('password')} disabled={loginLoading} />
+          {#if loginError}
+            <div class="text-danger small mt-1">{loginError}</div>
+          {/if}
+          <button class="btn btn-primary btn-login" type="submit" disabled={loginLoading || !loginId || !loginPassword}>
+            {loginLoading ? t('loggingIn') : t('logIn')}
+          </button>
+        </form>
+      {:else}
+        <form onsubmit={(e) => { e.preventDefault(); handleSignup(); }}>
+          <input class="form-control login-input" bind:value={signupLoginId} placeholder={t('loginId')} disabled={signupLoading} />
+          <input class="form-control login-input" bind:value={signupName} placeholder={t('displayName')} disabled={signupLoading} />
+          <input type="password" class="form-control login-input" bind:value={signupPassword}
+            placeholder={t('password')} disabled={signupLoading} />
+          {#if signupError}
+            <div class="text-danger small mt-1">{signupError}</div>
+          {/if}
+          <button class="btn btn-primary btn-login" type="submit" disabled={signupLoading || !signupLoginId || !signupName || !signupPassword}>
+            {signupLoading ? t('signingUp') : t('signUp')}
+          </button>
+        </form>
+      {/if}
     </div>
   </div>
 {:else}
@@ -1215,6 +1280,7 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
       ondrop={handleDrop}>
       <div class="pane-header">
         <span>/{selectedPath || ''}</span>
+        <span class="user-badge">{currentUser?.name || ''} <a href="#" onclick={(e) => { e.preventDefault(); handleLogout(); }} class="logout-link">{t('logOut')}</a></span>
         {#if selectedPath !== null && (contentHtml || isOfficeExt(selectedPath))}
           <div class="header-buttons">
             {#if !window.location.pathname.endsWith('/')}
@@ -1387,5 +1453,18 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
   }
   .login-loading {
     color:#888; font-size:1rem;
+  }
+  .login-tabs { display:flex; gap:0; margin-bottom:20px; border-bottom:2px solid #0f3460; }
+  .login-tab {
+    flex:1; padding:10px; background:none; border:none; color:#888; font-size:.9rem; cursor:pointer;
+    border-bottom:2px solid transparent; margin-bottom:-2px;
+    &.active { color:#e94560; border-bottom-color:#e94560; font-weight:600; }
+    &:hover { color:#e94560; }
+  }
+  .user-badge {
+    font-size:.78rem; color:#888; margin-left:auto; margin-right:8px;
+    .logout-link { color:#e94560; text-decoration:none; margin-left:6px;
+      &:hover { text-decoration:underline; }
+    }
   }
 </style>

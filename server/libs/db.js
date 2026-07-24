@@ -6,7 +6,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const projectRoot = resolve(__dirname, '../..');
 
-const dbPath = process.env.DATABASE_URL || resolve(projectRoot, 'data/tabularium.json');
+const dbPath = process.env.USER_DB_URL || resolve(projectRoot, 'data/tabularium.json');
 const dataDir = dirname(dbPath);
 if (!existsSync(dataDir)) mkdirSync(dataDir, { recursive: true });
 

@@ -18,6 +18,60 @@ npm start
 
 Open http://localhost:8888 in your browser.
 
+## Authentication
+
+Tabularium has a built-in multi-user authentication system based on session cookies.
+
+### First-Time Setup
+
+The first user to sign up automatically becomes **admin**. Subsequent users get the **user** role.
+
+1. Open Tabularium in your browser
+2. You will see the login page
+3. Click **Sign Up** and create the first account
+4. You are now logged in as admin
+
+### User Management
+
+| Endpoint | Method | Auth | Description |
+|---|---|---|---|
+| `/api/auth/signup` | POST | No | Create a new user. First user becomes admin. |
+| `/api/auth/login` | POST | No | Log in with `loginId` and `password`. Returns a session cookie. |
+| `/api/auth/logout` | POST | Yes | Destroy the current session. |
+| `/api/auth/me` | GET | Yes | Returns the current user's profile. |
+| `/api/auth/change-password` | POST | Yes | Change password. Requires `currentPassword` and `newPassword`. |
+| `/api/auth/users` | GET | Admin | List all users. |
+
+### Session
+
+Authentication uses `@fastify/secure-session` with encrypted, httpOnly, sameSite=Lax cookies.
+The session key is either set via `WIKI_SESSION_KEY` env var or auto-generated on each restart
+(auto-generation invalidates all sessions on restart).
+
+The session cookie expires after 7 days by default.
+
+### User Database
+
+User accounts are stored in a JSON file at `./data/tabularium.json` by default.
+The path can be changed with the `USER_DB_URL` environment variable.
+
+```env
+USER_DB_URL=/path/to/users.json
+```
+
+### Legion Integration
+
+When Tabularium runs as part of [Legion](https://github.com/BeesNestInc/legion), authentication
+is handled by Legion's own auth system. Tabularium's login page and user menu are automatically
+hidden. The SPA still uses `/api/auth/me` to determine the current user, but user management
+(signup, password change) goes through Legion's interface.
+
+### WOPI / Collabora
+
+When a user opens an Office document, Tabularium generates a short-lived (5-minute) signed access
+token for the Collabora Online iframe. The token is created via `HMAC-SHA256` using the session
+key and is bound to the user's `loginId`. No additional WOPI token configuration is needed.
+
 ## Building the SPA
 
 ```bash

@@ -4,6 +4,13 @@
 
 `.env` ファイル（プロジェクトルートまたは `server/.env`）またはシステム環境変数で設定します。
 
+### 認証
+
+| 変数 | デフォルト | 説明 |
+|---|---|---|
+| `WIKI_SESSION_KEY` | 自動生成 | セッションクッキーの暗号化キー。`node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` で生成。未設定の場合は再起動のたびにランダム生成（既存セッションは無効化）。 |
+| `USER_DB_URL` | `./data/tabularium.json` | ユーザー情報の保存先JSONファイル。 |
+
 ### サーバ
 
 | 変数 | デフォルト | 説明 |

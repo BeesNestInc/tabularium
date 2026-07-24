@@ -4,6 +4,13 @@
 
 All configuration is done through environment variables. These can be set in a `.env` file (at the project root or `server/.env`) or in the system environment.
 
+### Authentication
+
+| Variable | Default | Description |
+|---|---|---|
+| `WIKI_SESSION_KEY` | auto-generated | Secret key for session cookie encryption. Generate once: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`. If not set, a random key is generated on each restart (invalidates all sessions). |
+| `USER_DB_URL` | `./data/tabularium.json` | Path to the user database file. Stored as JSON, one file per environment. |
+
 ### Server
 
 | Variable | Default | Description |

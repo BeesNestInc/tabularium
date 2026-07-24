@@ -8,6 +8,7 @@ import dotenv from 'dotenv';
 import { t, setLocale, parseAcceptLanguage } from './libs/i18n.js';
 import { createBookmarkRoutes } from './libs/bookmarks.js';
 import { registerKnowledgeRoutes } from './libs/knowledge-routes.js';
+import { setupAuth, makeAuthGuard } from './libs/auth-plugin.js';
 import duckdb from 'duckdb';
 import pg from 'pg';
 
@@ -501,10 +502,10 @@ const start = async () => {
     if (lang) setLocale(lang);
   });
 
-  // Fake auth endpoints for shared Svelte frontend
-  app.get('/api/auth/me', async () => ({ user: { id: 'wiki', name: 'Wiki', role: 'admin' } }));
-  app.post('/api/auth/logout', async () => ({}));
-  app.post('/api/auth/login', async () => ({ ok: true }));
+  await setupAuth(app);
+
+  const authGuard = makeAuthGuard();
+  if (authGuard) app.addHook('preHandler', authGuard);
 
   // Frontend configuration exposed to the SPA
   app.get('/api/config', async () => ({

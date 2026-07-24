@@ -60,6 +60,13 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
   let dragCounter = 0;
   let bookmarkPollTimer = null;
 
+  let isAuthenticated = null;
+  let loginPassword = '';
+  let loginError = '';
+  let loginLoading = false;
+  let mounted = false;
+  let wopiToken = '';
+
   const toggleFvView = () => {
     var sizes = ['list', 'thumb-sm', 'thumb-md', 'thumb-lg'];
     var idx = sizes.indexOf(fvViewMode);
@@ -72,7 +79,13 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
   const getCoolIframeUrl = (filePath) => {
     if (!coolConfig) return '';
     const w = coolConfig.wopiHost + '/wopi/files/' + filePath;
-    return coolConfig.coolHost + coolConfig.coolBrowserPath + '?WOPISrc=' + encodeURIComponent(w) + '&access_token=dev';
+    return coolConfig.coolHost + coolConfig.coolBrowserPath + '?WOPISrc=' + encodeURIComponent(w) + '&access_token=' + (wopiToken || 'dev');
+  };
+  const fetchWopiToken = async (filePath) => {
+    try {
+      const res = await fetch('/api/auth/wopi-token?path=' + encodeURIComponent(filePath));
+      if (res.ok) { const d = await res.json(); wopiToken = d.token; }
+    } catch { wopiToken = ''; }
   };
 
   let treeReload = 0;
@@ -199,6 +212,7 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
       }
     } else if (isOfficeExt(filePath)) {
       contentLoading = false;
+      fetchWopiToken(filePath);
       return;
     } else {
       const handler = resolveContentType(filePath);
@@ -1067,7 +1081,42 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
     contentLoading = false;
   };
 
-  onMount(() => {
+  const checkAuth = async () => {
+    try {
+      const res = await fetch('/api/auth/me', { credentials: 'include' });
+      if (res.ok) { isAuthenticated = true; return true; }
+    } catch {}
+    isAuthenticated = false;
+    return false;
+  };
+
+  const handleLogin = async () => {
+    loginLoading = true;
+    loginError = '';
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: loginPassword }),
+        credentials: 'include',
+      });
+      if (res.ok) {
+        loginPassword = '';
+        window.location.reload();
+      } else {
+        const d = await res.json().catch(() => ({}));
+        loginError = d.error || t('loginFailed');
+      }
+    } catch (e) {
+      loginError = e.message;
+    } finally {
+      loginLoading = false;
+    }
+  };
+
+  onMount(async () => {
+    const authed = await checkAuth();
+    if (!authed) return;
     registerBmGlobals();
     loadMermaid();
     fetch('/api/collabora/config').then(r => r.json()).then(c => coolConfig = c).catch(() => {});
@@ -1082,6 +1131,7 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
     window.addEventListener('message', handleDrawioMessage);
     document.addEventListener('click', handleNavClick);
     document.addEventListener('click', handleSqlRunClick);
+    mounted = true;
   });
 
   let autoRunDone = false;
@@ -1118,14 +1168,37 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
   });
 </script>
 
-{#if isEditMode}
-  <EditMode {selectedPath} {editorContent} {editorLang} {saving} {saveMessage} {csvLoadKey}
-    on:save={saveContent}
-    on:saveAndExit={async () => { const ok = await saveContent(); if (ok) _link('/' + selectedPath, { replace: true }); }}
-    on:editorChange={(e) => { editorContent = e.detail.value; }}
-    on:csvChange={(e) => { editorContent = e.detail.value; }} />
+{#if isAuthenticated === null}
+  <div class="loading-screen">
+    <div class="login-box">
+      <div class="login-loading">{t('loading')}</div>
+    </div>
+  </div>
+{:else if !isAuthenticated}
+  <div class="loading-screen">
+    <div class="login-box">
+      <h2>Tabularium</h2>
+      <form onsubmit={(e) => { e.preventDefault(); handleLogin(); }}>
+        <input type="password" class="form-control login-input" bind:value={loginPassword}
+          placeholder={t('password')} disabled={loginLoading} />
+        {#if loginError}
+          <div class="text-danger small mt-1">{loginError}</div>
+        {/if}
+        <button class="btn btn-primary btn-login" type="submit" disabled={loginLoading || !loginPassword}>
+          {loginLoading ? t('loggingIn') : t('logIn')}
+        </button>
+      </form>
+    </div>
+  </div>
 {:else}
-  <div class="knowledge-layout">
+  {#if isEditMode}
+    <EditMode {selectedPath} {editorContent} {editorLang} {saving} {saveMessage} {csvLoadKey}
+      on:save={saveContent}
+      on:saveAndExit={async () => { const ok = await saveContent(); if (ok) _link('/' + selectedPath, { replace: true }); }}
+      on:editorChange={(e) => { editorContent = e.detail.value; }}
+      on:csvChange={(e) => { editorContent = e.detail.value; }} />
+  {:else}
+    <div class="knowledge-layout">
     <TreeSidebar {selectedPath} reload={treeReload}
       on:treeLoaded={onTreeLoaded}
       on:select={(e) => selectFile(e.detail.path)}
@@ -1213,6 +1286,7 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
     </main>
   </div>
 {/if}
+{/if}
 
 {#if showNewDialog}
   <div class="modal-overlay" onclick={() => { showNewDialog = false; newFileName = ''; }}>
@@ -1282,9 +1356,36 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
 
 <div id="bmTooltip" class="bm-tooltip hidden"></div>
 
-<style lang="scss">
+  <style lang="scss">
   :global {
     @import '../styles/markdown-content.scss';
     @import '../styles/knowledge.scss';
+  }
+  .loading-screen {
+    display:flex; align-items:center; justify-content:center;
+    height:100vh; width:100vw;
+    background:#1a1a2e;
+  }
+  .login-box {
+    background:#16213e; padding:40px; border-radius:12px;
+    box-shadow:0 8px 32px rgba(0,0,0,.4);
+    text-align:center;
+    h2 { color:#e94560; margin-bottom:24px; font-size:1.8rem; letter-spacing:2px; }
+    form { display:flex; flex-direction:column; gap:12px; min-width:280px; }
+  }
+  .login-input {
+    padding:12px 16px; border-radius:8px; border:1px solid #0f3460;
+    background:#0f3460; color:#eee; font-size:1rem; outline:none;
+    &:focus { border-color:#e94560; }
+    &::placeholder { color:#555; }
+  }
+  .btn-login {
+    padding:12px; border-radius:8px; border:none;
+    background:#e94560; color:#fff; font-size:1rem; font-weight:600; cursor:pointer;
+    &:disabled { opacity:.5; cursor:default; }
+    &:not(:disabled):hover { background:#ff6b81; }
+  }
+  .login-loading {
+    color:#888; font-size:1rem;
   }
 </style>

@@ -154,6 +154,10 @@ const en = {
   stop: 'Stop',
   refresh: 'Refresh',
   settings: 'Settings',
+  logIn: 'Log In',
+  loggingIn: 'Logging in...',
+  loginFailed: 'Login failed',
+  password: 'Password',
 };
 
 const ja = {
@@ -306,6 +310,10 @@ const ja = {
   stop: '停止',
   refresh: '更新',
   settings: '設定',
+  logIn: 'ログイン',
+  loggingIn: 'ログイン中...',
+  loginFailed: 'ログイン失敗',
+  password: 'パスワード',
 };
 
 let locale = detectLocale();
@@ -398,6 +406,10 @@ const zh = {
   stop: '停止',
   refresh: '刷新',
   settings: '设置',
+  logIn: '登录',
+  loggingIn: '登录中...',
+  loginFailed: '登录失败',
+  password: '密码',
 };
 
 const dicts = { en, ja, zh };

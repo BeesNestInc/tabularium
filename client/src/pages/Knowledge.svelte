@@ -1327,8 +1327,6 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
                 <button class="user-menu-item" onclick={() => { handleLogout(); showUserMenu = false; }}>{t('logOut')}</button>
               </div>
             {/if}
-          {:else}
-            <span class="user-menu-name">{currentUser?.name || ''}</span>
           {/if}
         </div>
         {#if selectedPath !== null && (contentHtml || isOfficeExt(selectedPath))}
@@ -1475,11 +1473,11 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
     <div class="modal-dialog-sm" onclick={(e) => e.stopPropagation()}>
       <div class="modal-header">{t('changePassword')}</div>
       <div class="modal-body">
-        <input type="password" class="form-control mb-1" placeholder={t('currentPassword')} bind:value={pwCurrent} disabled={pwLoading} />
-        <input type="password" class="form-control mb-1" placeholder={t('newPassword')} bind:value={pwNew} disabled={pwLoading} />
-        <input type="password" class="form-control mb-1" placeholder={t('confirmPassword')} bind:value={pwConfirm} disabled={pwLoading} />
+        <input type="password" class="pw-input" placeholder={t('currentPassword')} bind:value={pwCurrent} disabled={pwLoading} />
+        <input type="password" class="pw-input" placeholder={t('newPassword')} bind:value={pwNew} disabled={pwLoading} />
+        <input type="password" class="pw-input" placeholder={t('confirmPassword')} bind:value={pwConfirm} disabled={pwLoading} />
         {#if pwError}
-          <div class="text-danger small">{pwError}</div>
+          <div class="auth-error">{pwError}</div>
         {/if}
       </div>
       <div class="modal-footer">
@@ -1553,7 +1551,11 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
     &:first-child { border-radius:6px 6px 0 0; }
     &:last-child { border-radius:0 0 6px 6px; }
   }
-  .user-menu-name {
-    font-size:.78rem; color:#888; margin-left:auto;
+
+  .pw-input {
+    display:block; width:100%; box-sizing:border-box;
+    padding:8px 12px; margin-bottom:8px; border-radius:4px; border:1px solid #ccc;
+    background:#fff; color:#333; font-size:.9rem; outline:none;
+    &:focus { border-color:#2563eb; box-shadow:0 0 0 2px rgba(37,99,235,.15); }
   }
 </style>

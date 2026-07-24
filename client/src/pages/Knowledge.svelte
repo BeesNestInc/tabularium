@@ -80,6 +80,8 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
   let pwConfirm = '';
   let pwError = '';
   let pwLoading = false;
+  let showUserMenu = false;
+  let authProvider = null;
 
   const toggleFvView = () => {
     var sizes = ['list', 'thumb-sm', 'thumb-md', 'thumb-lg'];
@@ -1100,6 +1102,7 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
       const res = await fetch('/api/auth/me', { credentials: 'include' });
       if (res.ok) { const d = await res.json(); currentUser = d.user; isAuthenticated = true; return true; }
     } catch {}
+    if (authProvider !== 'builtin') { isAuthenticated = true; return true; }
     isAuthenticated = false;
     return false;
   };
@@ -1193,12 +1196,13 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
   };
 
   onMount(async () => {
+    // Determine auth mode first
+    try { const c = await (await fetch('/api/config')).json(); appConfig = c; authProvider = c.authProvider || null; } catch { authProvider = null; }
     const authed = await checkAuth();
     if (!authed) return;
     registerBmGlobals();
     loadMermaid();
     fetch('/api/collabora/config').then(r => r.json()).then(c => coolConfig = c).catch(() => {});
-    fetch('/api/config').then(r => r.json()).then(c => appConfig = c).catch(() => {});
     loadRoots().then(() => {
       const urlPath = window.location.pathname + window.location.search;
       handleUrlChange(urlPath);
@@ -1247,41 +1251,42 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
 </script>
 
 {#if isAuthenticated === null}
-  <div class="loading-screen">
-    <div class="login-box">
-      <div class="login-loading">{t('loading')}</div>
+  <div class="auth-screen">
+    <div class="auth-box">
+      <div class="auth-brand">Tabularium</div>
+      <div class="auth-error" style="text-align:center">{t('loading')}</div>
     </div>
   </div>
 {:else if !isAuthenticated}
-  <div class="loading-screen">
-    <div class="login-box">
-      <h2>Tabularium</h2>
-      <div class="login-tabs">
-        <button class="login-tab" class:active={loginTab === 'login'} onclick={() => loginTab = 'login'}>{t('logIn')}</button>
-        <button class="login-tab" class:active={loginTab === 'signup'} onclick={() => loginTab = 'signup'}>{t('signUp')}</button>
+  <div class="auth-screen">
+    <div class="auth-box">
+      <div class="auth-brand">Tabularium</div>
+      <div class="auth-tabs">
+        <button class="auth-tab" class:active={loginTab === 'login'} onclick={() => loginTab = 'login'}>{t('logIn')}</button>
+        <button class="auth-tab" class:active={loginTab === 'signup'} onclick={() => loginTab = 'signup'}>{t('signUp')}</button>
       </div>
       {#if loginTab === 'login'}
         <form onsubmit={(e) => { e.preventDefault(); handleLogin(); }}>
-          <input class="form-control login-input" bind:value={loginId} placeholder={t('loginId')} disabled={loginLoading} />
-          <input type="password" class="form-control login-input" bind:value={loginPassword}
+          <input class="auth-input" bind:value={loginId} placeholder={t('loginId')} disabled={loginLoading} />
+          <input type="password" class="auth-input" bind:value={loginPassword}
             placeholder={t('password')} disabled={loginLoading} />
           {#if loginError}
-            <div class="text-danger small mt-1">{loginError}</div>
+            <div class="auth-error">{loginError}</div>
           {/if}
-          <button class="btn btn-primary btn-login" type="submit" disabled={loginLoading || !loginId || !loginPassword}>
+          <button class="auth-btn" type="submit" disabled={loginLoading || !loginId || !loginPassword}>
             {loginLoading ? t('loggingIn') : t('logIn')}
           </button>
         </form>
       {:else}
         <form onsubmit={(e) => { e.preventDefault(); handleSignup(); }}>
-          <input class="form-control login-input" bind:value={signupLoginId} placeholder={t('loginId')} disabled={signupLoading} />
-          <input class="form-control login-input" bind:value={signupName} placeholder={t('displayName')} disabled={signupLoading} />
-          <input type="password" class="form-control login-input" bind:value={signupPassword}
+          <input class="auth-input" bind:value={signupLoginId} placeholder={t('loginId')} disabled={signupLoading} />
+          <input class="auth-input" bind:value={signupName} placeholder={t('displayName')} disabled={signupLoading} />
+          <input type="password" class="auth-input" bind:value={signupPassword}
             placeholder={t('password')} disabled={signupLoading} />
           {#if signupError}
-            <div class="text-danger small mt-1">{signupError}</div>
+            <div class="auth-error">{signupError}</div>
           {/if}
-          <button class="btn btn-primary btn-login" type="submit" disabled={signupLoading || !signupLoginId || !signupName || !signupPassword}>
+          <button class="auth-btn" type="submit" disabled={signupLoading || !signupLoginId || !signupName || !signupPassword}>
             {signupLoading ? t('signingUp') : t('signUp')}
           </button>
         </form>
@@ -1313,7 +1318,19 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
       ondrop={handleDrop}>
       <div class="pane-header">
         <span>/{selectedPath || ''}</span>
-        <span class="user-badge">{currentUser?.name || ''} <a href="#" onclick={(e) => { e.preventDefault(); showPasswordDialog = true; }} class="logout-link">{t('changePassword')}</a> <a href="#" onclick={(e) => { e.preventDefault(); handleLogout(); }} class="logout-link">{t('logOut')}</a></span>
+        <div class="user-menu-wrap">
+          {#if authProvider === 'builtin'}
+            <button class="user-menu-btn" onclick={() => showUserMenu = !showUserMenu} onblur={() => setTimeout(() => showUserMenu = false, 200)}>{currentUser?.name || ''} ▾</button>
+            {#if showUserMenu}
+              <div class="user-menu-dropdown">
+                <button class="user-menu-item" onclick={() => { showPasswordDialog = true; showUserMenu = false; }}>{t('changePassword')}</button>
+                <button class="user-menu-item" onclick={() => { handleLogout(); showUserMenu = false; }}>{t('logOut')}</button>
+              </div>
+            {/if}
+          {:else}
+            <span class="user-menu-name">{currentUser?.name || ''}</span>
+          {/if}
+        </div>
         {#if selectedPath !== null && (contentHtml || isOfficeExt(selectedPath))}
           <div class="header-buttons">
             {#if !window.location.pathname.endsWith('/')}
@@ -1480,44 +1497,63 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
     @import '../styles/markdown-content.scss';
     @import '../styles/knowledge.scss';
   }
-  .loading-screen {
+  .auth-screen {
     display:flex; align-items:center; justify-content:center;
     height:100vh; width:100vw;
-    background:#1a1a2e;
+    background:#f5f5f5;
   }
-  .login-box {
-    background:#16213e; padding:40px; border-radius:12px;
-    box-shadow:0 8px 32px rgba(0,0,0,.4);
-    text-align:center;
-    h2 { color:#e94560; margin-bottom:24px; font-size:1.8rem; letter-spacing:2px; }
-    form { display:flex; flex-direction:column; gap:12px; min-width:280px; }
+  .auth-box {
+    background:#fff; padding:36px; border-radius:12px;
+    box-shadow:0 2px 12px rgba(0,0,0,.1);
+    text-align:center; min-width:320px;
   }
-  .login-input {
-    padding:12px 16px; border-radius:8px; border:1px solid #0f3460;
-    background:#0f3460; color:#eee; font-size:1rem; outline:none;
-    &:focus { border-color:#e94560; }
-    &::placeholder { color:#555; }
+  .auth-brand {
+    font-size:1.5rem; font-weight:700; color:#333; margin-bottom:24px; letter-spacing:1px;
   }
-  .btn-login {
-    padding:12px; border-radius:8px; border:none;
-    background:#e94560; color:#fff; font-size:1rem; font-weight:600; cursor:pointer;
-    &:disabled { opacity:.5; cursor:default; }
-    &:not(:disabled):hover { background:#ff6b81; }
-  }
-  .login-loading {
-    color:#888; font-size:1rem;
-  }
-  .login-tabs { display:flex; gap:0; margin-bottom:20px; border-bottom:2px solid #0f3460; }
-  .login-tab {
-    flex:1; padding:10px; background:none; border:none; color:#888; font-size:.9rem; cursor:pointer;
+  .auth-tabs { display:flex; gap:0; margin-bottom:20px; border-bottom:2px solid #e0e0e0; }
+  .auth-tab {
+    flex:1; padding:10px; background:none; border:none; color:#999; font-size:.9rem; cursor:pointer;
     border-bottom:2px solid transparent; margin-bottom:-2px;
-    &.active { color:#e94560; border-bottom-color:#e94560; font-weight:600; }
-    &:hover { color:#e94560; }
+    &.active { color:#2563eb; border-bottom-color:#2563eb; font-weight:600; }
+    &:hover { color:#2563eb; }
   }
-  .user-badge {
-    font-size:.78rem; color:#888; margin-left:auto; margin-right:8px;
-    .logout-link { color:#e94560; text-decoration:none; margin-left:6px;
-      &:hover { text-decoration:underline; }
-    }
+  .auth-input {
+    display:block; width:100%; box-sizing:border-box;
+    padding:10px 14px; margin-bottom:10px; border-radius:6px; border:1px solid #d0d0d0;
+    background:#fff; color:#333; font-size:.95rem; outline:none;
+    &:focus { border-color:#2563eb; box-shadow:0 0 0 2px rgba(37,99,235,.15); }
+  }
+  .auth-btn {
+    display:block; width:100%; box-sizing:border-box;
+    padding:10px; margin-top:4px; border-radius:6px; border:none;
+    background:#2563eb; color:#fff; font-size:.95rem; font-weight:600; cursor:pointer;
+    &:disabled { opacity:.5; cursor:default; }
+    &:not(:disabled):hover { background:#1d4ed8; }
+  }
+  .auth-error {
+    color:#dc2626; font-size:.82rem; margin:4px 0; text-align:left;
+  }
+  .user-menu-wrap {
+    position:relative; margin-left:auto; margin-right:8px;
+  }
+  .user-menu-btn {
+    background:none; border:1px solid #d0d0d0; border-radius:4px;
+    padding:2px 10px; font-size:.8rem; color:#555; cursor:pointer;
+    &:hover { background:#f0f0f0; }
+  }
+  .user-menu-dropdown {
+    position:absolute; right:0; top:100%; margin-top:4px;
+    background:#fff; border:1px solid #d0d0d0; border-radius:6px;
+    box-shadow:0 4px 16px rgba(0,0,0,.12); min-width:160px; z-index:100;
+  }
+  .user-menu-item {
+    display:block; width:100%; padding:8px 14px; text-align:left;
+    background:none; border:none; font-size:.85rem; color:#333; cursor:pointer;
+    &:hover { background:#f5f5f5; }
+    &:first-child { border-radius:6px 6px 0 0; }
+    &:last-child { border-radius:0 0 6px 6px; }
+  }
+  .user-menu-name {
+    font-size:.78rem; color:#888; margin-left:auto;
   }
 </style>

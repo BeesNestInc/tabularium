@@ -507,6 +507,7 @@ const start = async () => {
   // Frontend configuration exposed to the SPA
   app.get('/api/config', async () => ({
     drawio: process.env.DRAWIO_URL || '/drawio',
+    authProvider: 'builtin',
   }));
 
   registerWikiKnowledgeRoutes(app);

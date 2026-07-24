@@ -112,6 +112,7 @@ export default fp(async function authPlugin(app) {
   app.addHook('onRequest', async (request, reply) => {
     const url = request.url;
     if (url.startsWith('/api/auth/')) return;
+    if (url === '/api/config') return;
     if (url === '/hosting/discovery') return;
     if (!url.startsWith('/api/') && !url.startsWith('/wopi/')) return;
     const user = request.session?.get?.('user');

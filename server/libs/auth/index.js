@@ -25,3 +25,4 @@ export const getUsers = () => {
 export const findByLoginId = (loginId) => providers[0].findByLoginId(loginId);
 export const createUser = (data) => providers[0].createUser(data);
 export const countUsers = () => providers[0].countUsers();
+export const changePassword = (id, newPassword) => providers[0].changePassword(id, newPassword);

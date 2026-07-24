@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const projectRoot = resolve(__dirname, '..');
+const projectRoot = resolve(__dirname, '../..');
 
 const dbPath = process.env.DATABASE_URL || resolve(projectRoot, 'data/tabularium.json');
 const dataDir = dirname(dbPath);
@@ -40,6 +40,13 @@ export default {
     users.push(user);
     save();
     return user;
+  },
+  update(id, data) {
+    const idx = users.findIndex(u => u.id === id);
+    if (idx === -1) return null;
+    Object.assign(users[idx], data, { updated_at: Math.floor(Date.now() / 1000) });
+    save();
+    return users[idx];
   },
   count() {
     return users.filter(u => !u.deleted_at).length;

@@ -164,6 +164,12 @@ const en = {
   signUp: 'Sign Up',
   signupFailed: 'Sign up failed',
   signingUp: 'Signing up...',
+  changePassword: 'Change Password',
+  currentPassword: 'Current Password',
+  newPassword: 'New Password',
+  confirmPassword: 'Confirm Password',
+  passwordMismatch: 'Passwords do not match',
+  passwordChangeFailed: 'Password change failed',
 };
 
 const ja = {
@@ -326,6 +332,12 @@ const ja = {
   signUp: '新規登録',
   signupFailed: '登録失敗',
   signingUp: '登録中...',
+  changePassword: 'パスワード変更',
+  currentPassword: '現在のパスワード',
+  newPassword: '新しいパスワード',
+  confirmPassword: '新しいパスワード（確認）',
+  passwordMismatch: 'パスワードが一致しません',
+  passwordChangeFailed: 'パスワード変更失敗',
 };
 
 let locale = detectLocale();
@@ -428,6 +440,12 @@ const zh = {
   signUp: '注册',
   signupFailed: '注册失败',
   signingUp: '注册中...',
+  changePassword: '更改密码',
+  currentPassword: '当前密码',
+  newPassword: '新密码',
+  confirmPassword: '确认新密码',
+  passwordMismatch: '密码不匹配',
+  passwordChangeFailed: '密码更改失败',
 };
 
 const dicts = { en, ja, zh };

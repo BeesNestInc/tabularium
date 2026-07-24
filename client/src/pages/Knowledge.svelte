@@ -74,6 +74,12 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
   let currentUser = null;
   let mounted = false;
   let wopiToken = '';
+  let showPasswordDialog = false;
+  let pwCurrent = '';
+  let pwNew = '';
+  let pwConfirm = '';
+  let pwError = '';
+  let pwLoading = false;
 
   const toggleFvView = () => {
     var sizes = ['list', 'thumb-sm', 'thumb-md', 'thumb-lg'];
@@ -1159,6 +1165,33 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
     window.location.reload();
   };
 
+  const handleChangePassword = async () => {
+    if (pwNew !== pwConfirm) { pwError = t('passwordMismatch'); return; }
+    pwLoading = true;
+    pwError = '';
+    try {
+      const res = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword: pwCurrent, newPassword: pwNew }),
+        credentials: 'include',
+      });
+      if (res.ok) {
+        showPasswordDialog = false;
+        pwCurrent = '';
+        pwNew = '';
+        pwConfirm = '';
+      } else {
+        const d = await res.json().catch(() => ({}));
+        pwError = d.error || t('passwordChangeFailed');
+      }
+    } catch (e) {
+      pwError = e.message;
+    } finally {
+      pwLoading = false;
+    }
+  };
+
   onMount(async () => {
     const authed = await checkAuth();
     if (!authed) return;
@@ -1280,7 +1313,7 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
       ondrop={handleDrop}>
       <div class="pane-header">
         <span>/{selectedPath || ''}</span>
-        <span class="user-badge">{currentUser?.name || ''} <a href="#" onclick={(e) => { e.preventDefault(); handleLogout(); }} class="logout-link">{t('logOut')}</a></span>
+        <span class="user-badge">{currentUser?.name || ''} <a href="#" onclick={(e) => { e.preventDefault(); showPasswordDialog = true; }} class="logout-link">{t('changePassword')}</a> <a href="#" onclick={(e) => { e.preventDefault(); handleLogout(); }} class="logout-link">{t('logOut')}</a></span>
         {#if selectedPath !== null && (contentHtml || isOfficeExt(selectedPath))}
           <div class="header-buttons">
             {#if !window.location.pathname.endsWith('/')}
@@ -1419,6 +1452,26 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
 {/if}
 
 <CollaboraSettings bind:show={showCoolDialog} />
+
+{#if showPasswordDialog}
+  <div class="modal-overlay" onclick={() => { showPasswordDialog = false; pwCurrent = ''; pwNew = ''; pwConfirm = ''; pwError = ''; }}>
+    <div class="modal-dialog-sm" onclick={(e) => e.stopPropagation()}>
+      <div class="modal-header">{t('changePassword')}</div>
+      <div class="modal-body">
+        <input type="password" class="form-control mb-1" placeholder={t('currentPassword')} bind:value={pwCurrent} disabled={pwLoading} />
+        <input type="password" class="form-control mb-1" placeholder={t('newPassword')} bind:value={pwNew} disabled={pwLoading} />
+        <input type="password" class="form-control mb-1" placeholder={t('confirmPassword')} bind:value={pwConfirm} disabled={pwLoading} />
+        {#if pwError}
+          <div class="text-danger small">{pwError}</div>
+        {/if}
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-sm btn-primary" onclick={handleChangePassword} disabled={pwLoading || !pwCurrent || !pwNew || !pwConfirm}>{pwLoading ? t('saving') : t('save')}</button>
+        <button class="btn btn-sm btn-outline-secondary" onclick={() => { showPasswordDialog = false; pwCurrent = ''; pwNew = ''; pwConfirm = ''; pwError = ''; }}>{t('cancel')}</button>
+      </div>
+    </div>
+  </div>
+{/if}
 
 <div id="bmTooltip" class="bm-tooltip hidden"></div>
 

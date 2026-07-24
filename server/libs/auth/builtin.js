@@ -34,6 +34,11 @@ export class BuiltinAuthProvider {
     return { id: user.id, loginId: user.login_id, name: user.name, role: user.role };
   }
 
+  changePassword(id, newPassword) {
+    const hash = bcrypt.hashSync(newPassword, 10);
+    db.update(id, { password_hash: hash });
+  }
+
   #parseRoots(raw) {
     if (!raw) return [];
     try { return JSON.parse(raw); } catch { return []; }

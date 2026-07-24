@@ -2,7 +2,7 @@ import { randomBytes, createHmac } from 'node:crypto';
 import cookie from '@fastify/cookie';
 import secureSession from '@fastify/secure-session';
 import fp from 'fastify-plugin';
-import { authenticate, getUser, getUsers, findByLoginId, createUser, countUsers } from './auth/index.js';
+import { authenticate, getUser, getUsers, findByLoginId, createUser, countUsers, changePassword } from './auth/index.js';
 
 const SESSION_KEY_HEX = process.env.WIKI_SESSION_KEY || randomBytes(32).toString('hex');
 const sessionKey = Buffer.from(SESSION_KEY_HEX.padEnd(64, '0').slice(0, 64), 'hex');
@@ -88,6 +88,18 @@ export default fp(async function authPlugin(app) {
     if (!sessionUser) return reply.code(401).send({ error: 'unauthorized' });
     if (sessionUser.role !== 'admin') return reply.code(403).send({ error: 'forbidden' });
     return { users: getUsers() };
+  });
+
+  app.post('/api/auth/change-password', async (request, reply) => {
+    const sessionUser = request.session?.get?.('user');
+    if (!sessionUser) return reply.code(401).send({ error: 'unauthorized' });
+    const { currentPassword, newPassword } = request.body || {};
+    if (!currentPassword || !newPassword) return reply.code(400).send({ error: 'currentPassword and newPassword required' });
+    const user = getUser(sessionUser.id);
+    if (!user) return reply.code(401).send({ error: 'user not found' });
+    if (!authenticate(user.loginId, currentPassword)) return reply.code(403).send({ error: 'current password is incorrect' });
+    changePassword(sessionUser.id, newPassword);
+    return { ok: true };
   });
 
   app.get('/api/auth/wopi-token', async (request, reply) => {

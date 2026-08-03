@@ -148,7 +148,7 @@ export function registerKnowledgeRoutes(app, opts) {
   });
 
   // --- PUT /raw/* ---
-  app.put(rootPath + '/raw/*', async (request, reply) => {
+  app.put(rootPath + '/raw/*', { bodyLimit: 100 * 1024 * 1024 }, async (request, reply) => {
     const sr = resolvePath(request, request.params['*']);
     if (!sr) return reply.code(404).send({ error: 'not found' });
     const { root, filePath } = sr;
@@ -297,7 +297,7 @@ export function registerKnowledgeRoutes(app, opts) {
     return { content, path: filePath };
   });
 
-  app.put(rootPrefix + '/raw/*', async (request, reply) => {
+  app.put(rootPrefix + '/raw/*', { bodyLimit: 100 * 1024 * 1024 }, async (request, reply) => {
     const roots = getRoots(request);
     const root = roots.find(r => r.name === request.params.root);
     if (!root) return reply.code(404).send({ error: t('root not found') });

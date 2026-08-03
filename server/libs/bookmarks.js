@@ -156,6 +156,36 @@ export const createBookmarkRoutes = (app, { splitRootPath, prefix = '' }) => {
       return { title: m ? m[1].trim() : '' };
     } catch { return { title: '' }; }
   });
+
+  // Download a URL and save it as a file in the knowledge base (e.g., image DnD from a web page)
+  app.post(`${prefix}/knowledge/import-url`, async (request, reply) => {
+    const { url, path: targetPath } = request.body || {};
+    if (!url || !targetPath) return reply.code(400).send({ error: 'url and path are required' });
+    let parsedUrl;
+    try { parsedUrl = new URL(url); } catch { return reply.code(400).send({ error: 'invalid url' }); }
+    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+      return reply.code(400).send({ error: 'only http(s) URLs are supported' });
+    }
+    const sr = splitRootPath(request, targetPath);
+    if (!sr) return reply.code(404).send({ error: t('not found') });
+    const { root, filePath } = sr;
+    const absolutePath = path.resolve(root.path, filePath);
+    if (!absolutePath.startsWith(root.path)) return reply.code(403).send({ error: t('forbidden') });
+    try {
+      const res = await fetch(url, {
+        headers: { 'User-Agent': 'Mozilla/5.0' },
+        redirect: 'follow',
+        signal: AbortSignal.timeout(30000),
+      });
+      if (!res.ok) return reply.code(502).send({ error: `download failed: HTTP ${res.status}` });
+      const buf = Buffer.from(await res.arrayBuffer());
+      mkdirSync(path.dirname(absolutePath), { recursive: true });
+      writeFileSync(absolutePath, buf);
+      return { ok: true, path: targetPath, size: buf.length };
+    } catch (err) {
+      return reply.code(502).send({ error: `download failed: ${err.message}` });
+    }
+  });
 };
 
 const esc = (s) => (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');

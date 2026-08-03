@@ -170,6 +170,7 @@ const en = {
   confirmPassword: 'Confirm Password',
   passwordMismatch: 'Passwords do not match',
   passwordChangeFailed: 'Password change failed',
+  importFailed: 'Import failed: {0}',
 };
 
 const ja = {
@@ -338,6 +339,7 @@ const ja = {
   confirmPassword: '新しいパスワード（確認）',
   passwordMismatch: 'パスワードが一致しません',
   passwordChangeFailed: 'パスワード変更失敗',
+  importFailed: 'インポート失敗: {0}',
 };
 
 let locale = detectLocale();
@@ -446,6 +448,7 @@ const zh = {
   confirmPassword: '确认新密码',
   passwordMismatch: '密码不匹配',
   passwordChangeFailed: '密码更改失败',
+  importFailed: '导入失败: {0}',
 };
 
 const dicts = { en, ja, zh };

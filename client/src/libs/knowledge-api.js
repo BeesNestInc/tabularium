@@ -57,3 +57,8 @@ export const bookmarkEdit = (folderPath, oldUrl, newTitle, newUrl) => apiFetch('
 
 export const fetchPageTitle = (url) =>
   apiFetch('/page-title?url=' + encodeURIComponent(url));
+
+export const importUrl = (url, filePath) => apiFetch('/import-url', {
+  method: 'POST', headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ url, path: filePath }),
+});

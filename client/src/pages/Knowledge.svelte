@@ -1012,12 +1012,12 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
       return;
     }
     var dt = e.dataTransfer;
+    var html = dt.getData('text/html') || '';
     // Try text/x-moz-url (URL + title), then text/uri-list, then text/plain
     var raw = dt.getData('text/x-moz-url') || dt.getData('text/uri-list') || dt.getData('text/plain') || '';
     var url = raw.split('\n')[0].split('\r')[0].trim();
     // fallback: extract href from html
     if (!url) {
-      var html = dt.getData('text/html') || '';
       var m = html.match(/href="([^"]+)"/);
       if (m) url = m[1];
     }
@@ -1027,6 +1027,23 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
     var clean = url;
     if (clean.startsWith('<') && clean.endsWith('>')) clean = clean.slice(1, -1);
     var dir = selectedPath.replace(/\/$/, '');
+    var IMG_EXT_RE = /\.(png|jpe?g|gif|webp|bmp|svg|ico|avif|heic?|jfif|tiff?|apng)(?:\?|#|$)/i;
+    var isImageUrl = IMG_EXT_RE.test(clean) || /<img\b/i.test(html);
+    if (isImageUrl) {
+      var fileName = '';
+      try { fileName = decodeURIComponent(new URL(clean).pathname.split('/').pop() || ''); } catch {}
+      if (!fileName || !IMG_EXT_RE.test(fileName)) {
+        var extMatch = clean.match(IMG_EXT_RE);
+        var ext = extMatch ? extMatch[1].toLowerCase() : 'png';
+        if (ext === 'jpe') ext = 'jpg';
+        fileName = 'image-' + Date.now() + '.' + ext;
+      }
+      var filePath = dir + '/' + fileName;
+      api.importUrl(clean, filePath).then(function() {
+        loadDirectory(dir);
+      }).catch(function(e) { alert(t('importFailed', e.message)); });
+      return;
+    }
     var doAdd = function(title, u) {
       api.bookmarkAdd(dir, title, u).then(function() {
         loadDirectory(dir);

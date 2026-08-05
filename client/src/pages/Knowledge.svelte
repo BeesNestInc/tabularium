@@ -10,6 +10,7 @@
   import { isImageExt, isTextExt, isCsvExt, isDrawioExt, isOfficeExt, isCalendarExt, getEditorLang } from '../lib/file-utils.js';
   import { fileTemplates } from '../lib/file-templates.js';
   import { fetchRoots, addRoot as apiAddRoot, deleteRoot as apiDeleteRoot } from '../lib/roots.js';
+  import { speech } from '../lib/speech.js';
 import { renderAll } from '../lib/mermaid.js';
 import { resolve as resolveContentType } from '../lib/content-types/index.js';
 import EditMode from '../components/knowledge/EditMode.svelte';
@@ -146,6 +147,55 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
 
   const printContent = () => {
     window.print();
+  };
+
+  let reading = false;
+
+  const canReadAloud = (filePath) => !filePath || /\.(md|mmd|txt)$/i.test(filePath);
+
+  const markdownToText = (md) => {
+    let s = String(md ?? '');
+    s = s.replace(/^---\n[\s\S]*?\n---\n?/, '');
+    s = s.replace(/```[\s\S]*?```/g, ' ');
+    s = s.replace(/`[^`]*`/g, ' ');
+    s = s.replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1');
+    s = s.replace(/\[([^\]]*)\]\([^)]*\)/g, '$1');
+    s = s.replace(/<[^>]+>/g, ' ');
+    s = s.replace(/[#*_>|~\-=]+/g, ' ');
+    s = s.replace(/^\s*[-*+]\s+/gm, '');
+    s = s.replace(/^\s*\d+\.\s+/gm, '');
+    s = s.replace(/[ \t]+/g, ' ');
+    return s.replace(/\n{3,}/g, '\n\n').trim();
+  };
+
+  const readAloud = async () => {
+    if (!selectedPath || reading) return;
+    reading = true;
+    try {
+      const raw = await api.fetchRaw(selectedPath);
+      const content = raw.content || '';
+      // front matter の speech ヒント (enabled / text / voice / engine / speed)
+      const fm = content.match(/^---\n([\s\S]*?)\n---\n?/);
+      let hint = {};
+      if (fm) {
+        try { hint = yaml.parse(fm[1])?.speech || {}; } catch {}
+      }
+      if (hint.enabled === false) return; // 読み上げ禁止
+      const text = hint.text ? hint.text : markdownToText(content);
+      if (text) {
+        speech.speak(text, {
+          scene: 'wiki',
+          engine: hint.engine || undefined,
+          voice: hint.voice != null ? String(hint.voice) : undefined,
+          speed: hint.speed != null ? String(hint.speed) : undefined,
+          params: hint.params || undefined,
+        });
+      }
+    } catch (e) {
+      console.error('readAloud failed', e);
+    } finally {
+      reading = false;
+    }
   };
 
   const loadRoots = async () => {
@@ -1361,6 +1411,9 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
               {:else if !isCsvExt(selectedPath) && !isOfficeExt(selectedPath)}
                 <button class="btn btn-sm btn-outline-secondary" onclick={() => _link('/' + selectedPath + '?mode=edit', { replace: true })}>{t('edit')}</button>
               {/if}
+            {/if}
+            {#if canReadAloud(selectedPath)}
+              <button class="btn btn-sm btn-outline-secondary" onclick={readAloud} disabled={reading}>{reading ? '...' : '読み上げ'}</button>
             {/if}
             <button class="btn btn-sm btn-outline-secondary" onclick={printContent}>{t('print')}</button>
             <button class="btn btn-sm btn-outline-secondary" onclick={toggleFvView}>{fvViewMode === 'thumb-lg' ? '☰' : '⊞'}</button>

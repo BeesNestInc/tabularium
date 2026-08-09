@@ -44,16 +44,36 @@ describe(':::query container', () => {
 });
 
 describe('javascript fence', () => {
-  it('named javascript fence → Script placeholder with code', () => {
-    const html = md.render('```javascript my_script\noutput("hi");\n```');
+  it('plain javascript fence stays a display code block (not executable)', () => {
+    const html = md.render('```javascript\nconst x = 1;\n```');
+    expect(html).not.toContain('data-hydrate');
+    expect(html).toContain('language-javascript');
+  });
+
+  it('js:run fence → Script placeholder with code', () => {
+    const html = md.render('```js:run my_script\noutput("hi");\n```');
     expect(html).toContain('data-hydrate="Script"');
     expect(parseProps(html)).toEqual({ name: 'my_script', code: 'output("hi");\n' });
   });
 
-  it('js alias is also treated as a Script block', () => {
-    const html = md.render('```js\n1 + 1\n```');
+  it('javascript:run without a name works', () => {
+    const html = md.render('```javascript:run\n1 + 1\n```');
     expect(html).toContain('data-hydrate="Script"');
     expect(parseProps(html).name).toBe('');
+  });
+});
+
+describe('display-only escape (:show)', () => {
+  it('sql:show renders display code, not a Query block', () => {
+    const html = md.render('```sql:show\nSELECT 1;\n```');
+    expect(html).not.toContain('data-hydrate');
+    expect(html).toContain('language-sql');
+  });
+
+  it('js:show renders highlighted javascript display code', () => {
+    const html = md.render('```js:show\nconst x = 1;\n```');
+    expect(html).not.toContain('data-hydrate');
+    expect(html).toContain('language-javascript');
   });
 });
 

@@ -129,6 +129,16 @@ export function createMd(options = {}) {
     md.use(Anchor, anchorOptions);
   }
 
+  const renderCodeBlock = (lang, code) => {
+    if (Prism?.languages?.[lang]) {
+      try {
+        const highlighted = Prism.highlight(code, Prism.languages[lang], lang);
+        return `<pre class="language-${lang}"><code class="language-${lang}">${highlighted}</code></pre>\n`;
+      } catch {}
+    }
+    return `<pre class="language-${lang}"><code class="language-${lang}">${md.utils.escapeHtml(code)}</code></pre>\n`;
+  };
+
   mdxQuery(md);
   mdxContainer(md, 'callout', (args) => `<div class="callout callout-${escAttr(args || 'info')}">`, () => '</div>');
   mdxContainer(md, 'collapse', (args) => `<details class="collapse-block"><summary>${escHtml(args || '')}</summary>`, () => '</details>');
@@ -148,20 +158,19 @@ export function createMd(options = {}) {
       const queryName = queryNameMatch ? queryNameMatch[1] : '';
       return placeholderHtml('Query', { name: queryName, sql: token.content }, 'Query' + (queryName ? ` “${queryName}”` : '')) + '\n';
     }
-    if (info === 'javascript' || info === 'js' || /^(javascript|js)\s/i.test(info)) {
-      const scriptNameMatch = info.match(/^(?:javascript|js)\s+(\w+)/);
-      const scriptName = scriptNameMatch ? scriptNameMatch[1] : '';
+    // 実行JS: ```js:run 名前  (素の ```javascript は表示コードのまま)
+    const jsRunMatch = info.match(/^(javascript|js):run(?:\s+(\w+))?$/);
+    if (jsRunMatch) {
+      const scriptName = jsRunMatch[2] || '';
       return placeholderHtml('Script', { name: scriptName, code: token.content }, 'Script' + (scriptName ? ` “${scriptName}”` : '')) + '\n';
     }
-    const lang = info || 'clike';
-    const code = token.content;
-    if (Prism?.languages?.[lang]) {
-      try {
-        const highlighted = Prism.highlight(code, Prism.languages[lang], lang);
-        return `<pre class="language-${lang}"><code class="language-${lang}">${highlighted}</code></pre>\n`;
-      } catch {}
+    // 表示専用フェンス (実行しない): ```sql:show / ```js:show など
+    const showMatch = info.match(/^(sql|javascript|js):(show|plain|display|static|example)$/);
+    if (showMatch) {
+      const lang = showMatch[1] === 'js' ? 'javascript' : showMatch[1];
+      return renderCodeBlock(lang, token.content);
     }
-    return `<pre class="language-${lang}"><code class="language-${lang}">${md.utils.escapeHtml(code)}</code></pre>\n`;
+    return renderCodeBlock(info || 'clike', token.content);
   };
 
   md.renderer.rules.table_open = () => '<table class="table table-striped">\n';

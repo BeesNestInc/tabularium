@@ -6,6 +6,7 @@ export const createQueryContext = (meta = null) => {
   const params = writable({});
   const paramVersion = writable(0);
   const queries = new Map();
+  const env = {};
 
   const substituteParams = (sql) => {
     const pv = get(params);
@@ -62,5 +63,5 @@ export const createQueryContext = (meta = null) => {
     }
   };
 
-  return { meta, results, running, params, paramVersion, runQuery, registerQuery, setParam };
+  return { meta, results, running, params, paramVersion, env, runQuery, registerQuery, setParam };
 };

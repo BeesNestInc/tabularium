@@ -53,4 +53,18 @@ describe('Script.svelte', () => {
     await fireEvent.click(screen.getByRole('button', { name: '▶ Run' }));
     await waitFor(() => expect(screen.getAllByText(/my boom/).length).toBeGreaterThan(0));
   });
+
+  it('shares env across script blocks via ctx', async () => {
+    const ctx = createQueryContext({ engine: 'duckdb' });
+    render(Script, { props: { ctx, code: `env.counter = (env.counter ?? 0) + 1;\noutput(env.counter);` } });
+    await fireEvent.click(screen.getByRole('button', { name: '▶ Run' }));
+    await waitFor(() => expect(screen.getByText('1')).toBeInTheDocument());
+
+    // 別ブロック(同一ctx)でも env が共有されている
+    render(Script, { props: { ctx, code: `output(env.counter);` } });
+    const buttons = screen.getAllByRole('button', { name: '▶ Run' });
+    await fireEvent.click(buttons[buttons.length - 1]);
+    await waitFor(() => expect(screen.getAllByText('1').length).toBeGreaterThan(0));
+    expect(ctx.env.counter).toBe(1);
+  });
 });

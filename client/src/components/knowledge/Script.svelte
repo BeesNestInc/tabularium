@@ -3,7 +3,7 @@
   export let name = '';
   export let code = '';
 
-  const { runQuery, results, params, setParam, meta } = ctx;
+  const { runQuery, results, params, setParam, meta, env } = ctx;
 
   let isRunning = false;
   let error = '';
@@ -23,10 +23,10 @@
     clearOutput();
     try {
       const fn = new Function(
-        'ctx', 'runQuery', 'getResult', 'setParam', 'getParam', 'output', 'append', 'clearOutput', 'container', 'meta',
+        'ctx', 'runQuery', 'getResult', 'setParam', 'getParam', 'env', 'output', 'append', 'clearOutput', 'container', 'meta',
         `"use strict";\nreturn (async () => {\n${code}\n})();`
       );
-      const value = await fn(ctx, runQuery, getResult, setParam, (k) => $params[k], output, append, clearOutput, outputEl, meta);
+      const value = await fn(ctx, runQuery, getResult, setParam, (k) => $params[k], env, output, append, clearOutput, outputEl, meta);
       if (value !== undefined) append(String(value));
     } catch (e) {
       error = e.message;

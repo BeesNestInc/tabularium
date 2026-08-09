@@ -43,6 +43,20 @@ describe(':::query container', () => {
   });
 });
 
+describe('javascript fence', () => {
+  it('named javascript fence → Script placeholder with code', () => {
+    const html = md.render('```javascript my_script\noutput("hi");\n```');
+    expect(html).toContain('data-hydrate="Script"');
+    expect(parseProps(html)).toEqual({ name: 'my_script', code: 'output("hi");\n' });
+  });
+
+  it('js alias is also treated as a Script block', () => {
+    const html = md.render('```js\n1 + 1\n```');
+    expect(html).toContain('data-hydrate="Script"');
+    expect(parseProps(html).name).toBe('');
+  });
+});
+
 describe('component tags (Evidence-style)', () => {
   it('chart tag → Chart placeholder with parsed props', () => {
     const html = processComponentTags(md.render('<LineChart data={q1} x=day y="clicks"/>'));

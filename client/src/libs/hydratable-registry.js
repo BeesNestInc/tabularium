@@ -15,6 +15,7 @@ register('Chart', () => import('../components/knowledge/Chart.svelte'));
 register('DataTable', () => import('../components/knowledge/DataTable.svelte'));
 register('ParamInput', () => import('../components/knowledge/ParamInput.svelte'));
 register('DynamicValue', () => import('../components/knowledge/DynamicValue.svelte'));
+register('Script', () => import('../components/knowledge/Script.svelte'));
 
 export const registerHydratable = register;
 export const getHydratable = get;

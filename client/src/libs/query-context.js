@@ -15,6 +15,14 @@ export const createQueryContext = (meta = null) => {
   };
 
   const runQuery = async (name, sql) => {
+    if (sql === undefined) {
+      const stored = queries.get(name);
+      if (stored) sql = stored.sql;
+    }
+    if (sql === undefined) {
+      results.update((r) => ({ ...r, [name]: { status: 'error', error: `query "${name}" is not defined` } }));
+      throw new Error(`query "${name}" is not defined`);
+    }
     const resolved = substituteParams(sql);
     running.update((r) => ({ ...r, [name]: true }));
     results.update((r) => ({ ...r, [name]: { status: 'running' } }));

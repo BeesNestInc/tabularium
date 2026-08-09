@@ -148,6 +148,11 @@ export function createMd(options = {}) {
       const queryName = queryNameMatch ? queryNameMatch[1] : '';
       return placeholderHtml('Query', { name: queryName, sql: token.content }, 'Query' + (queryName ? ` “${queryName}”` : '')) + '\n';
     }
+    if (info === 'javascript' || info === 'js' || /^(javascript|js)\s/i.test(info)) {
+      const scriptNameMatch = info.match(/^(?:javascript|js)\s+(\w+)/);
+      const scriptName = scriptNameMatch ? scriptNameMatch[1] : '';
+      return placeholderHtml('Script', { name: scriptName, code: token.content }, 'Script' + (scriptName ? ` “${scriptName}”` : '')) + '\n';
+    }
     const lang = info || 'clike';
     const code = token.content;
     if (Prism?.languages?.[lang]) {

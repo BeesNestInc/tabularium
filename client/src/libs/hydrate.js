@@ -19,7 +19,7 @@ export const hydrate = async (root, ctx) => {
 
   const referenced = new Set();
   for (const el of els) {
-    if (el.dataset.hydrate === 'Chart' || el.dataset.hydrate === 'DataTable') {
+    if (['Chart', 'DataTable', 'DynamicValue'].includes(el.dataset.hydrate)) {
       const p = parseProps(el);
       if (p.data) referenced.add(p.data);
     }

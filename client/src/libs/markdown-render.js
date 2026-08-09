@@ -23,11 +23,13 @@ export const placeholderHtml = (name, props, label) => {
 
 const COMPONENT_TAGS = ['LineChart', 'BarChart', 'AreaChart', 'ScatterPlot', 'PieChart', 'DataTable', 'ParamInput', 'DynamicValue'];
 
+const CHART_TAGS = new Set(['LineChart', 'BarChart', 'AreaChart', 'ScatterPlot', 'PieChart']);
+
 export const processComponentTags = (html) => {
   return String(html).replace(
     /<(LineChart|BarChart|AreaChart|ScatterPlot|PieChart|DataTable|ParamInput|DynamicValue)\s+([\s\S]*?)\/>/g,
     (match, tagName, attrs) => {
-      const props = { type: tagName };
+      const props = {};
       attrs.replace(/(\w+)=(\{[^}]+\}|[^\s/>]+)/g, (m, key, val) => {
         if (val.startsWith('{') && val.endsWith('}')) props[key] = val.slice(1, -1);
         else props[key] = val.replace(/^"(.*)"$/, '$1').replace(/^'(.*)'$/, '$1');
@@ -39,6 +41,7 @@ export const processComponentTags = (html) => {
         return placeholderHtml('DynamicValue', props, 'DynamicValue');
       }
       if (!props.data) return match;
+      if (CHART_TAGS.has(tagName)) props.type = tagName;
       return placeholderHtml(tagName === 'DataTable' ? 'DataTable' : 'Chart', props, `${tagName} (${props.data})`);
     }
   );

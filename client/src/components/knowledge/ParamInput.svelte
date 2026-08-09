@@ -1,14 +1,16 @@
 <script>
-  export let ctx;
-  export let name = '';
-  export let label = '';
-  export let type = 'text';
-  export let options = '';
+  import { onMount } from 'svelte';
+
+  let { ctx, name = '', label = '', type = 'text', options = '', default: def = '' } = $props();
 
   const { params } = ctx;
 
-  let local = $params[name] ?? '';
+  let local = $params[name] ?? def;
   const update = () => ctx.setParam(name, local);
+
+  onMount(() => {
+    if (def) ctx.setParam(name, def);
+  });
 </script>
 
 <label class="param-input">

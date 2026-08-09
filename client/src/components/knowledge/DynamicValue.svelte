@@ -3,7 +3,6 @@
   export let data = '';   // query name
   export let column = '';
   export let param = '';
-  export let format = '';
 
   const { results, params } = ctx;
 

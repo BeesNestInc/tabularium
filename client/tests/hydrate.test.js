@@ -64,6 +64,20 @@ describe('hydrate', () => {
     unmountAll(mounted);
   });
 
+  it('auto-runs a query referenced by a DynamicValue', async () => {
+    const root = document.createElement('div');
+    root.innerHTML =
+      placeholderHtml('Query', { name: 'q1', sql: 'SELECT 1;' }, '') +
+      placeholderHtml('DynamicValue', { data: 'q1', column: 'val' }, '');
+    document.body.appendChild(root);
+
+    const ctx = createQueryContext({ engine: 'duckdb' });
+    const mounted = await hydrate(root, ctx);
+
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+    unmountAll(mounted);
+  });
+
   it('ignores unknown hydrate names', async () => {
     const root = document.createElement('div');
     root.innerHTML = `<div class="mdx-hydrate" data-hydrate="DoesNotExist" data-props='{}'>x</div>`;

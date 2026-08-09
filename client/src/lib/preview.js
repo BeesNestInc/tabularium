@@ -1,4 +1,5 @@
 import { t } from '../libs/i18n.js';
+import { processComponentTags } from '../libs/markdown-render.js';
 
 const stripFrontMatter = (text) => {
   return text.replace(/^---[\s\S]*?\n---\n?/, '');
@@ -14,7 +15,7 @@ export const renderPreview = (el, value, md) => {
     return;
   }
   try {
-    const html = md.render(raw);
+    const html = processComponentTags(md.render(raw));
     el.innerHTML = html;
     requestAnimationFrame(() => { el.scrollTop = previousScrollTop; });
     import('./mermaid.js').then(m => m.renderAll(el));

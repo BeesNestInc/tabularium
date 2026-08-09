@@ -4,10 +4,12 @@
   import Spreadsheet from '../components/editor/Spreadsheet.svelte';
   import * as bmUi from '../libs/bookmarks-ui.js';
   import * as api from '../libs/knowledge-api.js';
-  import { createMd } from '../libs/markdown-render.js';
+  import { createMd, processComponentTags } from '../libs/markdown-render.js';
+  import { hydrate, unmountAll } from '../libs/hydrate.js';
+  import { createQueryContext } from '../libs/query-context.js';
   import { t } from '../libs/i18n.js';
   import { parseCsvRow, parseCsv, csvToHtml, escapeHtml } from '../lib/csv.js';
-  import { isImageExt, isTextExt, isCsvExt, isDrawioExt, isOfficeExt, isCalendarExt, getEditorLang } from '../lib/file-utils.js';
+  import { isImageExt, isTextExt, isHtmlExt, isCsvExt, isDrawioExt, isOfficeExt, isCalendarExt, getEditorLang } from '../lib/file-utils.js';
   import { fileTemplates } from '../lib/file-templates.js';
   import { fetchRoots, addRoot as apiAddRoot, deleteRoot as apiDeleteRoot } from '../lib/roots.js';
   import { speech } from '../lib/speech.js';
@@ -268,6 +270,13 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
         calendarError = true;
         contentHtml = '<div class="alert alert-danger">' + t('fileNotFound') + '</div>';
       }
+    } else if (isHtmlExt(filePath)) {
+      try {
+        const raw = await api.fetchRaw(filePath);
+        contentHtml = raw.content || '';
+      } catch {
+        contentHtml = '<div class="alert alert-danger">' + t('fileNotFound') + '</div>';
+      }
     } else if (isTextExt(filePath)) {
       try {
         const raw = await api.fetchRaw(filePath);
@@ -284,14 +293,11 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
       const handler = resolveContentType(filePath);
       if (handler) {
         let html = await handler.load(filePath);
-        const result = processEvidenceTags(html);
-        contentHtml = result.html;
-        evidenceCharts = result.charts;
-        autoRunDone = false;
-        queryResults = {};
+        html = processComponentTags(html);
+        contentHtml = html;
+        queryCtx = createQueryContext(extractMeta(html));
       } else {
         contentHtml = '<p class="text-muted">' + t('noPreview') + '<br><a href="' + api.fetchFile(filePath) + '?dl=1" class="btn btn-sm btn-outline-secondary mt-2">' + t('download') + '</a></p>';
-        evidenceCharts = [];
       }
     }
     contentLoading = false;
@@ -463,231 +469,53 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
     if (!a) return;
     if (a.hasAttribute('download') || a.getAttribute('rel') === 'external') return;
     const href = a.getAttribute('href');
-    if (!href || href.startsWith('http://') || href.startsWith('https://') || href.startsWith('#') || href.startsWith('javascript:')) return;
+    if (!href) return;
+    if (href.startsWith('#') || href.startsWith('javascript:')) return;
+    if (/^[a-z][a-z0-9+.-]*:/i.test(href) || href.startsWith('//')) {
+      e.preventDefault();
+      window.open(href, '_blank', 'noopener,noreferrer');
+      return;
+    }
     if (!href.startsWith('/') || href.startsWith('/api/')) return;
     e.preventDefault();
     _link(href);
   };
 
-  let activeCharts = [];
-  let queryResults = {};
-  let evidenceCharts = [];
+  let queryCtx = null;
+  let hydrated = [];
+  let lastHydratedHtml = null;
 
-  const EVIDENCE_TAGS = ['LineChart', 'BarChart', 'AreaChart', 'ScatterPlot', 'PieChart', 'DataTable'];
-
-  const processEvidenceTags = (html) => {
-    const charts = [];
-    const processed = html.replace(/<(LineChart|BarChart|AreaChart|ScatterPlot|PieChart|DataTable)\s+([\s\S]*?)\/>/g, (match, tagName, attrs) => {
-      const config = { type: tagName };
-      attrs.replace(/(\w+)=(\{[^}]+\}|[^\s/>]+)/g, (m, key, val) => {
-        if (val.startsWith('{') && val.endsWith('}')) {
-          const inner = val.slice(1, -1);
-          if (key === 'data') config.queryName = inner;
-          else config[key] = inner;
-        } else {
-          config[key] = val.replace(/^"(.*)"$/, '$1').replace(/^'(.*)'$/, '$1');
-        }
-      });
-      if (!config.queryName) return match; // skip if no data reference
-      const id = 'ev-' + Math.random().toString(36).slice(2, 8);
-      config.id = id;
-      charts.push(config);
-      return `<div class="ev-chart-placeholder" data-ev-id="${id}" style="min-height:40px;padding:8px;margin:8px 0;border:1px dashed #ccc;border-radius:6px;color:#999;text-align:center;font-size:0.85em">${tagName} (data={${config.queryName}}) — ${t('runQueryHint')}</div>`;
-    });
-    return { html: processed, charts };
+  const extractMeta = (html) => {
+    const m = String(html).match(/data-page-meta="([^"]*)"/);
+    if (!m) return null;
+    try { return JSON.parse(m[1].replace(/&quot;/g, '"')); } catch { return null; }
   };
 
-  const getPageMeta = () => {
-    const wrapper = document.querySelector('[data-page-meta]');
-    if (!wrapper) return null;
-    try { return JSON.parse(wrapper.dataset.pageMeta); } catch { return null; }
-  };
-
-  const renderEvidenceChart = (chartConfig, queryData) => {
-    const placeholder = document.querySelector(`.ev-chart-placeholder[data-ev-id="${chartConfig.id}"]`);
-    if (!placeholder) return;
-    if (chartConfig.type === 'DataTable') {
-      placeholder.innerHTML = renderSqlTable(queryData);
-      return;
-    }
-    const id = chartConfig.id + '-chart';
-    placeholder.innerHTML = `<div id="${id}" class="ev-chart-render" style="height:300px;width:100%"></div>`;
-    const container = document.getElementById(id);
-    if (!container) return;
-    const echartOpt = buildEvidenceOption(chartConfig, queryData);
-    if (!echartOpt) {
-      container.innerHTML = '<p class="text-muted">' + t('noColumnsForChart') + '</p>';
-      return;
-    }
-    import('echarts').then(({ init }) => {
-      const chart = init(container);
-      chart.setOption(echartOpt);
-      activeCharts.push(chart);
-      new ResizeObserver(() => chart.resize()).observe(container);
-    });
-  };
-
-  const renderSqlTable = (data) => {
-    if (!data.columns || data.columns.length === 0) return '<p class="text-muted">' + t('empty') + '</p>';
-    let html = '<table class="table table-sm table-striped"><thead><tr>';
-    html += data.columns.map(c => `<th>${c.name}</th>`).join('');
-    html += '</tr></thead><tbody>';
-    for (const row of data.rows) {
-      html += '<tr>' + data.columns.map(c => '<td>' + (row[c.name] ?? '') + '</td>').join('') + '</tr>';
-    }
-    html += '</tbody></table>';
-    return html;
-  };
-
-  const buildEvidenceOption = (cfg, data) => {
-    const xCol = cfg.x || (data.columns.find(c => c.type === 'string' || c.type === 'varchar' || c.type === 'text')?.name);
-    const yCol = cfg.y || data.columns.find(c => c.type === 'number' || c.type === 'integer' || c.type === 'bigint')?.name;
-    if (!yCol) return null;
-    const rows = data.rows;
-    const base = {
-      tooltip: { trigger: 'axis' },
-      grid: { left: 60, right: 20, bottom: 80, top: 40 },
-      xAxis: xCol
-        ? { type: 'category', data: rows.map(r => r[xCol]), axisLabel: { rotate: rows.length > 10 ? 45 : 0 } }
-        : { type: 'category', data: rows.map((_, i) => '#' + (i + 1)) },
-      yAxis: { type: 'value' },
-    };
-    const category = cfg.type;
-    if (category === 'PieChart') {
-      return {
-        tooltip: { trigger: 'item', formatter: '{b}: {c}' },
-        series: [{
-          type: 'pie', radius: ['40%', '60%'],
-          data: rows.map(r => ({ name: xCol ? r[xCol] : '', value: r[yCol] })),
-          label: { formatter: '{b}: {c}' },
-        }],
-      };
-    }
-    if (category === 'DataTable') {
-      return null; // handled separately
-    }
-    const chartTypeMap = { LineChart: 'line', BarChart: 'bar', AreaChart: 'line', ScatterPlot: 'scatter', PieChart: 'pie' };
-    const chartType = chartTypeMap[category] || 'line';
-    const isArea = category === 'AreaChart' || (cfg.fill === 'true');
-    const series = [{ type: chartType, data: rows.map(r => r[yCol]), name: yCol, ...(isArea ? { areaStyle: {} } : {}) }];
-    if (cfg.y2) {
-      series.push({ type: chartType, data: rows.map(r => r[cfg.y2]), name: cfg.y2 });
-    }
-    return { ...base, series, legend: series.length > 1 ? { data: series.map(s => s.name), bottom: 0 } : undefined };
-  };
-
-  const executeSql = async (sql, queryName, resultDiv, statusEl, btn) => {
-    if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
-    if (statusEl) statusEl.textContent = t('running');
-    if (resultDiv) resultDiv.style.display = 'none';
+  const parseFrontMeta = (raw) => {
+    const m = String(raw).match(/^---\n([\s\S]*?)\n---/);
+    if (!m) return null;
     try {
-      const meta = getPageMeta();
-      const body = { language: meta?.engine || 'sql', code: sql };
-      if (meta?.databases) body.attach = meta.databases;
-      const res = await fetch('/api/execute', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Unknown error');
-      queryResults[queryName] = data;
-      if (statusEl) statusEl.textContent = `✔ ${data.rowCount} rows (${data.duration}ms)`;
-      if (resultDiv) {
-        renderSqlResult(resultDiv, data);
-        resultDiv.style.display = 'block';
-      }
-      evidenceCharts.filter(c => c.queryName === queryName).forEach(c => renderEvidenceChart(c, data));
-    } catch (err) {
-      if (statusEl) statusEl.textContent = '✘ ' + err.message;
-    } finally {
-      if (btn) { btn.disabled = false; btn.textContent = '▶ Run'; }
-    }
+      const fm = yaml.parse(m[1]) || {};
+      const engine = fm.engine || (fm.databases || fm.database ? 'duckdb' : null);
+      if (!engine) return null;
+      let databases = fm.databases || fm.database;
+      if (typeof databases === 'string') databases = { default: databases };
+      else if (!databases) databases = {};
+      return { engine, databases };
+    } catch { return null; }
   };
 
-  const handleSqlRunClick = async (e) => {
-    const btn = e.target.closest('.sql-run-btn');
-    if (!btn) return;
-    const sqlId = btn.dataset.sqlId;
-    if (!sqlId) return;
-    const block = document.querySelector(`.sql-block[data-sql-id="${sqlId}"]`);
-    if (!block) return;
-    const pre = block.querySelector('pre.language-sql');
-    if (!pre) return;
-    const sql = pre.dataset.sql;
-    const queryName = pre.dataset.queryName || '';
-    const resultDiv = block.querySelector('.sql-result');
-    const statusEl = block.querySelector('.sql-status');
-    if (!resultDiv) return;
-    await executeSql(sql, queryName, resultDiv, statusEl, btn);
-  };
-
-  const renderSqlResult = (container, data) => {
-    if (!data.columns || data.columns.length === 0) {
-      container.innerHTML = '<p class="text-muted">' + t('noResults') + '</p>';
-      return;
-    }
-    const id = 'sql-result-' + Math.random().toString(36).slice(2, 8);
-    let html = '<div class="sql-result-tabs"><button class="sql-tab-btn active" data-tab="' + id + '-table">' + t('table') + '</button>';
-    html += '<button class="sql-tab-btn" data-tab="' + id + '-chart">' + t('chart') + '</button></div>';
-    html += '<div id="' + id + '-table" class="sql-tab-content">' + renderSqlTable(data) + '</div>';
-    html += '<div id="' + id + '-chart" class="sql-tab-content sql-chart-container" style="display:none"></div>';
-    container.innerHTML = html;
-    // tab switching
-    container.querySelectorAll('.sql-tab-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        container.querySelectorAll('.sql-tab-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        container.querySelectorAll('.sql-tab-content').forEach(c => c.style.display = 'none');
-        const tab = document.getElementById(btn.dataset.tab);
-        if (tab) tab.style.display = 'block';
-        if (btn.dataset.tab.endsWith('-chart') && tab && !tab.dataset.chartInited) {
-          tab.dataset.chartInited = '1';
-          initChart(tab, data);
-        }
-      });
-    });
-  };
-
-  const initChart = async (container, data) => {
-    const numericCols = data.columns.filter(c => c.type === 'number' || c.type === 'bigint' || c.type === 'integer');
-    const stringCols = data.columns.filter(c => c.type === 'string' || c.type === 'varchar');
-    if (numericCols.length === 0 || data.rows.length === 0) {
-      container.innerHTML = '<p class="text-muted">' + t('noNumericColumns') + '</p>';
-      return;
-    }
-    const xCol = stringCols.length > 0 ? stringCols[0].name : null;
-    const yCols = numericCols.slice(0, 3);
-    const isBar = xCol !== null && data.rows.length <= 30;
-    const option = {
-      tooltip: { trigger: 'axis' },
-      grid: { left: 60, right: 20, bottom: 80, top: 40 },
-      xAxis: xCol ? {
-        type: 'category',
-        data: data.rows.map(r => r[xCol]),
-        axisLabel: { rotate: data.rows.length > 10 ? 45 : 0, fontSize: 11 },
-      } : {
-        type: 'category',
-        data: data.rows.map((_, i) => '#' + (i + 1)),
-      },
-      yAxis: { type: 'value' },
-      series: yCols.map((col, i) => ({
-        name: col.name,
-        type: isBar ? 'bar' : 'line',
-        data: data.rows.map(r => r[col.name]),
-      })),
-      legend: yCols.length > 1 ? { data: yCols.map(c => c.name), bottom: 0 } : undefined,
-    };
-    try {
-      const { init } = await import('echarts');
-      const chart = init(container);
-      chart.setOption(option);
-      activeCharts.push(chart);
-      const ro = new ResizeObserver(() => chart.resize());
-      ro.observe(container);
-    } catch {
-      container.innerHTML = '<p class="text-muted">' + t('chartInitFailed') + '</p>';
-    }
+  const hydrateContent = async () => {
+    const target = document.querySelector('.markdown-body') || document.querySelector('.contents.markdown.document');
+    if (!target) return;
+    if (mermaidReady && target.querySelector('pre.language-mermaid')) renderAll(target);
+    if (contentHtml === lastHydratedHtml) return;
+    lastHydratedHtml = contentHtml;
+    unmountAll(hydrated);
+    hydrated = [];
+    if (!target.querySelector('[data-hydrate]')) return;
+    if (!queryCtx) queryCtx = createQueryContext(null);
+    hydrated = await hydrate(target, queryCtx);
   };
 
   let mermaidReady = false;
@@ -1131,16 +959,10 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
       let html = '';
       if (pageData.index) {
         const raw = pageData.index.raw.replace(/^---[\s\S]*?\n---\n?/, '');
-        html = getMd().render(raw);
+        html = processComponentTags(getMd().render(raw));
+        queryCtx = createQueryContext(parseFrontMeta(pageData.index.raw));
         var bmInline = bmUi.bookmarkInlineListHtml(bookmarks, folderPath);
         if (bmInline) html = html.replace('<%= bookmarks %>', bmInline).replace('&lt;%= bookmarks %&gt;', bmInline);
-        const result = processEvidenceTags(html);
-        html = result.html;
-        evidenceCharts = result.charts;
-        autoRunDone = false;
-        queryResults = {};
-      } else {
-        evidenceCharts = [];
       }
       const folderHtml = bmUi.folderViewHtml(folderPath, pageData.entries || [], bookmarks, fvViewMode, true);
       contentHtml = html + folderHtml;
@@ -1279,40 +1101,19 @@ import CollaboraSettings from '../components/knowledge/CollaboraSettings.svelte'
     });
     window.addEventListener('message', handleDrawioMessage);
     document.addEventListener('click', handleNavClick);
-    document.addEventListener('click', handleSqlRunClick);
     mounted = true;
   });
 
-  let autoRunDone = false;
-
   afterUpdate(() => {
-    const target = document.querySelector('.markdown-body') || document.querySelector('.contents.markdown.document');
-    if (!target) return;
-    if (mermaidReady && target.querySelector('pre.language-mermaid')) renderAll(target);
-    // auto-execute queries referenced by Evidence charts
-    if (!autoRunDone && evidenceCharts.length > 0) {
-      autoRunDone = true;
-      evidenceCharts.forEach(cfg => {
-        const pre = target.querySelector(`pre.language-sql[data-query-name="${cfg.queryName}"]`);
-        if (pre) {
-          const sql = pre.dataset.sql;
-          const queryName = pre.dataset.queryName || '';
-          const block = pre.closest('.sql-block');
-          const resultDiv = block?.querySelector('.sql-result') || null;
-          const statusEl = block?.querySelector('.sql-status') || null;
-          executeSql(sql, queryName, resultDiv, statusEl, null);
-        }
-      });
-    }
+    hydrateContent();
   });
 
   onDestroy(() => {
     window.removeEventListener('message', handleDrawioMessage);
     document.removeEventListener('click', handleNavClick);
-    document.removeEventListener('click', handleSqlRunClick);
     if (unsubscribe) unsubscribe();
-    activeCharts.forEach(chart => chart.dispose());
-    activeCharts = [];
+    unmountAll(hydrated);
+    hydrated = [];
     if (typeof window.hideFileInfo === 'function') window.hideFileInfo();
   });
 </script>

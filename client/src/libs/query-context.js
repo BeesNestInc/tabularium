@@ -1,0 +1,58 @@
+import { writable, get } from 'svelte/store';
+
+export const createQueryContext = (meta = null) => {
+  const results = writable({});
+  const running = writable({});
+  const params = writable({});
+  const paramVersion = writable(0);
+  const queries = new Map();
+
+  const substituteParams = (sql) => {
+    const pv = get(params);
+    return String(sql || '').replace(/\{(\w+)\}/g, (m, key) => {
+      return pv[key] !== undefined && pv[key] !== '' ? pv[key] : m;
+    });
+  };
+
+  const runQuery = async (name, sql) => {
+    const resolved = substituteParams(sql);
+    running.update((r) => ({ ...r, [name]: true }));
+    results.update((r) => ({ ...r, [name]: { status: 'running' } }));
+    try {
+      const body = { language: meta?.engine || 'sql', code: resolved };
+      if (meta?.databases) body.attach = meta.databases;
+      const res = await fetch('/api/execute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Unknown error');
+      results.update((r) => ({ ...r, [name]: { status: 'done', data } }));
+      return data;
+    } catch (err) {
+      results.update((r) => ({ ...r, [name]: { status: 'error', error: err.message } }));
+      throw err;
+    } finally {
+      running.update((r) => ({ ...r, [name]: false }));
+    }
+  };
+
+  const registerQuery = (name, sql, auto = false) => {
+    const refParams = [...String(sql).matchAll(/\{(\w+)\}/g)].map((m) => m[1]);
+    queries.set(name, { sql, refParams, auto });
+  };
+
+  const setParam = (key, value) => {
+    params.update((p) => ({ ...p, [key]: value }));
+    paramVersion.update((v) => v + 1);
+    const resultsNow = get(results);
+    for (const [name, q] of queries) {
+      if (q.refParams.includes(key) && resultsNow[name]) {
+        runQuery(name, q.sql);
+      }
+    }
+  };
+
+  return { meta, results, running, params, paramVersion, runQuery, registerQuery, setParam };
+};

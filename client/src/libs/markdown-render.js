@@ -12,6 +12,100 @@ import 'prismjs/components/prism-javascript.js';
 import 'prismjs/components/prism-http.js';
 import 'prismjs/components/prism-python.js';
 
+const escHtml = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const escAttr = (s) => escHtml(s).replace(/"/g, '&quot;');
+
+export const placeholderHtml = (name, props, label) => {
+  const propsAttr = escAttr(JSON.stringify(props || {}));
+  const body = label ? `<div class="mdx-hydrate-box">${escHtml(label)}</div>` : '';
+  return `<div class="mdx-hydrate" data-hydrate="${escAttr(name)}" data-props="${propsAttr}">${body}</div>`;
+};
+
+const COMPONENT_TAGS = ['LineChart', 'BarChart', 'AreaChart', 'ScatterPlot', 'PieChart', 'DataTable', 'ParamInput', 'DynamicValue'];
+
+export const processComponentTags = (html) => {
+  return String(html).replace(
+    /<(LineChart|BarChart|AreaChart|ScatterPlot|PieChart|DataTable|ParamInput|DynamicValue)\s+([\s\S]*?)\/>/g,
+    (match, tagName, attrs) => {
+      const props = { type: tagName };
+      attrs.replace(/(\w+)=(\{[^}]+\}|[^\s/>]+)/g, (m, key, val) => {
+        if (val.startsWith('{') && val.endsWith('}')) props[key] = val.slice(1, -1);
+        else props[key] = val.replace(/^"(.*)"$/, '$1').replace(/^'(.*)'$/, '$1');
+      });
+      if (tagName === 'ParamInput') {
+        return placeholderHtml('ParamInput', props, `Param: ${props.name || ''}`);
+      }
+      if (tagName === 'DynamicValue') {
+        return placeholderHtml('DynamicValue', props, 'DynamicValue');
+      }
+      if (!props.data) return match;
+      return placeholderHtml(tagName === 'DataTable' ? 'DataTable' : 'Chart', props, `${tagName} (${props.data})`);
+    }
+  );
+};
+
+const mdxContainer = (md, name, renderOpen, renderClose) => {
+  const startRe = new RegExp('^:::\\s*' + name + '\\s*(.*)$');
+  md.block.ruler.before('paragraph', 'mdx_' + name, (state, startLine, endLine, silent) => {
+    const start = state.bMarks[startLine] + state.tShift[startLine];
+    const max = state.eMarks[startLine];
+    if (state.src.charCodeAt(start) !== 0x3a) return false;
+    const m = state.src.slice(start, max).match(startRe);
+    if (!m) return false;
+    if (silent) return true;
+    let nextLine = startLine + 1;
+    let closed = -1;
+    while (nextLine < endLine) {
+      const s = state.bMarks[nextLine] + state.tShift[nextLine];
+      const e = state.eMarks[nextLine];
+      if (/^:::\s*$/.test(state.src.slice(s, e))) { closed = nextLine; break; }
+      nextLine++;
+    }
+    if (closed < 0) return false;
+    const open = state.push('mdx_' + name + '_open', 'div', 1);
+    open.meta = m[1].trim();
+    open.map = [startLine, closed];
+    if (renderClose) {
+      state.md.block.tokenize(state, startLine + 1, closed);
+      state.push('mdx_' + name + '_close', 'div', -1);
+    }
+    state.line = closed + 1;
+    return true;
+  });
+  md.renderer.rules['mdx_' + name + '_open'] = (tokens, idx) => renderOpen(tokens[idx].meta);
+  if (renderClose) md.renderer.rules['mdx_' + name + '_close'] = () => renderClose();
+};
+
+const mdxQuery = (md) => {
+  md.block.ruler.before('paragraph', 'mdx_query', (state, startLine, endLine, silent) => {
+    const start = state.bMarks[startLine] + state.tShift[startLine];
+    const max = state.eMarks[startLine];
+    if (state.src.charCodeAt(start) !== 0x3a) return false;
+    const m = state.src.slice(start, max).match(/^:::\s*query\s*(\w*)\s*$/);
+    if (!m) return false;
+    if (silent) return true;
+    let nextLine = startLine + 1;
+    let closed = -1;
+    while (nextLine < endLine) {
+      const s = state.bMarks[nextLine] + state.tShift[nextLine];
+      const e = state.eMarks[nextLine];
+      if (/^:::\s*$/.test(state.src.slice(s, e))) { closed = nextLine; break; }
+      nextLine++;
+    }
+    if (closed < 0) return false;
+    const sql = state.src.slice(state.bMarks[startLine + 1], state.bMarks[closed]).trim();
+    const open = state.push('mdx_query_open', 'div', 1);
+    open.meta = { name: m[1] || '', sql };
+    open.map = [startLine, closed];
+    state.line = closed + 1;
+    return true;
+  });
+  md.renderer.rules.mdx_query_open = (tokens, idx) => {
+    const meta = tokens[idx].meta;
+    return placeholderHtml('Query', meta, 'Query' + (meta.name ? ` “${meta.name}”` : ''));
+  };
+};
+
 export function createMd(options = {}) {
   const {
     useAnchor = false,
@@ -29,6 +123,10 @@ export function createMd(options = {}) {
     md.use(Anchor, anchorOptions);
   }
 
+  mdxQuery(md);
+  mdxContainer(md, 'callout', (args) => `<div class="callout callout-${escAttr(args || 'info')}">`, () => '</div>');
+  mdxContainer(md, 'collapse', (args) => `<details class="collapse-block"><summary>${escHtml(args || '')}</summary>`, () => '</details>');
+
   md.renderer.rules.fence = (tokens, idx, options, env, self) => {
     const token = tokens[idx];
     const info = token.info ? token.info.trim() : '';
@@ -40,28 +138,18 @@ export function createMd(options = {}) {
       return `<pre class="language-mermaid"><code class="language-mermaid">${md.utils.escapeHtml(content)}</code></pre>\n`;
     }
     if (info === 'sql' || /^sql\s/i.test(info)) {
-      const code = token.content;
       const queryNameMatch = info.match(/^sql\s+(\w+)/);
       const queryName = queryNameMatch ? queryNameMatch[1] : '';
-      const sqlId = `sql-${Math.random().toString(36).slice(2, 8)}`;
-      return `<div class="sql-block" data-sql-id="${sqlId}">
-<pre class="language-sql" data-sql="${md.utils.escapeHtml(code)}" data-query-name="${md.utils.escapeHtml(queryName)}"><code class="language-sql">${md.utils.escapeHtml(code)}</code></pre>
-<div class="sql-toolbar">
-  <button class="sql-run-btn btn btn-sm btn-outline-primary" data-sql-id="${sqlId}">▶ Run</button>
-  <span class="sql-status"></span>
-</div>
-<div class="sql-result" data-sql-id="${sqlId}" style="display:none"></div>
-</div>\n`;
+      return placeholderHtml('Query', { name: queryName, sql: token.content }, 'Query' + (queryName ? ` “${queryName}”` : '')) + '\n';
     }
     const lang = info || 'clike';
     const code = token.content;
-    if (Prism.languages[lang]) {
+    if (Prism?.languages?.[lang]) {
       try {
         const highlighted = Prism.highlight(code, Prism.languages[lang], lang);
         return `<pre class="language-${lang}"><code class="language-${lang}">${highlighted}</code></pre>\n`;
       } catch {}
     }
-    // 言語が未登録または highlight 失敗時は素のHTMLにフォールバック
     return `<pre class="language-${lang}"><code class="language-${lang}">${md.utils.escapeHtml(code)}</code></pre>\n`;
   };
 

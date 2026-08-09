@@ -36,7 +36,8 @@ export const load = async (path) => {
       return `<div data-page-meta="${meta}">${html}</div>`;
     }
     return html;
-  } catch {
+  } catch (e) {
+    console.error('[markdown load error]', path, e);
     return '<div class="alert alert-danger">' + t('fileNotFound') + '</div>';
   }
 };

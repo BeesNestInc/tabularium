@@ -1,12 +1,7 @@
 import { mount, unmount } from 'svelte';
+import { getHydratable } from './hydratable-registry.js';
 
-const registry = {
-  Query: () => import('../components/knowledge/Query.svelte'),
-  Chart: () => import('../components/knowledge/Chart.svelte'),
-  DataTable: () => import('../components/knowledge/DataTable.svelte'),
-  ParamInput: () => import('../components/knowledge/ParamInput.svelte'),
-  DynamicValue: () => import('../components/knowledge/DynamicValue.svelte'),
-};
+export { registerHydratable } from './hydratable-registry.js';
 
 const parseProps = (el) => {
   try { return JSON.parse(el.dataset.props || '{}'); } catch { return {}; }
@@ -17,17 +12,16 @@ export const hydrate = async (root, ctx) => {
   const els = [...root.querySelectorAll('[data-hydrate]')];
   if (!els.length) return [];
 
+  // data プロパティを持つコンポーネントは、それがクエリ名への参照だとみなして自動実行対象にする
   const referenced = new Set();
   for (const el of els) {
-    if (['Chart', 'DataTable', 'DynamicValue'].includes(el.dataset.hydrate)) {
-      const p = parseProps(el);
-      if (p.data) referenced.add(p.data);
-    }
+    const p = parseProps(el);
+    if (p.data) referenced.add(p.data);
   }
 
   const mounted = [];
   for (const el of els) {
-    const loader = registry[el.dataset.hydrate];
+    const loader = getHydratable(el.dataset.hydrate);
     if (!loader) continue;
     const props = parseProps(el);
     if (el.dataset.hydrate === 'Query') props.auto = referenced.has(props.name);

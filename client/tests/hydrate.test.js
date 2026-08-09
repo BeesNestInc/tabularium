@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { waitFor } from '@testing-library/svelte';
-import { hydrate, unmountAll } from '../src/libs/hydrate.js';
-import { placeholderHtml } from '../src/libs/markdown-render.js';
+import { hydrate, unmountAll, registerHydratable } from '../src/libs/hydrate.js';
+import { placeholderHtml, processComponentTags } from '../src/libs/markdown-render.js';
 import { createQueryContext } from '../src/libs/query-context.js';
 
 vi.mock('echarts', () => ({
@@ -85,6 +85,25 @@ describe('hydrate', () => {
     const ctx = createQueryContext({ engine: 'duckdb' });
     const mounted = await hydrate(root, ctx);
     expect(mounted.length).toBe(0);
+  });
+
+  it('mounts a registered custom component and passes ctx', async () => {
+    registerHydratable('TestWidget', () => import('./TestWidget.svelte'));
+    const root = document.createElement('div');
+    root.innerHTML = processComponentTags('<TestWidget title="hello"/>');
+    document.body.appendChild(root);
+
+    const ctx = createQueryContext({ engine: 'duckdb' });
+    const mounted = await hydrate(root, ctx);
+
+    expect(root.querySelector('.test-widget').textContent).toBe('hello:duckdb');
+    unmountAll(mounted);
+  });
+
+  it('converts only registered tags; unknown uppercase self-closing tags are untouched', () => {
+    registerHydratable('TestWidget', () => import('./TestWidget.svelte'));
+    expect(processComponentTags('<NotRegistered foo="bar"/>')).toContain('<NotRegistered foo="bar"/>');
+    expect(processComponentTags('<TestWidget title="x"/>')).toContain('data-hydrate="TestWidget"');
   });
 
   it('returns [] when no placeholders present', async () => {

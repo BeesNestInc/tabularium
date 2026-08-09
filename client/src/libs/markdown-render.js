@@ -3,6 +3,7 @@ import { full as Emoji } from 'markdown-it-emoji';
 import Attrs from 'markdown-it-attrs';
 import Anchor from 'markdown-it-anchor';
 import * as Prism from 'prismjs';
+import { isHydratable } from './hydratable-registry.js';
 
 import 'prismjs/components/prism-bash.js';
 import 'prismjs/components/prism-c.js';
@@ -21,28 +22,30 @@ export const placeholderHtml = (name, props, label) => {
   return `<div class="mdx-hydrate" data-hydrate="${escAttr(name)}" data-props="${propsAttr}">${body}</div>`;
 };
 
-const COMPONENT_TAGS = ['LineChart', 'BarChart', 'AreaChart', 'ScatterPlot', 'PieChart', 'DataTable', 'ParamInput', 'DynamicValue'];
-
 const CHART_TAGS = new Set(['LineChart', 'BarChart', 'AreaChart', 'ScatterPlot', 'PieChart']);
 
 export const processComponentTags = (html) => {
   return String(html).replace(
-    /<(LineChart|BarChart|AreaChart|ScatterPlot|PieChart|DataTable|ParamInput|DynamicValue)\s+([\s\S]*?)\/>/g,
+    /<([A-Z][\w]*)\s+([\s\S]*?)\/>/g,
     (match, tagName, attrs) => {
+      const isChart = CHART_TAGS.has(tagName);
+      const hydrateName = isChart ? 'Chart' : tagName;
+      if (!isHydratable(hydrateName)) return match;
       const props = {};
-      attrs.replace(/(\w+)=(\{[^}]+\}|[^\s/>]+)/g, (m, key, val) => {
+      attrs.replace(/(\w+)=(\{[^}]+\}|"[^"]*"|'[^']*'|[^\s/>]+)/g, (m, key, val) => {
         if (val.startsWith('{') && val.endsWith('}')) props[key] = val.slice(1, -1);
-        else props[key] = val.replace(/^"(.*)"$/, '$1').replace(/^'(.*)'$/, '$1');
+        else if (val.length >= 2 && (val[0] === '"' && val[val.length - 1] === '"' || val[0] === "'" && val[val.length - 1] === "'")) props[key] = val.slice(1, -1);
+        else props[key] = val;
       });
+      if (isChart) props.type = tagName;
+      if ((isChart || tagName === 'DataTable') && !props.data) return match;
       if (tagName === 'ParamInput') {
         return placeholderHtml('ParamInput', props, `Param: ${props.name || ''}`);
       }
       if (tagName === 'DynamicValue') {
         return placeholderHtml('DynamicValue', props, 'DynamicValue');
       }
-      if (!props.data) return match;
-      if (CHART_TAGS.has(tagName)) props.type = tagName;
-      return placeholderHtml(tagName === 'DataTable' ? 'DataTable' : 'Chart', props, `${tagName} (${props.data})`);
+      return placeholderHtml(hydrateName, props, `${tagName}${props.data ? ` (${props.data})` : ''}`);
     }
   );
 };

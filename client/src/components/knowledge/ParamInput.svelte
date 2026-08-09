@@ -5,7 +5,7 @@
 
   const { params } = ctx;
 
-  let local = $params[name] ?? def;
+  let local = $state($params[name] ?? def);
   const update = () => ctx.setParam(name, local);
 
   onMount(() => {

@@ -53,7 +53,7 @@ describe('component tags (Evidence-style)', () => {
   it('DataTable tag → DataTable placeholder', () => {
     const html = processComponentTags(md.render('<DataTable data={q1}/>'));
     expect(html).toContain('data-hydrate="DataTable"');
-    expect(parseProps(html)).toEqual({ type: 'DataTable', data: 'q1' });
+    expect(parseProps(html)).toEqual({ data: 'q1' });
   });
 
   it('ParamInput / DynamicValue tags → placeholders', () => {
@@ -64,6 +64,13 @@ describe('component tags (Evidence-style)', () => {
     const d = processComponentTags(md.render('<DynamicValue data={q1} column="total"/>'));
     expect(d).toContain('data-hydrate="DynamicValue"');
     expect(parseProps(d).column).toBe('total');
+  });
+
+  it('parses quoted attribute values containing spaces', () => {
+    const p = processComponentTags(md.render('<ParamInput name="region" label="地域を選択:" suffix=" 百万円" />'));
+    const props = parseProps(p);
+    expect(props.label).toBe('地域を選択:');
+    expect(props.suffix).toBe(' 百万円');
   });
 
   it('chart tag without data is left untouched', () => {

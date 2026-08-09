@@ -153,9 +153,10 @@ export function createMd(options = {}) {
       }
       return `<pre class="language-mermaid"><code class="language-mermaid">${md.utils.escapeHtml(content)}</code></pre>\n`;
     }
-    if (info === 'sql' || /^sql\s/i.test(info)) {
-      const queryNameMatch = info.match(/^sql\s+(\w+)/);
-      const queryName = queryNameMatch ? queryNameMatch[1] : '';
+    // 実行SQL: ```sql:run 名前  (素の ```sql は表示コードのまま)
+    const sqlRunMatch = info.match(/^sql:run(?:\s+(\w+))?$/);
+    if (sqlRunMatch) {
+      const queryName = sqlRunMatch[1] || '';
       return placeholderHtml('Query', { name: queryName, sql: token.content }, 'Query' + (queryName ? ` “${queryName}”` : '')) + '\n';
     }
     // 実行JS: ```js:run 名前  (素の ```javascript は表示コードのまま)

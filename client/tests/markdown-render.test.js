@@ -12,22 +12,28 @@ const parseProps = (html) => {
 };
 
 describe('sql fence', () => {
-  it('named sql fence → Query placeholder with name + sql in props', () => {
-    const html = md.render('```sql q1\nSELECT 1;\n```');
+  it('plain sql fence stays a display code block (not executable)', () => {
+    const html = md.render('```sql\nSELECT 1;\n```');
+    expect(html).not.toContain('data-hydrate');
+    expect(html).toContain('language-sql');
+  });
+
+  it('sql:run named fence → Query placeholder with name + sql in props', () => {
+    const html = md.render('```sql:run q1\nSELECT 1;\n```');
     expect(html).toContain('data-hydrate="Query"');
     const props = parseProps(html);
     expect(props).toEqual({ name: 'q1', sql: 'SELECT 1;\n' });
   });
 
-  it('anonymous sql fence → Query placeholder with empty name', () => {
-    const html = md.render('```sql\nSELECT 1;\n```');
+  it('sql:run without name → Query placeholder with empty name', () => {
+    const html = md.render('```sql:run\nSELECT 1;\n```');
     const props = parseProps(html);
     expect(props.name).toBe('');
     expect(props.sql).toBe('SELECT 1;\n');
   });
 
   it('sql containing double quotes and angle brackets is safely JSON-encoded', () => {
-    const html = md.render('```sql\nSELECT "a<b" AS x;\n```');
+    const html = md.render('```sql:run\nSELECT "a<b" AS x;\n```');
     const props = parseProps(html);
     expect(props.sql).toBe('SELECT "a<b" AS x;\n');
     // the attribute must not contain a raw " that would break HTML

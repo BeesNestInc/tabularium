@@ -79,4 +79,31 @@ describe('createQueryContext', () => {
     const bodies = fetch.mock.calls.slice(2).map((c) => JSON.parse(c[1].body).code);
     expect(bodies).toEqual(["SELECT 'JP'"]);
   });
+
+  it('applyParams sets params and re-runs affected queries once each', async () => {
+    const ctx = createQueryContext({ engine: 'duckdb' });
+    fetch.mockResolvedValue(okResponse({ columns: [], rows: [], rowCount: 0 }));
+
+    ctx.registerQuery('q1', 'WHERE price >= {min_price}', false);
+    ctx.registerQuery('q2', "WHERE region = '{region}'", false);
+    ctx.registerQuery('q3', 'SELECT 1', false);
+
+    ctx.applyParams({ min_price: '100', region: '東京' });
+
+    expect(get(ctx.params).min_price).toBe('100');
+    expect(get(ctx.params).region).toBe('東京');
+    // q1/q2 のみ、それぞれ1回実行 (applyParams は未実行クエリも対象)
+    expect(fetch.mock.calls.length).toBe(2);
+    const bodies = fetch.mock.calls.map((c) => JSON.parse(c[1].body).code);
+    expect(bodies).toContain('WHERE price >= 100');
+    expect(bodies).toContain("WHERE region = '東京'");
+  });
+
+  it('applyParams with no values is a no-op', async () => {
+    const ctx = createQueryContext({ engine: 'duckdb' });
+    fetch.mockResolvedValue(okResponse({ columns: [], rows: [], rowCount: 0 }));
+    ctx.registerQuery('q1', 'SELECT 1', false);
+    ctx.applyParams({});
+    expect(fetch).not.toHaveBeenCalled();
+  });
 });

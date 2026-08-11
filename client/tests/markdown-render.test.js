@@ -69,6 +69,17 @@ describe('javascript fence', () => {
   });
 });
 
+describe(':::form container', () => {
+  it('renders a Form placeholder wrapping inner ParamInput placeholders', () => {
+    const html = processComponentTags(md.render(':::form filter\n<ParamInput name="min_price" type="number" default="1000" />\n:::'));
+    const fi = html.indexOf('data-hydrate="Form"');
+    const pi = html.indexOf('data-hydrate="ParamInput"');
+    expect(fi).toBeGreaterThan(-1);
+    expect(pi).toBeGreaterThan(fi);
+    expect(html).toContain('form-container');
+  });
+});
+
 describe('display-only escape (:show)', () => {
   it('sql:show renders display code, not a Query block', () => {
     const html = md.render('```sql:show\nSELECT 1;\n```');

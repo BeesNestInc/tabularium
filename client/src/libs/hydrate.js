@@ -21,13 +21,16 @@ export const hydrate = async (root, ctx) => {
 
   const mounted = [];
   for (const el of els) {
-    const loader = getHydratable(el.dataset.hydrate);
-    if (!loader) continue;
+    const meta = getHydratable(el.dataset.hydrate);
+    if (!meta) continue;
+    const { loader, container } = meta;
     const props = parseProps(el);
     if (el.dataset.hydrate === 'Query') props.auto = referenced.has(props.name);
+    if (el.dataset.hydrate === 'ParamInput') props.inForm = !!el.closest('[data-hydrate="Form"]');
+    // container コンポーネントは子プレースホルダを残すため innerHTML を消さない
+    if (!container) el.innerHTML = '';
     const { default: Component } = await loader();
-    el.innerHTML = '';
-    mounted.push(mount(Component, { target: el, props: { ...props, ctx } }));
+    mounted.push(mount(Component, { target: el, props: { ...props, ctx, target: el } }));
   }
   return mounted;
 };

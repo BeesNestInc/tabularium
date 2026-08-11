@@ -34,4 +34,43 @@ describe('ParamInput.svelte', () => {
     render(ParamInput, { props: { ctx, name: 'kw' } });
     expect(screen.getByRole('textbox')).toBeInTheDocument();
   });
+
+  it('renders a number input', () => {
+    const ctx = createQueryContext({ engine: 'duckdb' });
+    render(ParamInput, { props: { ctx, name: 'min_price', type: 'number', step: '100' } });
+    const input = screen.getByRole('spinbutton');
+    expect(input).toBeInTheDocument();
+    expect(input.step).toBe('100');
+  });
+
+  it('renders a textarea', () => {
+    const ctx = createQueryContext({ engine: 'duckdb' });
+    render(ParamInput, { props: { ctx, name: 'memo', type: 'textarea', rows: '3' } });
+    expect(screen.getByRole('textbox').tagName).toBe('TEXTAREA');
+  });
+
+  it('renders a checkbox checked by default', async () => {
+    const ctx = createQueryContext({ engine: 'duckdb' });
+    render(ParamInput, { props: { ctx, name: 'flag', type: 'checkbox', default: 'true' } });
+    expect(screen.getByRole('checkbox')).toBeChecked();
+    await waitFor(() => expect(get(ctx.params).flag).toBe('true'));
+  });
+
+  it('defers setParam when inForm (no immediate re-run)', async () => {
+    const ctx = createQueryContext({ engine: 'duckdb' });
+    render(ParamInput, { props: { ctx, name: 'min_price', type: 'number', inForm: true } });
+    const input = screen.getByRole('spinbutton');
+    await fireEvent.input(input, { target: { value: '500' } });
+    expect(get(ctx.params).min_price).toBeUndefined();
+  });
+
+  it('commits on apply button when apply mode is set', async () => {
+    const ctx = createQueryContext({ engine: 'duckdb' });
+    render(ParamInput, { props: { ctx, name: 'min_price', type: 'number', apply: true } });
+    const input = screen.getByRole('spinbutton');
+    await fireEvent.input(input, { target: { value: '500' } });
+    expect(get(ctx.params).min_price).toBeUndefined();
+    await fireEvent.click(screen.getByRole('button', { name: '適用' }));
+    expect(get(ctx.params).min_price).toBe('500');
+  });
 });

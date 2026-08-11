@@ -63,5 +63,21 @@ export const createQueryContext = (meta = null) => {
     }
   };
 
-  return { meta, results, running, params, paramVersion, env, runQuery, registerQuery, setParam };
+  // フォームの適用: 複数パラメータを一括設定し、参照しているクエリを1回ずつ再実行する
+  const applyParams = (values) => {
+    const entries = Object.entries(values || {}).filter(([, v]) => v !== undefined);
+    if (!entries.length) return [];
+    params.update((p) => ({ ...p, ...Object.fromEntries(entries) }));
+    paramVersion.update((v) => v + 1);
+    const changed = new Set(entries.map(([k]) => k));
+    const affected = [...queries]
+      .filter(([, q]) => q.refParams.some((k) => changed.has(k)))
+      .map(([name]) => name);
+    for (const name of affected) {
+      runQuery(name);
+    }
+    return affected;
+  };
+
+  return { meta, results, running, params, paramVersion, env, runQuery, registerQuery, setParam, applyParams };
 };

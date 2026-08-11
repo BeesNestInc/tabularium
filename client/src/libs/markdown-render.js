@@ -142,6 +142,10 @@ export function createMd(options = {}) {
   mdxQuery(md);
   mdxContainer(md, 'callout', (args) => `<div class="callout callout-${escAttr(args || 'info')}">`, () => '</div>');
   mdxContainer(md, 'collapse', (args) => `<details class="collapse-block"><summary>${escHtml(args || '')}</summary>`, () => '</details>');
+  mdxContainer(md, 'form', (args) => {
+    const props = escAttr(JSON.stringify({ name: args }));
+    return `<div class="mdx-hydrate form-container" data-hydrate="Form" data-props="${props}">`;
+  }, () => '</div>');
 
   md.renderer.rules.fence = (tokens, idx, options, env, self) => {
     const token = tokens[idx];

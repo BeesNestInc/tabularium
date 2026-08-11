@@ -1,10 +1,10 @@
 const registry = new Map();
 
-const register = (name, loader) => {
+const register = (name, loader, opts = {}) => {
   if (!name || typeof loader !== 'function') {
     throw new Error('registerHydratable(name, loader): loader は () => import(...) を返す関数を指定してください');
   }
-  registry.set(name, loader);
+  registry.set(name, { loader, container: !!opts.container });
 };
 const get = (name) => registry.get(name);
 const has = (name) => registry.has(name);
@@ -16,6 +16,7 @@ register('DataTable', () => import('../components/knowledge/DataTable.svelte'));
 register('ParamInput', () => import('../components/knowledge/ParamInput.svelte'));
 register('DynamicValue', () => import('../components/knowledge/DynamicValue.svelte'));
 register('Script', () => import('../components/knowledge/Script.svelte'));
+register('Form', () => import('../components/knowledge/Form.svelte'), { container: true });
 
 export const registerHydratable = register;
 export const getHydratable = get;

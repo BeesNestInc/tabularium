@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { waitFor } from '@testing-library/svelte';
+import { waitFor, fireEvent } from '@testing-library/svelte';
+import { get } from 'svelte/store';
 import { hydrate, unmountAll, registerHydratable } from '../src/libs/hydrate.js';
-import { placeholderHtml, processComponentTags } from '../src/libs/markdown-render.js';
+import { placeholderHtml, processComponentTags, createMd } from '../src/libs/markdown-render.js';
 import { createQueryContext } from '../src/libs/query-context.js';
 
 vi.mock('echarts', () => ({
@@ -111,5 +112,26 @@ describe('hydrate', () => {
     root.innerHTML = '<p>plain</p>';
     const ctx = createQueryContext({ engine: 'duckdb' });
     expect(await hydrate(root, ctx)).toEqual([]);
+  });
+
+  it('hydrates a Form container with inner ParamInput and applies values via the button', async () => {
+    const md = createMd({ useAnchor: true });
+    const root = document.createElement('div');
+    root.innerHTML = processComponentTags(md.render(':::form f\n<ParamInput name="min_price" type="number" default="1000" />\n:::'));
+    document.body.appendChild(root);
+
+    const ctx = createQueryContext({ engine: 'duckdb' });
+    const mounted = await hydrate(root, ctx);
+
+    expect(root.querySelector('.form-container')).not.toBeNull();
+    expect(root.querySelector('.param-input input')).not.toBeNull();
+
+    const input = root.querySelector('.param-input input');
+    await fireEvent.input(input, { target: { value: '2500' } });
+    await fireEvent.click(root.querySelector('.form-apply-btn'));
+
+    expect(get(ctx.params).min_price).toBe('2500');
+    expect(root.querySelector('.form-status').textContent).toContain('1 項目');
+    unmountAll(mounted);
   });
 });

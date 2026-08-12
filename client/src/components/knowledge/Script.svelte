@@ -3,7 +3,7 @@
   export let name = '';
   export let code = '';
 
-  const { runQuery, results, params, setParam, meta, env } = ctx;
+  const { runQuery, results, params, setParam, meta, env, setScriptResult, getScriptResult } = ctx;
 
   let isRunning = false;
   let error = '';
@@ -23,11 +23,14 @@
     clearOutput();
     try {
       const fn = new Function(
-        'ctx', 'runQuery', 'getResult', 'setParam', 'getParam', 'env', 'output', 'append', 'clearOutput', 'container', 'meta',
+        'ctx', 'runQuery', 'getResult', 'setParam', 'getParam', 'getScript', 'env', 'output', 'append', 'clearOutput', 'container', 'meta',
         `"use strict";\nreturn (async () => {\n${code}\n})();`
       );
-      const value = await fn(ctx, runQuery, getResult, setParam, (k) => $params[k], env, output, append, clearOutput, outputEl, meta);
-      if (value !== undefined) append(String(value));
+      const value = await fn(ctx, runQuery, getResult, setParam, (k) => $params[k], getScriptResult, env, output, append, clearOutput, outputEl, meta);
+      if (value !== undefined) {
+        if (name) setScriptResult(name, value);
+        append(String(value));
+      }
     } catch (e) {
       error = e.message;
       append(`<pre class="script-error">${e.stack || e.message}</pre>`);

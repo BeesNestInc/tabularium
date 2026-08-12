@@ -7,6 +7,12 @@ export const createQueryContext = (meta = null) => {
   const paramVersion = writable(0);
   const queries = new Map();
   const env = {};
+  const scriptResults = {};
+
+  const setScriptResult = (name, value) => {
+    if (name) scriptResults[name] = value;
+  };
+  const getScriptResult = (name) => scriptResults[name];
 
   const substituteParams = (sql) => {
     const pv = get(params);
@@ -79,5 +85,5 @@ export const createQueryContext = (meta = null) => {
     return affected;
   };
 
-  return { meta, results, running, params, paramVersion, env, runQuery, registerQuery, setParam, applyParams };
+  return { meta, results, running, params, paramVersion, env, scriptResults, setScriptResult, getScriptResult, runQuery, registerQuery, setParam, applyParams };
 };

@@ -67,4 +67,25 @@ describe('Script.svelte', () => {
     await waitFor(() => expect(screen.getAllByText('1').length).toBeGreaterThan(0));
     expect(ctx.env.counter).toBe(1);
   });
+
+  it('stores the return value of a named script and exposes it via getScript', async () => {
+    const ctx = createQueryContext({ engine: 'duckdb' });
+    render(Script, { props: { ctx, name: 'compute', code: `const x = 6 * 7;\nreturn x;` } });
+    await fireEvent.click(screen.getByRole('button', { name: '▶ Run' }));
+    await waitFor(() => expect(ctx.getScriptResult('compute')).toBe(42));
+
+    // 別ブロックから getScript で参照
+    render(Script, { props: { ctx, code: `output('result: ' + getScript('compute'));` } });
+    const buttons = screen.getAllByRole('button', { name: '▶ Run' });
+    await fireEvent.click(buttons[buttons.length - 1]);
+    await waitFor(() => expect(screen.getAllByText(/result: 42/).length).toBeGreaterThan(0));
+  });
+
+  it('unnamed scripts do not store a script result', async () => {
+    const ctx = createQueryContext({ engine: 'duckdb' });
+    render(Script, { props: { ctx, code: `return 99;` } });
+    await fireEvent.click(screen.getByRole('button', { name: '▶ Run' }));
+    await waitFor(() => expect(screen.getByText('99')).toBeInTheDocument());
+    expect(Object.keys(ctx.scriptResults).length).toBe(0);
+  });
 });

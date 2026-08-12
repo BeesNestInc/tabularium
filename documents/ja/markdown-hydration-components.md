@@ -213,6 +213,7 @@ SELECT 1;
 - `types`（`text`/`numeric`/`date`/`checkbox`… カンマ区切り）/ `widths`（px）はオプション。**省略時は推定**: 型はクエリ結果の `columns[].type` か値サンプリング（number→numeric、date→date、boolean→checkbox）、幅はヘッダ長から `max(80,min(220,len×10+24))`。
 - 編集は `onchange` で検知し、`{ headers, rows }` を `name` があれば `ctx.setGrid(name, v)`、Svelte コンポーネントとしては `value` 更新 + `dispatch('change')` + `onchange(v)`。
 - 初期化時に初期値も `setGrid` するので、編集前から `getGrid('名前')` で読める。
+- **再実行時**: グリッド div は常時保持（実行中に `source` が一時 undefined になっても消えない）。データ更新時は**未編集なら再初期化**、**編集済みならユーザー編集を保持**（`dirty` フラグ）。`readonly` は常に再初期化。
 
 ### Badge.svelte（カスタムの参考例）
 - props: `ctx, data, column, label, prefix, suffix, format`。クエリ結果の先頭行の値を KPI カード表示。

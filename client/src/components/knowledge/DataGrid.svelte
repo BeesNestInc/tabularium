@@ -20,6 +20,7 @@
   let workbook = null;
   let lastRef = null;
   let errorMsg = '';
+  let dirty = false;
 
   const normalize = (input) => {
     if (!input) return { headers: [], rows: [], colTypes: [] };
@@ -90,6 +91,7 @@
       editable: !readonly,
       onchange: () => {
         try {
+          dirty = true;
           const ws = workbook && workbook.worksheets && workbook.worksheets[0];
           if (!ws) return;
           const headers2 = ws.getColumns().map((c) => c.title || '');
@@ -114,8 +116,9 @@
   $: source = typeof data === 'string' ? $results[data]?.data : (data ?? value);
   $: if (container && source && source !== lastRef) {
     lastRef = source;
-    // 編集可能グリッドは一度初期化したらユーザー編集を保つ（再実行で上書きしない）
-    if (!workbook || readonly) initGrid(source);
+    // 編集済みでなければ（or readonly）データ更新時に再初期化。
+    // 実行中(source が一時的に undefined)はグリッド div を保持し、消えないようにする
+    if (!workbook || readonly || !dirty) initGrid(source);
   }
 
   onDestroy(() => {
@@ -128,12 +131,14 @@
 
 {#if errorMsg}
   <div class="spreadsheet-error">{errorMsg}</div>
-{:else if source}
+{/if}
+{#if !source && !workbook}
+  <div class="mdx-hydrate-box">{t('runQueryHint')}</div>
+{/if}
+{#if source || workbook}
   <div class="mdx-datagrid" style="height:{height}px">
     <div bind:this={container} class="mdx-datagrid-container"></div>
   </div>
-{:else}
-  <div class="mdx-hydrate-box">{t('runQueryHint')}</div>
 {/if}
 
 <style>

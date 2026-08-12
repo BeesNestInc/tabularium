@@ -212,6 +212,7 @@ The object returned by `createQueryContext(meta)`. Every component receives it a
 - `types` (`text`/`numeric`/`date`/`checkbox`…, comma-separated) / `widths` (px) are options. **If omitted, they are inferred**: types from the query result's `columns[].type` or by sampling values (number→numeric, date→date, boolean→checkbox), widths from the header length `max(80,min(220,len*10+24))`.
 - Edits are detected in `onchange`, and `{ headers, rows }` is stored via `ctx.setGrid(name, v)` when `name` is set; as a Svelte component it also updates `value` + `dispatch('change')` + calls `onchange(v)`.
 - The initial value is also `setGrid` on init, so `getGrid('name')` works before any edit.
+- **On re-run**: the grid div is always kept mounted (it does not disappear while `source` is temporarily undefined during execution). On data update it **re-initializes if untouched**, and **keeps user edits if edited** (`dirty` flag). `readonly` always re-initializes.
 
 ### Badge.svelte (custom component reference)
 - props: `ctx, data, column, label, prefix, suffix, format`. Shows the first row's value as a KPI card.

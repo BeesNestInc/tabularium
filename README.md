@@ -19,6 +19,7 @@ Open http://localhost:8888.
 - **Knowledge API**: file tree browsing, Markdown/file viewing and editing
 - **Multi-root**: combine multiple directories into a single tree
 - **SQL execution**: inline DuckDB / PostgreSQL query execution
+- **Interactive markdown components**: SQL/JS blocks, charts, data tables, forms, and dynamic values embedded directly in Markdown; import front matter / CSV as queryable DuckDB tables (`:::import`). See [Markdown Component Hydration System](documents/en/markdown-hydration-components.md)
 - **Markdown rendering**: Prism.js syntax highlighting, Mermaid diagrams
 - **draw.io editing**: edit diagrams in the browser, export SVG
 - **CSV**: edit spreadsheets inline

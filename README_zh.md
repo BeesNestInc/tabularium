@@ -19,6 +19,7 @@ npm start
 - **知识库 API**: 文件树浏览、Markdown/各种文件查看与编辑
 - **多根目录**: 将多个目录合并为一个树形结构
 - **SQL 执行**: 内联 DuckDB / PostgreSQL 查询
+- **交互式 Markdown 组件**: 在 Markdown 中直接嵌入 SQL/JS 代码块、图表、数据表格、表单和动态值；将 front matter / CSV 导入为可查询的 DuckDB 表（`:::import`）。→ [Markdown 组件水合系统](documents/en/markdown-hydration-components.md)
 - **Markdown 渲染**: Prism.js 语法高亮、Mermaid 图表
 - **draw.io 图表**: 在浏览器中编辑、导出 SVG
 - **CSV**: 内联电子表格编辑

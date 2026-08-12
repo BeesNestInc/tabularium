@@ -19,6 +19,7 @@ http://localhost:8888 をブラウザで開いてください。
 - **知識ベースAPI**: ファイルツリー、Markdown/各種ファイルの閲覧・編集
 - **マルチルート**: 複数のディレクトリを束ねて1つのツリーとして表示
 - **SQL実行**: DuckDB / PostgreSQL へのインラインクエリ実行
+- **インタラクティブなマークダウンコンポーネント**: SQL/JSブロック、チャート、データテーブル、フォーム、動的値表示をマークダウンに直接埋め込み。front matter / CSV をクエリ可能な DuckDB テーブルとして取り込み（`:::import`）。→ [マークダウンコンポーネント活性化システム](documents/ja/markdown-hydration-components.md)
 - **Markdownレンダリング**: Prism.js シンタックスハイライト、Mermaid図
 - **draw.io図**: ブラウザ上で編集・SVG出力
 - **CSV**: スプレッドシートとしてその場で編集

@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, fireEvent, waitFor, screen } from '@testing-library/svelte';
 import Script from '../src/components/knowledge/Script.svelte';
 import { createQueryContext } from '../src/libs/query-context.js';
+import { registerScriptHelper } from '../src/libs/script-helpers.js';
 
 const ok = () => ({
   ok: true,
@@ -74,6 +75,14 @@ describe('Script.svelte', () => {
     await fireEvent.click(screen.getByRole('button', { name: '▶ Run' }));
     await waitFor(() => expect(ctx.scriptStore.leaked).toBe(123));
     expect(globalThis.leaked).toBeUndefined();
+  });
+
+  it('injects registered script helpers into the run scope', async () => {
+    registerScriptHelper('MyStd', { greet: () => 'hello-from-std' });
+    const ctx = createQueryContext({ engine: 'duckdb' });
+    render(Script, { props: { ctx, code: `output(MyStd.greet());` } });
+    await fireEvent.click(screen.getByRole('button', { name: '▶ Run' }));
+    await waitFor(() => expect(screen.getByText('hello-from-std')).toBeInTheDocument());
   });
 
   it('stores the return value of a named script and exposes it via getScript', async () => {

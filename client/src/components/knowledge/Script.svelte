@@ -1,4 +1,7 @@
 <script>
+  import { onMount } from 'svelte';
+  import { getScriptHelpers } from '../../libs/script-helpers.js';
+
   export let ctx;
   export let name = '';
   export let code = '';
@@ -25,6 +28,7 @@
       const value = await runScript(code, {
         ctx, runQuery: ctx.runQuery, getResult, setParam, getParam: (k) => $params[k], getScript: getScriptResult,
         output, append, clearOutput, container: outputEl, meta,
+        ...getScriptHelpers(),
       });
       if (value !== undefined) {
         if (name) setScriptResult(name, value);

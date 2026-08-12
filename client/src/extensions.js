@@ -14,6 +14,12 @@
 // 同名で登録すると組み込みコンポーネントを上書きできます（例: Query を差し替え）。
 // ============================================================
 import { registerHydratable } from './libs/hydrate.js';
+import { registerScriptHelper } from './libs/script-helpers.js';
+import * as std from './libs/std.js';
+
+// 標準ライブラリ: js:run スクリプト内で Tablarium.* / Legion.* として使える
+registerScriptHelper('Tablarium', std.Tablarium);
+registerScriptHelper('Legion', std.Legion);
 
 // サンプル: クエリ結果の KPI カード
 registerHydratable('Badge', () => import('./components/knowledge/Badge.svelte'));

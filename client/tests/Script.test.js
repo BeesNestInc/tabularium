@@ -54,18 +54,26 @@ describe('Script.svelte', () => {
     await waitFor(() => expect(screen.getAllByText(/my boom/).length).toBeGreaterThan(0));
   });
 
-  it('shares env across script blocks via ctx', async () => {
+  it('shares top-level declarations across script blocks (let/const/function)', async () => {
     const ctx = createQueryContext({ engine: 'duckdb' });
-    render(Script, { props: { ctx, code: `env.counter = (env.counter ?? 0) + 1;\noutput(env.counter);` } });
+    render(Script, { props: { ctx, code: `let base = 10;\nconst step = 5;\nfunction total() { return base + step; }\n` } });
     await fireEvent.click(screen.getByRole('button', { name: '▶ Run' }));
-    await waitFor(() => expect(screen.getByText('1')).toBeInTheDocument());
+    await waitFor(() => expect(ctx.scriptStore.base).toBe(10));
 
-    // 別ブロック(同一ctx)でも env が共有されている
-    render(Script, { props: { ctx, code: `output(env.counter);` } });
+    // 別ブロック(同一ctx)から共有宣言を参照
+    render(Script, { props: { ctx, code: `output('total=' + total());` } });
     const buttons = screen.getAllByRole('button', { name: '▶ Run' });
     await fireEvent.click(buttons[buttons.length - 1]);
-    await waitFor(() => expect(screen.getAllByText('1').length).toBeGreaterThan(0));
-    expect(ctx.env.counter).toBe(1);
+    await waitFor(() => expect(screen.getAllByText(/total=15/).length).toBeGreaterThan(0));
+    expect(ctx.scriptStore.step).toBe(5);
+  });
+
+  it('does not leak script declarations onto the global object', async () => {
+    const ctx = createQueryContext({ engine: 'duckdb' });
+    render(Script, { props: { ctx, code: `let leaked = 123;\n` } });
+    await fireEvent.click(screen.getByRole('button', { name: '▶ Run' }));
+    await waitFor(() => expect(ctx.scriptStore.leaked).toBe(123));
+    expect(globalThis.leaked).toBeUndefined();
   });
 
   it('stores the return value of a named script and exposes it via getScript', async () => {

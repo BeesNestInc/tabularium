@@ -6,13 +6,43 @@ export const createQueryContext = (meta = null) => {
   const params = writable({});
   const paramVersion = writable(0);
   const queries = new Map();
-  const env = {};
+  const scriptStore = {};
   const scriptResults = {};
 
   const setScriptResult = (name, value) => {
     if (name) scriptResults[name] = value;
   };
   const getScriptResult = (name) => scriptResults[name];
+
+  let precompilePromise;
+  const getPrecompile = () => (precompilePromise ||= import('./script-precompile.js'));
+
+  // Script ブロックの共有実行。ブロック内のトップレベル宣言（let/const/var/function/class）は
+  // scriptStore に蓄積され、別ブロックから参照できる。window は汚さない。
+  const runScript = async (code, blockHelpers = {}) => {
+    const { precompile } = await getPrecompile();
+    const body = precompile(code);
+    const helperMap = new Map(Object.entries(blockHelpers));
+    // has を常に true にし、識別子の解決をすべて Proxy 経由にする。
+    // 読みはヘルパー → scriptStore → 実グローバル、書きは scriptStore へ（隔離）。
+    const scope = new Proxy(scriptStore, {
+      has: () => true,
+      get(target, key) {
+        if (typeof key !== 'string') return Reflect.get(target, key);
+        if (helperMap.has(key)) return helperMap.get(key);
+        if (key in target) return target[key];
+        return Reflect.get(globalThis, key);
+      },
+      set(target, key, value) {
+        target[key] = value;
+        return true;
+      },
+    });
+    // 非 strict の new Function 本文内でのみ with を使う（モジュール/アプリコードでは使わない）
+    const fn = new Function('__scope__', `return (async () => {\n  with (__scope__) {\n${body}\n  }\n})();`);
+    const result = await fn(scope);
+    return result && typeof result === 'object' && 'returnValue' in result ? result.returnValue : result;
+  };
 
   const substituteParams = (sql) => {
     const pv = get(params);
@@ -85,5 +115,5 @@ export const createQueryContext = (meta = null) => {
     return affected;
   };
 
-  return { meta, results, running, params, paramVersion, env, scriptResults, setScriptResult, getScriptResult, runQuery, registerQuery, setParam, applyParams };
+  return { meta, results, running, params, paramVersion, scriptStore, scriptResults, setScriptResult, getScriptResult, runQuery, registerQuery, setParam, applyParams, runScript };
 };

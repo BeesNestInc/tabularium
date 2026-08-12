@@ -3,7 +3,7 @@
   export let name = '';
   export let code = '';
 
-  const { runQuery, results, params, setParam, meta, env, setScriptResult, getScriptResult } = ctx;
+  const { runScript, results, params, setParam, meta, setScriptResult, getScriptResult } = ctx;
 
   let isRunning = false;
   let error = '';
@@ -22,11 +22,10 @@
     error = '';
     clearOutput();
     try {
-      const fn = new Function(
-        'ctx', 'runQuery', 'getResult', 'setParam', 'getParam', 'getScript', 'env', 'output', 'append', 'clearOutput', 'container', 'meta',
-        `"use strict";\nreturn (async () => {\n${code}\n})();`
-      );
-      const value = await fn(ctx, runQuery, getResult, setParam, (k) => $params[k], getScriptResult, env, output, append, clearOutput, outputEl, meta);
+      const value = await runScript(code, {
+        ctx, runQuery: ctx.runQuery, getResult, setParam, getParam: (k) => $params[k], getScript: getScriptResult,
+        output, append, clearOutput, container: outputEl, meta,
+      });
       if (value !== undefined) {
         if (name) setScriptResult(name, value);
         append(String(value));

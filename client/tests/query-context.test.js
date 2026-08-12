@@ -106,4 +106,25 @@ describe('createQueryContext', () => {
     ctx.applyParams({});
     expect(fetch).not.toHaveBeenCalled();
   });
+
+  it('runScript shares top-level declarations across calls and unwraps returnValue', async () => {
+    const ctx = createQueryContext({ engine: 'duckdb' });
+    const b1 = await ctx.runScript('const x = 5;\nlet y = 1;\nfunction f() { return x + y; }', {});
+    expect(b1).toBeUndefined();
+    expect(ctx.scriptStore.x).toBe(5);
+    expect(ctx.scriptStore.y).toBe(1);
+    expect(typeof ctx.scriptStore.f).toBe('function');
+
+    const b2 = await ctx.runScript('f() * 2', {});
+    expect(b2).toBe(12);
+  });
+
+  it('runScript provides helpers to the block and isolates from window', async () => {
+    const ctx = createQueryContext({ engine: 'duckdb' });
+    const helper = { twice: (n) => n * 2, meta: { engine: 'duckdb' } };
+    const r = await ctx.runScript('twice(21) + meta.engine', helper);
+    expect(r).toBe('42duckdb');
+    expect(globalThis.twice).toBeUndefined();
+    expect(globalThis.x).toBeUndefined();
+  });
 });

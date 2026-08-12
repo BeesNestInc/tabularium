@@ -56,7 +56,7 @@ Each component shares state via ctx (query context)
 | `src/libs/script-precompile.js` | Converts Script block top-level declarations to shared assignments (`@babel/parser`, dynamic import) |
 | `src/libs/std.js` | `Tablarium` / `Legion` standard library (section 14) |
 | `src/libs/script-helpers.js` | `registerScriptHelper(name, value)` — extra helpers injected into the Script run scope |
-| `src/components/knowledge/*.svelte` | Built-in components (Query/Chart/DataTable/ResultTable/EChart/ParamInput/DynamicValue/Script/Form/FrontmatterImport/Badge) |
+| `src/components/knowledge/*.svelte` | Built-in components (Query/Chart/DataTable/ResultTable/EChart/ParamInput/DynamicValue/Script/Form/FrontmatterImport/DataGrid/Badge) |
 | `src/extensions.js` | **Registration entry point** for custom components / script helpers (imported by `wiki-main.js`) |
 | `src/wiki-main.js` | SPA entry. Reads `import './extensions.js'` |
 | `src/pages/Knowledge.svelte` | The page itself. Calls `hydrate()` via `hydrateContent()` |
@@ -149,6 +149,8 @@ The object returned by `createQueryContext(meta)`. Every component receives it a
 | `registerQuery(name, sql, auto)` | Defines a named query (registered by Query onMount) |
 | `setParam(k, v)` | Sets a param and **re-runs already-run queries that reference it** |
 | `applyParams({k:v})` | Sets multiple params and **re-runs registered queries that reference them once each** (including not-yet-run ones) |
+| `grids` | Svelte store. Holds **DataGrid edited results** keyed by name (`{ headers, rows }`) |
+| `setGrid(name, value)` / `getGrid(name)` | Store/get a DataGrid's edited result (exposed as `getGrid(name)` in Scripts) |
 
 ### Parameter substitution
 
@@ -184,7 +186,7 @@ The object returned by `createQueryContext(meta)`. Every component receives it a
 ### Script.svelte
 - props: `ctx, name, code`. ▶Run executes `ctx.runScript(code, helpers)`.
 - Variables available in the run scope (`helpers`):
-  `ctx`, `runQuery`, `getResult`, `setParam`, `getParam`, `getScript`, `output(html)`, `append(html)`, `clearOutput()`, `container` (result DOM), `meta` + **`...getScriptHelpers()`** (standard library `Tablarium`/`Legion` registered via `script-helpers.js`; section 14)
+  `ctx`, `runQuery`, `getResult`, `setParam`, `getParam`, `getScript`, `getGrid`, `output(html)`, `append(html)`, `clearOutput()`, `container` (result DOM), `meta` + **`...getScriptHelpers()`** (standard library `Tablarium`/`Legion` registered via `script-helpers.js`; section 14)
 - async/await supported. Exceptions are shown as errors.
 - **Shared environment**: all Script blocks on the same page share **top-level declarations** (`let`/`const`/`var`/`function`/`class`). `const x = 5` in one block is visible in another. Nested declarations remain block-scoped.
 - **Named** (` ```js:run name `) scripts store their **return value** via `ctx.setScriptResult(name, value)`; other blocks can read it with `getScript('name')`.
@@ -203,6 +205,13 @@ The object returned by `createQueryContext(meta)`. Every component receives it a
 ### FrontmatterImport.svelte
 - props: `path, as, _imported`. Display only (the actual import is performed by `hydrate()` before mounting).
 - Shows "N rows" for `kind: 'csv'`, "N pages" for `'frontmatter'`.
+
+### DataGrid.svelte (jspreadsheet table editing)
+- props: `ctx, data, name, types, widths, height, readonly, value, onchange`
+- `data`: a query name (`data={q}`, resolved from `ctx.results`) or a table object (`{columns,rows}` / `{headers,rows}` / object array / 2D array). `normalize()` converts it and feeds jspreadsheet.
+- `types` (`text`/`numeric`/`date`/`checkbox`…, comma-separated) / `widths` (px) are options. **If omitted, they are inferred**: types from the query result's `columns[].type` or by sampling values (number→numeric, date→date, boolean→checkbox), widths from the header length `max(80,min(220,len*10+24))`.
+- Edits are detected in `onchange`, and `{ headers, rows }` is stored via `ctx.setGrid(name, v)` when `name` is set; as a Svelte component it also updates `value` + `dispatch('change')` + calls `onchange(v)`.
+- The initial value is also `setGrid` on init, so `getGrid('name')` works before any edit.
 
 ### Badge.svelte (custom component reference)
 - props: `ctx, data, column, label, prefix, suffix, format`. Shows the first row's value as a KPI card.

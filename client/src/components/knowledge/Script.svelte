@@ -26,7 +26,7 @@
     clearOutput();
     try {
       const value = await runScript(code, {
-        ctx, runQuery: ctx.runQuery, getResult, setParam, getParam: (k) => $params[k], getScript: getScriptResult,
+        ctx, runQuery: ctx.runQuery, getResult, setParam, getParam: (k) => $params[k], getScript: getScriptResult, getGrid: ctx.getGrid,
         output, append, clearOutput, container: outputEl, meta,
         ...getScriptHelpers(),
       });

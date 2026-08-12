@@ -57,7 +57,7 @@ hydrate(root, ctx) がレジストリから import() + Svelte5 mount()
 | `src/libs/script-precompile.js` | Script ブロックのトップレベル宣言を共有代入に変換（`@babel/parser`、動的 import） |
 | `src/libs/std.js` | `Tablarium` / `Legion` 標準ライブラリ（セクション15） |
 | `src/libs/script-helpers.js` | `registerScriptHelper(name, value)` — Script 実行スコープへの追加ヘルパー |
-| `src/components/knowledge/*.svelte` | 組み込みコンポーネント（Query/Chart/DataTable/ResultTable/EChart/ParamInput/DynamicValue/Script/Form/FrontmatterImport/Badge） |
+| `src/components/knowledge/*.svelte` | 組み込みコンポーネント（Query/Chart/DataTable/ResultTable/EChart/ParamInput/DynamicValue/Script/Form/FrontmatterImport/DataGrid/Badge） |
 | `src/extensions.js` | **カスタムコンポーネント / スクリプトヘルパー登録エントリ**（`wiki-main.js` が import） |
 | `src/wiki-main.js` | SPA エントリ。`import './extensions.js'` を読む |
 | `src/pages/Knowledge.svelte` | ページ本体。`hydrateContent()` で `hydrate()` を呼ぶ |
@@ -150,6 +150,8 @@ SELECT 1;
 | `registerQuery(name, sql, auto)` | 名前付きクエリ定義（Query が onMount で登録） |
 | `setParam(k, v)` | パラメータ設定＋**参照する実行済みクエリを再実行** |
 | `applyParams({k:v})` | 一括設定＋**参照する登録済みクエリを1回ずつ再実行**（未実行も対象） |
+| `grids` | Svelte store。**DataGrid の編集結果**を name キーで保持（`{ headers, rows }`） |
+| `setGrid(name, value)` / `getGrid(name)` | DataGrid の編集結果を保存/取得（Script 内では `getGrid(name)` として公開） |
 
 ### パラメータ置換
 
@@ -185,7 +187,7 @@ SELECT 1;
 ### Script.svelte
 - props: `ctx, name, code`。▶Run で `ctx.runScript(code, helpers)` を実行。
 - 実行スコープで渡る変数（`helpers`）:
-  `ctx`, `runQuery`, `getResult`, `setParam`, `getParam`, `getScript`, `output(html)`, `append(html)`, `clearOutput()`, `container`（結果DOM）, `meta` ＋ **`...getScriptHelpers()`**（`script-helpers.js` で登録した標準ライブラリ `Tablarium` / `Legion` 等。セクション15）
+  `ctx`, `runQuery`, `getResult`, `setParam`, `getParam`, `getScript`, `getGrid`, `output(html)`, `append(html)`, `clearOutput()`, `container`（結果DOM）, `meta` ＋ **`...getScriptHelpers()`**（`script-helpers.js` で登録した標準ライブラリ `Tablarium` / `Legion` 等。セクション15）
 - async/await 対応。例外はエラー表示。
 - **共有環境**: 同一ページの全 Script ブロックは **トップレベルの宣言（`let`/`const`/`var`/`function`/`class`）を共有**する。`const x = 5` と書けば別ブロックから `x` を参照できる。入れ子の宣言は通常どおりブロックスコープ。
 - **名前付き**（` ```js:run 名前 `）のスクリプトは、**返り値**を `ctx.setScriptResult(name, value)` で保持。別ブロックから `getScript('名前')` で参照できる。
@@ -204,6 +206,13 @@ SELECT 1;
 ### FrontmatterImport.svelte
 - props: `path, as, _imported`。表示のみ（実際の import は `hydrate()` が mount 前に実行）。
 - `kind: 'csv'` なら「N 行」、`'frontmatter'` なら「N ページ」表示。
+
+### DataGrid.svelte（jspreadsheet テーブル編集）
+- props: `ctx, data, name, types, widths, height, readonly, value, onchange`
+- `data`: クエリ名（`data={q}`、ctx.results から解決）またはテーブルオブジェクト（`{columns,rows}` / `{headers,rows}` / オブジェクト配列 / 2次元配列）。`normalize()` で正規化して jspreadsheet に投入。
+- `types`（`text`/`numeric`/`date`/`checkbox`… カンマ区切り）/ `widths`（px）はオプション。**省略時は推定**: 型はクエリ結果の `columns[].type` か値サンプリング（number→numeric、date→date、boolean→checkbox）、幅はヘッダ長から `max(80,min(220,len×10+24))`。
+- 編集は `onchange` で検知し、`{ headers, rows }` を `name` があれば `ctx.setGrid(name, v)`、Svelte コンポーネントとしては `value` 更新 + `dispatch('change')` + `onchange(v)`。
+- 初期化時に初期値も `setGrid` するので、編集前から `getGrid('名前')` で読める。
 
 ### Badge.svelte（カスタムの参考例）
 - props: `ctx, data, column, label, prefix, suffix, format`。クエリ結果の先頭行の値を KPI カード表示。

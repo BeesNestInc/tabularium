@@ -18,6 +18,7 @@ register('DynamicValue', () => import('../components/knowledge/DynamicValue.svel
 register('Script', () => import('../components/knowledge/Script.svelte'));
 register('Form', () => import('../components/knowledge/Form.svelte'), { container: true });
 register('FrontmatterImport', () => import('../components/knowledge/FrontmatterImport.svelte'));
+register('DataGrid', () => import('../components/knowledge/DataGrid.svelte'));
 
 export const registerHydratable = register;
 export const getHydratable = get;

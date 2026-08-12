@@ -5,9 +5,15 @@ export const createQueryContext = (meta = null) => {
   const running = writable({});
   const params = writable({});
   const paramVersion = writable(0);
+  const grids = writable({});
   const queries = new Map();
   const scriptStore = {};
   const scriptResults = {};
+
+  const setGrid = (name, value) => {
+    if (name) grids.update((g) => ({ ...g, [name]: value }));
+  };
+  const getGrid = (name) => get(grids)[name];
 
   const setScriptResult = (name, value) => {
     if (name) scriptResults[name] = value;
@@ -115,5 +121,5 @@ export const createQueryContext = (meta = null) => {
     return affected;
   };
 
-  return { meta, results, running, params, paramVersion, scriptStore, scriptResults, setScriptResult, getScriptResult, runQuery, registerQuery, setParam, applyParams, runScript };
+  return { meta, results, running, params, paramVersion, grids, setGrid, getGrid, scriptStore, scriptResults, setScriptResult, getScriptResult, runQuery, registerQuery, setParam, applyParams, runScript };
 };

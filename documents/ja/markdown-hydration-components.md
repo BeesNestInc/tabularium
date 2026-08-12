@@ -260,7 +260,6 @@ SELECT 1;
 SELECT path, title, data->>'status' AS status, data->>'owner' AS owner
 FROM demodb WHERE data->>'type' = 'project'
 ```
-```
 
 - 仕組み:
   1. `:::import path [as 名前]` コンテナ → `<div data-hydrate="FrontmatterImport">`（markdown-render の `mdxContainer`）

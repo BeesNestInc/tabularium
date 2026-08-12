@@ -259,7 +259,6 @@ Declaring "use this markdown" in the page imports it into DuckDB on the spot:
 SELECT path, title, data->>'status' AS status, data->>'owner' AS owner
 FROM demodb WHERE data->>'type' = 'project'
 ```
-```
 
 - Mechanism:
   1. `:::import path [as name]` container → `<div data-hydrate="FrontmatterImport">` (`mdxContainer` in markdown-render)

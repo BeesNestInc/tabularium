@@ -63,6 +63,12 @@ $primary: #0862f0;
     text-align: center;
     font-size: 0.85em;
   }
+  .mdx-hydrate-inline .mdx-hydrate-box {
+    display: inline-block;
+    min-height: 0;
+    margin: 0 4px;
+    padding: 2px 8px;
+  }
   .mdx-chart-render { height: 300px; width: 100%; }
   .mdx-table-wrap { max-height: 400px; overflow: auto; }
   .mdx-table-toolbar {

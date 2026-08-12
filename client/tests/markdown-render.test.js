@@ -136,6 +136,17 @@ describe('component tags (Evidence-style)', () => {
     expect(parseProps(d).column).toBe('total');
   });
 
+  it('ParamInput / DynamicValue placeholders are inline <span>, charts/tables stay block <div>', () => {
+    const p = processComponentTags(md.render('<ParamInput name="x" />'));
+    expect(p).toMatch(/^<span class="mdx-hydrate mdx-hydrate-inline"/);
+    const d = processComponentTags(md.render('<DynamicValue data={q1} column="c"/>'));
+    expect(d).toMatch(/^<span class="mdx-hydrate mdx-hydrate-inline"/);
+    const c = processComponentTags(md.render('<LineChart data={q1} x=a y=b/>'));
+    expect(c).toMatch(/^<div class="mdx-hydrate"/);
+    const dt = processComponentTags(md.render('<DataTable data={q1}/>'));
+    expect(dt).toMatch(/^<div class="mdx-hydrate"/);
+  });
+
   it('parses quoted attribute values containing spaces', () => {
     const p = processComponentTags(md.render('<ParamInput name="region" label="地域を選択:" suffix=" 百万円" />'));
     const props = parseProps(p);

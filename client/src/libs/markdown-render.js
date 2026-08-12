@@ -16,9 +16,14 @@ import 'prismjs/components/prism-python.js';
 const escHtml = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const escAttr = (s) => escHtml(s).replace(/"/g, '&quot;');
 
-export const placeholderHtml = (name, props, label) => {
+export const placeholderHtml = (name, props, label, opts = {}) => {
   const propsAttr = escAttr(JSON.stringify(props || {}));
-  const body = label ? `<div class="mdx-hydrate-box">${escHtml(label)}</div>` : '';
+  const body = label ? `<span class="mdx-hydrate-box">${escHtml(label)}</span>` : '';
+  // inline コンポーネント（ParamInput / DynamicValue）は span で生成し、
+  // 本文のインラインに自然に流し込めるようにする
+  if (opts.inline) {
+    return `<span class="mdx-hydrate mdx-hydrate-inline" data-hydrate="${escAttr(name)}" data-props="${propsAttr}">${body}</span>`;
+  }
   return `<div class="mdx-hydrate" data-hydrate="${escAttr(name)}" data-props="${propsAttr}">${body}</div>`;
 };
 
@@ -40,10 +45,10 @@ export const processComponentTags = (html) => {
       if (isChart) props.type = tagName;
       if ((isChart || tagName === 'DataTable') && !props.data) return match;
       if (tagName === 'ParamInput') {
-        return placeholderHtml('ParamInput', props, `Param: ${props.name || ''}`);
+        return placeholderHtml('ParamInput', props, `Param: ${props.name || ''}`, { inline: true });
       }
       if (tagName === 'DynamicValue') {
-        return placeholderHtml('DynamicValue', props, 'DynamicValue');
+        return placeholderHtml('DynamicValue', props, 'DynamicValue', { inline: true });
       }
       return placeholderHtml(hydrateName, props, `${tagName}${props.data ? ` (${props.data})` : ''}`);
     }

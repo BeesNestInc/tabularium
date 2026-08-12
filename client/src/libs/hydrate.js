@@ -19,12 +19,34 @@ export const hydrate = async (root, ctx) => {
     if (p.data) referenced.add(p.data);
   }
 
+  // FrontmatterImport は先に import を完了させてから全コンポーネントを mount する
+  // （import を待たずに自動実行クエリが走るとテーブルが無くて失敗するため）
+  for (const el of els) {
+    if (el.dataset.hydrate !== 'FrontmatterImport') continue;
+    const props = parseProps(el);
+    if (!props.path) continue;
+    try {
+      const res = await fetch('/api/frontmatter/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: props.path, as: props.as || '' }),
+      });
+      const data = await res.json();
+      props._imported = res.ok
+        ? { ok: true, rows: data.rows, table: data.table }
+        : { ok: false, error: data.error || 'import failed' };
+    } catch (e) {
+      props._imported = { ok: false, error: e.message };
+    }
+    el._mdxProps = props;
+  }
+
   const mounted = [];
   for (const el of els) {
     const meta = getHydratable(el.dataset.hydrate);
     if (!meta) continue;
     const { loader, container } = meta;
-    const props = parseProps(el);
+    const props = el._mdxProps || parseProps(el);
     if (el.dataset.hydrate === 'Query') props.auto = referenced.has(props.name);
     if (el.dataset.hydrate === 'ParamInput') props.inForm = !!el.closest('[data-hydrate="Form"]');
     // container コンポーネントは子プレースホルダを残すため innerHTML を消さない

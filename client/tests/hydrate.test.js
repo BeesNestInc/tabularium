@@ -134,4 +134,29 @@ describe('hydrate', () => {
     expect(root.querySelector('.form-status').textContent).toContain('1 項目');
     unmountAll(mounted);
   });
+
+  it('runs frontmatter imports before mounting components', async () => {
+    const root = document.createElement('div');
+    root.innerHTML =
+      placeholderHtml('FrontmatterImport', { path: 'knowledge/x', as: 'x' }, '') +
+      placeholderHtml('Query', { name: 'q', sql: 'SELECT * FROM x' }, '') +
+      placeholderHtml('DataTable', { type: 'DataTable', data: 'q' }, '');
+    document.body.appendChild(root);
+
+    const ctx = createQueryContext({ engine: 'duckdb' });
+    fetch.mockImplementation((url) => {
+      if (url === '/api/frontmatter/import') {
+        return Promise.resolve({ ok: true, json: async () => ({ table: 'x', rows: 5 }) });
+      }
+      return Promise.resolve({ ok: true, json: async () => ({ columns: [{ name: 'a', type: 'integer' }], rows: [{ a: 1 }], rowCount: 1, duration: 2 }) });
+    });
+
+    const mounted = await hydrate(root, ctx);
+
+    expect(fetch.mock.calls[0][0]).toBe('/api/frontmatter/import');
+    const execCalls = fetch.mock.calls.filter((c) => c[0] === '/api/execute');
+    expect(execCalls.length).toBe(1); // 自動実行クエリが1回
+    expect(root.querySelector('.fm-import-status').textContent).toContain('5 ページ');
+    unmountAll(mounted);
+  });
 });

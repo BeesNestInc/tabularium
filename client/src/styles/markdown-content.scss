@@ -108,6 +108,13 @@ $primary: #0862f0;
   }
   .form-name { font-weight: 600; font-size: 0.9em; color: #475569; }
   .form-status { font-size: 0.85em; color: #16a34a; }
+
+  .fm-import {
+    margin: 12px 0; padding: 8px 12px;
+    border: 1px solid #e2e8f0; border-radius: 6px; background: #f8fafc;
+  }
+  .fm-import-status { font-size: 0.85em; color: #16a34a; }
+  .fm-import-error { font-size: 0.85em; color: #dc2626; }
   .callout {
     padding: 12px 16px; margin: 12px 0;
     border-left: 4px solid #0862f0; border-radius: 4px;

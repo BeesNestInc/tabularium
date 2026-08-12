@@ -9,8 +9,7 @@ import { t, setLocale, parseAcceptLanguage } from './libs/i18n.js';
 import { createBookmarkRoutes } from './libs/bookmarks.js';
 import { registerKnowledgeRoutes } from './libs/knowledge-routes.js';
 import authPlugin from './libs/auth-plugin.js';
-import duckdb from 'duckdb';
-import pg from 'pg';
+import { registerQueryRoutes, initDuckDbExtras } from './libs/query-engine.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -291,207 +290,7 @@ const registerWikiKnowledgeRoutes = (app) => {
   });
 };
 
-// --- DuckDB query execution ---
-
-let _db;
-const getDb = () => {
-  if (!_db) _db = new duckdb.Database(':memory:');
-  return _db;
-};
-
-const execQuery = (sql) => new Promise((resolve, reject) => {
-  const db = getDb();
-  db.all(sql, (err, rows) => {
-    if (err) return reject(err);
-    if (!rows || rows.length === 0) {
-      return resolve({ columns: [], rows: [], rowCount: 0 });
-    }
-    const columns = Object.keys(rows[0]).map(name => {
-      const val = rows[0][name];
-      let type = typeof val;
-      if (val === null) type = 'null';
-      else if (val instanceof Date) type = 'date';
-      else if (typeof val === 'bigint') type = 'bigint';
-      return { name, type };
-    });
-    const processed = rows.map(row => {
-      const newRow = {};
-      for (const key in row) {
-        const val = row[key];
-        if (typeof val === 'bigint') newRow[key] = Number(val);
-        else if (val instanceof Date) newRow[key] = val.toISOString();
-        else newRow[key] = val;
-      }
-      return newRow;
-    });
-    resolve({ columns, rows: processed, rowCount: processed.length });
-  });
-});
-
-const PG_TYPE_MAP = {
-  16: 'boolean', 17: 'bytea', 19: 'name', 20: 'bigint', 21: 'smallint', 23: 'integer',
-  25: 'text', 26: 'oid', 114: 'json', 142: 'xml', 199: 'json[]',
-  700: 'real', 701: 'double', 1042: 'bpchar', 1043: 'varchar',
-  1082: 'date', 1083: 'time', 1114: 'timestamp', 1184: 'timestamptz',
-  1700: 'numeric', 2950: 'uuid', 3802: 'jsonb', 3807: 'jsonb[]',
-};
-
-const parseConnStr = (s) => {
-  if (s.startsWith('postgres://') || s.startsWith('postgresql://')) {
-    try {
-      const u = new URL(s);
-      return {
-        host: u.hostname || undefined,
-        port: u.port ? parseInt(u.port) : undefined,
-        database: u.pathname ? u.pathname.slice(1) : undefined,
-        user: u.username || undefined,
-        password: u.password || undefined,
-      };
-    } catch { return s; }
-  }
-  // libpq format: "host=... port=... dbname=... user=... password=..."
-  const parts = s.match(/(\w+)=('[^']*'|[^\s]+)/g);
-  if (parts) {
-    const cfg = {};
-    for (const p of parts) {
-      const [k, ...v] = p.split('=');
-      const val = v.join('=').replace(/^'(.*)'$/, '$1');
-      if (k === 'host') cfg.host = val;
-      else if (k === 'port') cfg.port = parseInt(val);
-      else if (k === 'dbname') cfg.database = val;
-      else if (k === 'user') cfg.user = val;
-      else if (k === 'password') cfg.password = val;
-    }
-    return cfg;
-  }
-  return s;
-};
-
-const execPgQuery = async (connStr, sql) => {
-  const config = typeof connStr === 'string' ? parseConnStr(connStr) : connStr;
-  const client = new pg.Client(config);
-  try {
-    await client.connect();
-    const res = await client.query(sql);
-    if (!res || !res.fields || res.fields.length === 0) {
-      return { columns: [], rows: [], rowCount: 0 };
-    }
-    const columns = res.fields.map(f => ({ name: f.name, type: PG_TYPE_MAP[f.dataTypeID] || f.dataTypeID.toString() }));
-    const numericTypes = new Set([20, 21, 23, 700, 701, 1700]);
-    const pgColTypes = res.fields.reduce((acc, f, i) => { acc[f.name] = f.dataTypeID; return acc; }, {});
-    const rows = (res.rows || []).map(row => {
-      const newRow = {};
-      for (const key in row) {
-        const val = row[key];
-        if (val instanceof Date) newRow[key] = val.toISOString();
-        else if (typeof val === 'bigint') newRow[key] = Number(val);
-        else if (typeof val === 'string' && numericTypes.has(pgColTypes[key])) newRow[key] = parseFloat(val);
-        else newRow[key] = val;
-      }
-      return newRow;
-    });
-    return { columns, rows, rowCount: rows.length };
-  } finally {
-    await client.end().catch(() => {});
-  }
-};
-
-const toLibpqConnStr = (url) => {
-  if (!url.startsWith('postgres://') && !url.startsWith('postgresql://')) return url;
-  try {
-    const u = new URL(url);
-    const params = [];
-    if (u.hostname) params.push(`host=${u.hostname}`);
-    if (u.port) params.push(`port=${u.port}`);
-    if (u.pathname && u.pathname.length > 1) params.push(`dbname=${u.pathname.slice(1)}`);
-    if (u.username) params.push(`user=${u.username}`);
-    if (u.password) params.push(`password=${u.password}`);
-    return params.join(' ');
-  } catch {
-    return url;
-  }
-};
-
-const initDuckDbExtras = async () => {
-  const pgConnStr = process.env.PG_CONNECT_STRING || process.env.DATABASE_URL;
-  if (!pgConnStr) return;
-  const libpq = toLibpqConnStr(pgConnStr);
-  try {
-    await new Promise((resolve, reject) => {
-      getDb().exec('INSTALL postgres; LOAD postgres;', (err) => {
-        if (err) return reject(err);
-        resolve();
-      });
-    });
-    await new Promise((resolve, reject) => {
-      getDb().exec(`ATTACH '${libpq}' AS onprem_pg (TYPE POSTGRES);`, (err) => {
-        if (err) return reject(err);
-        resolve();
-      });
-    });
-    console.log(t('DuckDB attached to PostgreSQL.'));
-  } catch (err) {
-    console.error(t('Failed to attach PostgreSQL:'), err.message);
-  }
-};
-
-const registerQueryRoutes = (app) => {
-  app.post('/api/execute', async (request, reply) => {
-    const { language, code, attach } = request.body || {};
-    if (!language || !code) {
-      return reply.code(400).send({ error: t('`language` and `code` are required.') });
-    }
-    const start = Date.now();
-    if (language === 'postgresql' || language === 'pg') {
-      const connStr = attach && typeof attach === 'object'
-        ? Object.values(attach)[0]
-        : process.env.PG_CONNECT_STRING || process.env.DATABASE_URL;
-      if (!connStr) {
-        return reply.code(400).send({ error: t('No database connection string. Set `databases:` in front matter or PG_CONNECT_STRING env.') });
-      }
-      try {
-        const result = await execPgQuery(connStr, code);
-        result.duration = Date.now() - start;
-        return result;
-      } catch (err) {
-        return reply.code(500).send({ error: err.message });
-      }
-    }
-    if (language === 'sql' || language === 'duckdb') {
-      if (attach && typeof attach === 'object') {
-        for (const [alias, connStr] of Object.entries(attach)) {
-          const libpq = toLibpqConnStr(connStr);
-          try {
-            await new Promise((resolve, reject) => {
-              getDb().exec('LOAD postgres;', (err) => {
-                if (err) {
-                  getDb().exec('INSTALL postgres; LOAD postgres;', (e) => e ? reject(e) : resolve());
-                } else { resolve(); }
-              });
-            });
-            await new Promise((resolve, reject) => {
-              getDb().exec(`ATTACH '${libpq}' AS ${alias} (TYPE POSTGRES);`, (err) => {
-                if (err && err.message.includes('already exists')) return resolve();
-                if (err) return reject(err);
-                resolve();
-              });
-            });
-          } catch (err) {
-            return reply.code(500).send({ error: t('Failed to attach database \'{0}\': {1}', alias, err.message) });
-          }
-        }
-      }
-      try {
-        const result = await execQuery(code);
-        result.duration = Date.now() - start;
-        return result;
-      } catch (err) {
-        return reply.code(500).send({ error: err.message });
-      }
-    }
-    return reply.code(400).send({ error: t('Unsupported language: {0}. Supported: sql, duckdb, postgresql', language) });
-  });
-};
+// --- DuckDB query execution (shared: see libs/query-engine.js) ---
 
 const start = async () => {
   const app = Fastify({ logger: true });
@@ -512,7 +311,7 @@ const start = async () => {
 
   registerWikiKnowledgeRoutes(app);
   registerCollaboraRoutes(app);
-  registerQueryRoutes(app);
+  registerQueryRoutes(app, { splitRootPath: (_req, p) => splitRootPath(p), getRoots: () => roots, t });
   await app.register(wopiRoutes, {
     knowledgeBase: roots[0]?.path || resolvePath(process.env.KNOWLEDGE_BASE || 'knowledge'),
     wopiSrc: process.env.WOPI_SRC || `http://127.0.0.1:${PORT}`,

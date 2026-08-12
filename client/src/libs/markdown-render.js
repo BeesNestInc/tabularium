@@ -146,6 +146,11 @@ export function createMd(options = {}) {
     const props = escAttr(JSON.stringify({ name: args }));
     return `<div class="mdx-hydrate form-container" data-hydrate="Form" data-props="${props}">`;
   }, () => '</div>');
+  mdxContainer(md, 'import', (args) => {
+    const m = args.match(/^(\S+)(?:\s+as\s+(\w+))?$/);
+    const props = escAttr(JSON.stringify({ path: m ? m[1] : args, as: m && m[2] ? m[2] : '' }));
+    return `<div class="mdx-hydrate" data-hydrate="FrontmatterImport" data-props="${props}">`;
+  }, () => '</div>');
 
   md.renderer.rules.fence = (tokens, idx, options, env, self) => {
     const token = tokens[idx];

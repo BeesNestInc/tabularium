@@ -80,6 +80,25 @@ describe(':::form container', () => {
   });
 });
 
+describe(':::import container', () => {
+  it('renders a FrontmatterImport placeholder with path + as', () => {
+    const html = md.render(':::import knowledge/projects as projects\n:::');
+    expect(html).toContain('data-hydrate="FrontmatterImport"');
+    const el = document.createElement('div');
+    el.innerHTML = html;
+    const props = JSON.parse(el.querySelector('[data-props]').dataset.props);
+    expect(props).toEqual({ path: 'knowledge/projects', as: 'projects' });
+  });
+
+  it('renders with path only when no as is given', () => {
+    const html = md.render(':::import knowledge\n:::');
+    const el = document.createElement('div');
+    el.innerHTML = html;
+    const props = JSON.parse(el.querySelector('[data-props]').dataset.props);
+    expect(props).toEqual({ path: 'knowledge', as: '' });
+  });
+});
+
 describe('display-only escape (:show)', () => {
   it('sql:show renders display code, not a Query block', () => {
     const html = md.render('```sql:show\nSELECT 1;\n```');

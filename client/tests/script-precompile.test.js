@@ -51,3 +51,22 @@ describe('script-precompile', () => {
     expect(out).toContain('return {returnValue: (x + 1)}');
   });
 });
+
+describe('static import → dynamic import', () => {
+  it('converts named imports to a destructured dynamic import', () => {
+    const out = precompile("import { a, b as c } from 'https://m.example/mod.js';\na + c");
+    expect(out).toContain('void ({ a, b: c } = await import("https://m.example/mod.js"))');
+  });
+
+  it('converts default and namespace imports', () => {
+    const out = precompile("import def from 'https://m.example/mod.js';\nimport * as ns from 'https://m.example/ns.js';\ndef + 1");
+    expect(out).toContain('void (def = (await import("https://m.example/mod.js")).default)');
+    expect(out).toContain('void (ns = await import("https://m.example/ns.js"))');
+  });
+
+  it('converts side-effect-only imports to await import', () => {
+    const out = precompile("import 'https://m.example/style.js';\n1 + 1");
+    expect(out).toContain('await import("https://m.example/style.js")');
+    expect(out).toContain('return {returnValue: (1 + 1)}');
+  });
+});

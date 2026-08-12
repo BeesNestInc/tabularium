@@ -4,12 +4,54 @@
 // これにより Script ブロック間で let/const/var/function/class が共有できる。
 import { parse } from '@babel/parser';
 
+// 静的な import 文を動的 import に変換する。
+// `import { a, b as c } from 'https://...'` →
+//   `const { a, b: c } = await import('https://...')`
+// ブロックは async 実行のため await import() が使える。
+// 変換後の const 宣言は通常のトップレベル宣言と同じく共有スコープへ入る。
+function transformImports(src) {
+  let ast;
+  try {
+    ast = parse(src, { sourceType: 'unambiguous', allowReturnOutsideFunction: true, errorRecovery: false });
+  } catch {
+    return src; // モジュールとして解析できない場合は変換しない
+  }
+  const imports = ast.program.body.filter((n) => n.type === 'ImportDeclaration');
+  if (!imports.length) return src;
+
+  const changes = imports.map((node) => {
+    const url = JSON.stringify(node.source.value);
+    const parts = [];
+    const defaultS = node.specifiers.find((s) => s.type === 'ImportDefaultSpecifier');
+    const nsS = node.specifiers.find((s) => s.type === 'ImportNamespaceSpecifier');
+    const named = node.specifiers.filter((s) => s.type === 'ImportSpecifier');
+    if (defaultS) parts.push(`const ${defaultS.local.name} = (await import(${url})).default;`);
+    if (nsS) parts.push(`const ${nsS.local.name} = await import(${url});`);
+    if (named.length) {
+      const props = named.map((s) => {
+        const imported = s.imported.type === 'Identifier' ? s.imported.name : JSON.stringify(s.imported.value);
+        return s.local.name !== imported ? `${imported}: ${s.local.name}` : imported;
+      }).join(', ');
+      parts.push(`const { ${props} } = await import(${url});`);
+    }
+    if (!parts.length) parts.push(`await import(${url});`);
+    const end = node.end + (src[node.end] === ';' ? 1 : 0);
+    return { start: node.start, end, text: parts.join('\n') };
+  });
+
+  let out = src;
+  for (let i = changes.length - 1; i >= 0; i--) {
+    out = out.slice(0, changes[i].start) + changes[i].text + out.slice(changes[i].end);
+  }
+  return out;
+}
+
 /**
  * ユーザーコードを変換し、実行用の関数本体（文の列）を返す。
  * 呼び出し側はこの本体を `with(scope) { ... }` の中で非同期実行する。
  */
 export function precompile(code) {
-  const src = String(code ?? '');
+  const src = transformImports(String(code ?? ''));
   if (!src.trim()) return '';
 
   // async 関数の本体として解析し、トップレベル文を特定する

@@ -38,6 +38,14 @@ hydrate(root, ctx) がレジストリから import() + Svelte5 mount()
 - markdown-it は**型付きプレースホルダ**を出力し、ページ描画後に `hydrate()` が該当 Svelte コンポーネントを活性化（ハイドレーション）する。SQL実行・チャート等は HTML文字列 + 正規表現置換のハックを**廃止**している。
 - コンポーネント同士は独立に `mount()` されるため、Svelte の `getContext` は使えない。状態共有は全て `ctx`（query-context）経由。
 
+> **設計判断: なぜ mdsvex / MDX を使わないか**
+>
+> - mdsvex は **ビルド時**に `.svx`（markdown + Svelte）を Svelte コンポーネントへコンパイルする前処理。MDX も同様にビルド時（runtime `evaluate` もあるが、コンパイラ/JSX ランタイムが必要で重い）。
+> - 本 wiki の本文は **実行時に API から取得してクライアント側で描画する、ユーザー編集可能なデータ**であり、ビルドグラフに入らない → mdsvex/MDX では処理できない。
+> - ブラウザに Svelte コンパイラ等を積んで任意のユーザー markdown を実行時コンパイルするのは重い上、**任意コード実行のセキュリティリスク**。
+> - そこで **ランタイム水化**（markdown-it → 型付きプレースホルダ → `hydrate()` で `mount()`）を自作した。mdsvex の狙い（markdown にコンポーネントを埋め込む）を runtime で実現する方式で、当該ユースケースにドロップインな既存ライブラリは無い。
+> - 一部のプリミティブは既存技術の踏襲: JS ブロックの共有実行（livenote/jsconsole 方式の再実装）、`hydrate` の命名（React/SvelteKit と同概念）。
+
 ## 3. ファイルマップ
 
 | パス（`client/` 基準） | 役割 |

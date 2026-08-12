@@ -37,6 +37,14 @@ Each component shares state via ctx (query context)
 - markdown-it emits **typed placeholders**, and after the page renders, `hydrate()` hydrates the corresponding Svelte components. The old hacks (HTML string + regex substitution for SQL/charts) have been **removed**.
 - Components are `mount()`ed independently, so Svelte's `getContext` cannot be used. All state sharing goes through `ctx` (query-context).
 
+> **Design decision: why not mdsvex / MDX?**
+>
+> - mdsvex is a **build-time** preprocessor that compiles `.svx` (markdown + Svelte) into Svelte components. MDX is similarly build-time (it has a runtime `evaluate`, but that requires a compiler/JSX runtime and is heavy).
+> - The wiki body is **user-editable data fetched via the API and rendered client-side at runtime** — it is not part of the build graph, so mdsvex/MDX cannot process it.
+> - Shipping a Svelte compiler (etc.) to the browser to compile arbitrary user markdown at runtime is heavy and a **security risk (arbitrary code execution)**.
+> - So a **runtime hydration** approach (markdown-it → typed placeholders → `hydrate()` + `mount()`) was built instead. This realizes mdsvex's goal (embedding components in markdown) at runtime; there is no drop-in library for this use case.
+> - Some primitives follow existing techniques: the JS block shared execution (a reimplementation of the livenote/jsconsole approach) and the `hydrate` naming (the same concept as React/SvelteKit).
+
 ## 3. File map
 
 | Path (relative to `client/`) | Role |

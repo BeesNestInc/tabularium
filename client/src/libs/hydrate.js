@@ -33,7 +33,7 @@ export const hydrate = async (root, ctx) => {
       });
       const data = await res.json();
       props._imported = res.ok
-        ? { ok: true, rows: data.rows, table: data.table }
+        ? { ok: true, rows: data.rows, table: data.table, kind: data.kind }
         : { ok: false, error: data.error || 'import failed' };
     } catch (e) {
       props._imported = { ok: false, error: e.message };

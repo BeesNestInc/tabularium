@@ -4,8 +4,13 @@ import FrontmatterImport from '../src/components/knowledge/FrontmatterImport.sve
 
 describe('FrontmatterImport.svelte', () => {
   it('shows the imported table + row count when the import succeeded', () => {
-    render(FrontmatterImport, { props: { path: 'knowledge/projects', as: 'projects', _imported: { ok: true, rows: 12, table: 'projects' } } });
+    render(FrontmatterImport, { props: { path: 'knowledge/projects', as: 'projects', _imported: { ok: true, rows: 12, table: 'projects', kind: 'frontmatter' } } });
     expect(screen.getByText(/✔ 12 ページ → テーブル projects/)).toBeInTheDocument();
+  });
+
+  it('shows rows for csv imports', () => {
+    render(FrontmatterImport, { props: { path: 'knowledge/data.csv', as: 'data', _imported: { ok: true, rows: 5, table: 'data', kind: 'csv' } } });
+    expect(screen.getByText(/✔ 5 行 → テーブル data/)).toBeInTheDocument();
   });
 
   it('shows an error message when the import failed', () => {

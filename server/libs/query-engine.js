@@ -204,6 +204,25 @@ export const importFrontmatter = async (req, opts = {}) => {
   let stat;
   try { stat = statSync(absPath); } catch { throw new Error(`path not found: ${target}`); }
 
+  const sanitize = (s) => String(s).replace(/[^A-Za-z0-9_]/g, '_');
+
+  // --- CSV ファイル → DuckDB テーブル ---
+  if (stat.isFile() && /\.csv$/i.test(absPath)) {
+    const base = path.basename(absPath, path.extname(absPath));
+    const table = req.as ? sanitize(req.as) : 'fm_' + sanitize(base);
+    const escaped = absPath.replace(/'/g, "''");
+    await exec(`CREATE OR REPLACE TABLE ${table} AS SELECT * FROM read_csv_auto('${escaped}')`);
+    const cnt = await new Promise((resolve, reject) => {
+      getDb().all(`SELECT count(*) AS c FROM ${table}`, (err, r) => (err ? reject(err) : resolve(r && r[0] ? Number(r[0].c) : 0)));
+    });
+    return { table, rows: cnt, kind: 'csv' };
+  }
+
+  // --- front matter（.md / .mmd） ---
+  if (!stat.isDirectory() && !/\.(md|mmd)$/i.test(absPath)) {
+    throw new Error(`unsupported file type: ${target}`);
+  }
+
   const files = stat.isDirectory()
     ? collectMarkdownFiles(absPath, sr.root.path)
     : (/\.(md|mmd)$/i.test(absPath) ? [absPath] : []);
@@ -228,15 +247,15 @@ export const importFrontmatter = async (req, opts = {}) => {
   });
 
   const table = req.as
-    ? String(req.as).replace(/[^A-Za-z0-9_]/g, '_')
-    : 'fm_' + target.replace(/[^A-Za-z0-9_]/g, '_');
+    ? sanitize(req.as)
+    : 'fm_' + sanitize(target);
 
   await exec(`CREATE OR REPLACE TABLE ${table} (path VARCHAR, root VARCHAR, name VARCHAR, title VARCHAR, mtime VARCHAR, size BIGINT, data VARCHAR)`);
   if (rows.length) {
     const stmt = await prepare(`INSERT INTO ${table} VALUES (?,?,?,?,?,?,?)`);
     for (const row of rows) await runPrepared(stmt, row);
   }
-  return { table, rows: rows.length };
+  return { table, rows: rows.length, kind: 'frontmatter' };
 };
 
 // --- ルート登録 ---

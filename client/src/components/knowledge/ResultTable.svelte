@@ -3,6 +3,17 @@
 
   export let data;
   export let pageSize = 100;
+  export let executedAt = null;
+
+  const fmtTime = (iso) => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return iso;
+    return d.toLocaleString('ja-JP', {
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+    });
+  };
 
   const PAGE_SIZE = pageSize;
   let sortKey = null;
@@ -53,6 +64,9 @@
 <div class="mdx-table-wrap">
   <div class="mdx-table-toolbar">
     <span class="sql-status">{sorted.length} rows</span>
+    {#if executedAt}
+      <span class="mdx-refresh-time" title="集計実行時刻（このデータを取得した時刻）">集計時刻: {fmtTime(executedAt)}</span>
+    {/if}
     <button class="btn btn-sm btn-outline-secondary" onclick={exportCsv} disabled={!rows.length}>CSV</button>
   </div>
   {#if columns.length === 0}

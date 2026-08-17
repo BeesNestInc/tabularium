@@ -44,6 +44,10 @@
     recurrenceInterval: 1, recurrenceByDay: [],
     recurrenceUntil: '', recurrenceCount: 10, recurrenceEndType: 'never',
     sourceIdx: 0,
+    actionType: '', actionEnabled: true,
+    actionInstruction: '', actionToPersona: '',
+    actionCommand: '', actionWorkdir: '', actionUseBwrap: false, actionBwrapArgs: '',
+    actionEnvEntries: emptyEnvEntries(), actionTriggerTime: '',
   });
   const emptyEditForm = () => ({
     title: '', location: '', category: '', description: '',
@@ -56,6 +60,10 @@
     recurrenceUntil: '', recurrenceCount: 10, recurrenceEndType: 'never',
     editMode: 'all', isRecurring: false,
     _sourceFile: '', _sourceIdx: -1,
+    actionType: '', actionEnabled: true,
+    actionInstruction: '', actionToPersona: '',
+    actionCommand: '', actionWorkdir: '', actionUseBwrap: false, actionBwrapArgs: '',
+    actionEnvEntries: emptyEnvEntries(), actionTriggerTime: '',
   });
   let createForm = emptyCreateForm();
   let editForm = emptyEditForm();
@@ -179,6 +187,81 @@
     }
   }
 
+  function emptyEnvEntries() {
+    return [{ key: '', value: '' }];
+  }
+  function addActionEnv(form) {
+    form.actionEnvEntries = [...form.actionEnvEntries, { key: '', value: '' }];
+  }
+  function removeActionEnv(form, i) {
+    form.actionEnvEntries = form.actionEnvEntries.filter((_, j) => j !== i);
+    if (form.actionEnvEntries.length === 0) form.actionEnvEntries = emptyEnvEntries();
+  }
+  function applyActionToForm(f, ev) {
+    f.actionType = ev.actionType || '';
+    f.actionEnabled = ev.enabled !== false;
+    f.actionInstruction = ev.actionConfig?.instruction || '';
+    f.actionToPersona = ev.actionConfig?.toPersona || '';
+    f.actionCommand = ev.actionConfig?.command || '';
+    f.actionWorkdir = ev.actionConfig?.workdir || '';
+    f.actionUseBwrap = !!ev.actionConfig?.useBwrap;
+    f.actionBwrapArgs = Array.isArray(ev.actionConfig?.bwrapArgs)
+      ? ev.actionConfig.bwrapArgs.join(' ')
+      : (ev.actionConfig?.bwrapArgs || '');
+    const env = ev.actionConfig?.env || {};
+    f.actionEnvEntries = Object.keys(env).length > 0
+      ? Object.entries(env).map(([k, v]) => ({ key: k, value: v }))
+      : emptyEnvEntries();
+    f.actionTriggerTime = ev.triggerTime || '';
+  }
+  function buildActionObj(form) {
+    if (!form.actionType) return null;
+    const ac = {};
+    if (form.actionType === 'instruction') {
+      const instruction = String(form.actionInstruction || '').trim();
+      if (!instruction) return null;
+      ac.instruction = instruction;
+      const toPersona = String(form.actionToPersona || '').trim();
+      if (toPersona) ac.toPersona = toPersona;
+    } else {
+      const command = String(form.actionCommand || '').trim();
+      if (!command) return null;
+      ac.command = command;
+      const workdir = String(form.actionWorkdir || '').trim();
+      if (workdir) ac.workdir = workdir;
+      ac.useBwrap = !!form.actionUseBwrap;
+      const args = String(form.actionBwrapArgs || '').split(/\s+/).filter(Boolean);
+      if (args.length > 0) ac.bwrapArgs = args;
+      const env = {};
+      for (const e of form.actionEnvEntries || []) {
+        const k = String(e?.key || '').trim();
+        if (k) env[k] = e.value;
+      }
+      if (Object.keys(env).length > 0) ac.env = env;
+    }
+    return {
+      actionType: form.actionType,
+      actionConfig: ac,
+      enabled: form.actionEnabled !== false,
+      triggerTime: (form.allDay && form.actionTriggerTime) ? String(form.actionTriggerTime) : '',
+    };
+  }
+  function applyActionToEvent(target, form) {
+    const act = buildActionObj(form);
+    if (act) {
+      target.actionType = act.actionType;
+      target.actionConfig = act.actionConfig;
+      target.enabled = act.enabled;
+      if (act.triggerTime) target.triggerTime = act.triggerTime;
+      else delete target.triggerTime;
+    } else {
+      delete target.actionType;
+      delete target.actionConfig;
+      delete target.triggerTime;
+      delete target.enabled;
+    }
+  }
+
   async function fetchRaw(path) {
     const r = await fetch(API(path), { credentials: 'include' });
     const d = await r.json();
@@ -275,6 +358,8 @@
         }
         if (loc) h += `<br><span class="tt-label">${t('location')}</span> ${loc}`;
         if (desc) h += `<br><span class="tt-label">${t('details')}</span> ${desc.replace(/\n/g, '<br>')}`;
+        const actLabel = ev.extendedProps?.actionLabel;
+        if (actLabel) h += `<br><span class="tt-label">⚡${t('action')}</span> ${actLabel.replace(/</g, '&lt;')}`;
         el.addEventListener('mouseenter', () => {
           tooltipContent = h; const r = el.getBoundingClientRect();
           tooltipX = r.left + r.width / 2; tooltipY = r.top - 8; tooltipVisible = true;
@@ -326,6 +411,7 @@
         f.category = (evData.categories && evData.categories.length > 0) ? evData.categories[0] : '';
         f.description = evData.description || ''; f.allDay = !!evData.allDay;
         applyRecurrenceToForm(f, evData);
+        applyActionToForm(f, evData);
         if (isRecurring) { f.editMode = 'all'; f.isRecurring = true; }
         pendingEdit = f;
 
@@ -335,6 +421,11 @@
           const d = splitDate(iso);
           return allDay ? d.date : `${d.date} ${d.time}`;
         };
+        const actionLabel = evData.actionType === 'instruction'
+          ? (evData.actionConfig?.instruction || '')
+          : evData.actionType === 'command'
+            ? `$ ${evData.actionConfig?.command || ''}`
+            : '';
         viewForm = {
           title: evData.summary || '(no title)',
           location: evData.location || '',
@@ -347,6 +438,8 @@
           organizerLabel: evData.organizer ? (evData.organizer.name || evData.organizer.email) : '',
           attendeeLabels: (evData.attendees || []).map(a => a.name || a.email),
           recurrenceLabel: describeRecurrence(evData.recurrence),
+          actionLabel,
+          actionEnabled: evData.enabled !== false,
         };
         showDeleteChoice = false;
         showViewModal = true;
@@ -461,6 +554,7 @@
     };
     const rec = buildRecurrenceObj(createForm);
     if (rec) ev.recurrence = rec;
+    applyActionToEvent(ev, createForm);
 
     (async () => {
       if (multiMode) {
@@ -491,7 +585,7 @@
         if (!evData.exceptionDates.includes(ed)) evData.exceptionDates.push(ed);
         const uid = uuidv4() + '@legion';
         const categories = editForm.category ? [editForm.category] : [];
-        src.data.events.push({
+        const standalone = {
           uid, summary: editForm.title.trim(),
           start: joinDate(editForm.startDate, editForm.allDay ? '' : _eSH + ':' + _eSM),
           end: joinDate(editForm.endDate, editForm.allDay ? '' : _eEH + ':' + _eEM), allDay: editForm.allDay,
@@ -499,7 +593,9 @@
           description: editForm.description.trim() || undefined,
           categories, status: 'CONFIRMED',
           _parentUid: evData.uid, _exceptionDate: ed,
-        });
+        };
+        applyActionToEvent(standalone, editForm);
+        src.data.events.push(standalone);
       } else {
         const categories = editForm.category ? [editForm.category] : [];
         Object.assign(evData, {
@@ -510,6 +606,7 @@
           description: editForm.description.trim() || undefined,
           categories,
         });
+        applyActionToEvent(evData, editForm);
         const rec = buildRecurrenceObj(editForm);
         if (rec) evData.recurrence = rec;
         else delete evData.recurrence;
@@ -527,7 +624,7 @@
         if (!evData.exceptionDates.includes(ed)) evData.exceptionDates.push(ed);
         const uid = uuidv4() + '@legion';
         const categories = editForm.category ? [editForm.category] : [];
-        currentData.events.push({
+        const standalone = {
           uid, summary: editForm.title.trim(),
           start: joinDate(editForm.startDate, editForm.allDay ? '' : _eSH + ':' + _eSM),
           end: joinDate(editForm.endDate, editForm.allDay ? '' : _eEH + ':' + _eEM), allDay: editForm.allDay,
@@ -535,7 +632,9 @@
           description: editForm.description.trim() || undefined,
           categories, status: 'CONFIRMED',
           _parentUid: evData.uid, _exceptionDate: ed,
-        });
+        };
+        applyActionToEvent(standalone, editForm);
+        currentData.events.push(standalone);
       } else {
         const categories = editForm.category ? [editForm.category] : [];
         Object.assign(evData, {
@@ -546,6 +645,7 @@
           description: editForm.description.trim() || undefined,
           categories,
         });
+        applyActionToEvent(evData, editForm);
         const rec = buildRecurrenceObj(editForm);
         if (rec) evData.recurrence = rec;
         else delete evData.recurrence;
@@ -977,6 +1077,45 @@
           <label>{t('details')}</label>
           <textarea class="form-control" rows="3" bind:value={createForm.description}></textarea>
         </div>
+        <div class="form-group">
+          <label>{t('actionTypeLabel')}</label>
+          <select class="form-control" bind:value={createForm.actionType}>
+            <option value="">{t('actionNone')}</option>
+            <option value="instruction">{t('actionInstruction')}</option>
+            <option value="command">{t('actionCommand')}</option>
+          </select>
+        </div>
+        {#if createForm.actionType}
+          <div class="form-group action-config">
+            <label><input type="checkbox" bind:checked={createForm.actionEnabled} /> {t('actionEnabled')}</label>
+            {#if createForm.allDay}
+              <div class="recur-row">
+                <span class="small-label">{t('actionTriggerTime')}</span>
+                <input class="form-control form-control-sm" type="time" style="width:auto;display:inline" bind:value={createForm.actionTriggerTime} />
+              </div>
+            {/if}
+            {#if createForm.actionType === 'instruction'}
+              <textarea class="form-control" rows="2" placeholder={t('actionInstruction')} bind:value={createForm.actionInstruction}></textarea>
+              <input class="form-control" style="margin-top:6px" placeholder={t('actionSendTo')} bind:value={createForm.actionToPersona} />
+            {:else}
+              <input class="form-control" placeholder={t('actionCommand')} bind:value={createForm.actionCommand} />
+              <div class="recur-row" style="margin-top:6px">
+                <input class="form-control form-control-sm" style="flex:1;width:auto;display:inline" placeholder={t('actionWorkdir')} bind:value={createForm.actionWorkdir} />
+                <label style="display:inline-flex;align-items:center;gap:4px;white-space:nowrap"><input type="checkbox" bind:checked={createForm.actionUseBwrap} /> bwrap</label>
+              </div>
+              <input class="form-control form-control-sm" style="margin-top:6px" placeholder="bwrap args" bind:value={createForm.actionBwrapArgs} />
+              {#each createForm.actionEnvEntries as entry, i}
+                <div class="recur-row">
+                  <input class="form-control form-control-sm" style="flex:1;width:auto" placeholder="KEY" bind:value={entry.key} />
+                  <input class="form-control form-control-sm" style="flex:1;width:auto" placeholder="VALUE" bind:value={entry.value} />
+                  <button class="btn btn-sm btn-outline-danger" onclick={() => removeActionEnv(createForm, i)}>✕</button>
+                </div>
+              {/each}
+              <button class="btn btn-sm btn-outline-secondary" onclick={() => addActionEnv(createForm)}>+ env</button>
+            {/if}
+            <div class="text-muted action-hint">{t('actionVariablesHint')}</div>
+          </div>
+        {/if}
       </div>
       <div class="modal-footer">
         <button class="btn btn-sm btn-outline-secondary" onclick={closeCreateModal}>{t('cancel')}</button>
@@ -1095,6 +1234,45 @@
           <label>{t('details')}</label>
           <textarea class="form-control" rows="3" bind:value={editForm.description}></textarea>
         </div>
+        <div class="form-group">
+          <label>{t('actionTypeLabel')}</label>
+          <select class="form-control" bind:value={editForm.actionType}>
+            <option value="">{t('actionNone')}</option>
+            <option value="instruction">{t('actionInstruction')}</option>
+            <option value="command">{t('actionCommand')}</option>
+          </select>
+        </div>
+        {#if editForm.actionType}
+          <div class="form-group action-config">
+            <label><input type="checkbox" bind:checked={editForm.actionEnabled} /> {t('actionEnabled')}</label>
+            {#if editForm.allDay}
+              <div class="recur-row">
+                <span class="small-label">{t('actionTriggerTime')}</span>
+                <input class="form-control form-control-sm" type="time" style="width:auto;display:inline" bind:value={editForm.actionTriggerTime} />
+              </div>
+            {/if}
+            {#if editForm.actionType === 'instruction'}
+              <textarea class="form-control" rows="2" placeholder={t('actionInstruction')} bind:value={editForm.actionInstruction}></textarea>
+              <input class="form-control" style="margin-top:6px" placeholder={t('actionSendTo')} bind:value={editForm.actionToPersona} />
+            {:else}
+              <input class="form-control" placeholder={t('actionCommand')} bind:value={editForm.actionCommand} />
+              <div class="recur-row" style="margin-top:6px">
+                <input class="form-control form-control-sm" style="flex:1;width:auto;display:inline" placeholder={t('actionWorkdir')} bind:value={editForm.actionWorkdir} />
+                <label style="display:inline-flex;align-items:center;gap:4px;white-space:nowrap"><input type="checkbox" bind:checked={editForm.actionUseBwrap} /> bwrap</label>
+              </div>
+              <input class="form-control form-control-sm" style="margin-top:6px" placeholder="bwrap args" bind:value={editForm.actionBwrapArgs} />
+              {#each editForm.actionEnvEntries as entry, i}
+                <div class="recur-row">
+                  <input class="form-control form-control-sm" style="flex:1;width:auto" placeholder="KEY" bind:value={entry.key} />
+                  <input class="form-control form-control-sm" style="flex:1;width:auto" placeholder="VALUE" bind:value={entry.value} />
+                  <button class="btn btn-sm btn-outline-danger" onclick={() => removeActionEnv(editForm, i)}>✕</button>
+                </div>
+              {/each}
+              <button class="btn btn-sm btn-outline-secondary" onclick={() => addActionEnv(editForm)}>+ env</button>
+            {/if}
+            <div class="text-muted action-hint">{t('actionVariablesHint')}</div>
+          </div>
+        {/if}
         <hr>
         <button class="btn btn-sm btn-outline-danger" onclick={deleteEdit}>{t('deleteThisEvent')}</button>
       </div>
@@ -1134,6 +1312,9 @@
         {/if}
         {#if viewForm.categories.length > 0}
           <div class="view-row"><span class="view-icon">🏷️</span> {viewForm.categories.join(', ')}</div>
+        {/if}
+        {#if viewForm.actionLabel}
+          <div class="view-row"><span class="view-icon">⚡</span> <code class="action-code">{viewForm.actionLabel}</code>{#if !viewForm.actionEnabled}<span class="text-muted"> ({t('disabled')})</span>{/if}</div>
         {/if}
         {#if viewForm.descriptionHtml}
           <div class="view-desc">{@html viewForm.descriptionHtml}</div>
@@ -1177,6 +1358,10 @@
   .recur-config { margin-top:8px; padding-left:8px; border-left:2px solid #ddd; }
   .recur-row { display:flex; gap:6px; align-items:center; margin-bottom:6px; flex-wrap:wrap; }
   .recur-days { gap:3px; }
+  .action-config { padding-left:8px; border-left:2px solid #3498db; }
+  .action-hint { font-size:.75rem; margin-top:6px; word-break:break-all; }
+  .action-code { background:#f5f5f5; padding:1px 5px; border-radius:3px; font-size:.8rem; word-break:break-all; white-space:pre-wrap; }
+  .small-label { font-size:.85rem; color:#555; }
   .wd-btn { width:32px; height:32px; border-radius:50%; border:1px solid #ccc; background:#f8f8f8; cursor:pointer; font-size:.8rem; display:flex; align-items:center; justify-content:center; }
   .wd-btn.selected { background:#3498db; color:#fff; border-color:#3498db; }
   .fc-tooltip { position:fixed; z-index:99999; background:#333; color:#fff; font-size:.78rem; line-height:1.5; padding:8px 12px; border-radius:6px; transform:translate(-50%,-100%); pointer-events:none; max-width:360px; white-space:normal; box-shadow:0 2px 8px rgba(0,0,0,.3); }

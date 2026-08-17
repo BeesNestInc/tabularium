@@ -231,6 +231,12 @@ export function yamlToFullCalendarEvents(yamlObj) {
         categories: ev.categories || [],
         status: ev.status || '',
         uid: ev.uid || '',
+        actionLabel: ev.actionType === 'instruction'
+          ? (ev.actionConfig?.instruction || '')
+          : ev.actionType === 'command'
+            ? (ev.actionConfig?.command || '')
+            : '',
+        actionEnabled: ev.enabled !== false,
       },
     };
 

@@ -11,7 +11,7 @@
 </script>
 
 {#if result?.data}
-  <ResultTable data={result.data} />
+  <ResultTable data={result.data} executedAt={result.executedAt} />
 {:else if result?.status === 'error'}
   <p class="text-danger">✘ {result.error}</p>
 {:else}

@@ -20,6 +20,7 @@ function createManager() {
   let ws = null;
   let wsTimer = null;
   let ctx = null;
+  let masterGain = null;
   let playHead = 0;
   let generation = 0;
   let activeId = null;
@@ -30,6 +31,11 @@ function createManager() {
   const masterEnabled = () => getCookie('speechMaster') !== '0';
   const sceneEnabled = (scene) => getCookie(SCENE_KEYS[scene] || '') !== '0';
 
+  const getVolume = () => {
+    const v = parseFloat(getCookie('speechVolume'));
+    return Number.isFinite(v) ? Math.min(2, Math.max(0, v)) : 1;
+  };
+
   const notify = () => {
     for (const fn of listeners) fn();
   };
@@ -37,6 +43,9 @@ function createManager() {
   const ensureContext = () => {
     if (!ctx) {
       ctx = new (window.AudioContext || window.webkitAudioContext)();
+      masterGain = ctx.createGain();
+      masterGain.gain.value = getVolume();
+      masterGain.connect(ctx.destination);
       playHead = 0;
     }
     if (ctx.state === 'suspended') ctx.resume();
@@ -51,7 +60,7 @@ function createManager() {
     playHead = Math.max(now + 0.02, playHead);
     const src = ac.createBufferSource();
     src.buffer = buf;
-    src.connect(ac.destination);
+    src.connect(masterGain);
     src.start(playHead);
     playHead += buf.duration;
     activeSources.add(src);
@@ -168,6 +177,13 @@ function createManager() {
 
   const isMaster = () => masterEnabled();
 
+  const setVolume = (value) => {
+    const v = Math.min(2, Math.max(0, Number(value) || 0));
+    setCookie('speechVolume', String(v));
+    if (masterGain && ctx) masterGain.gain.value = v;
+    notify();
+  };
+
   const isSpeaking = () => speaking;
 
   const subscribe = (fn) => {
@@ -185,6 +201,8 @@ function createManager() {
     isEnabled,
     setMaster,
     isMaster,
+    getVolume,
+    setVolume,
     isSpeaking,
     subscribe,
   };

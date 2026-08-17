@@ -36,6 +36,8 @@ $primary: #0862f0;
     border-top: 1px solid #eee;
   }
   .sql-status { font-size: 0.85em; color: #666; }
+  .mdx-refresh-time { font-size: 0.8em; color: #999; text-align: right; padding: 2px 12px 6px; }
+  .mdx-table-toolbar .mdx-refresh-time { margin-left: auto; }
   .sql-result {
     max-height: 400px;
     overflow: auto;

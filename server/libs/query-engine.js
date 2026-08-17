@@ -23,9 +23,20 @@ const runPrepared = (stmt, params) => new Promise((resolve, reject) => {
   stmt.run(...params, (err) => (err ? reject(err) : resolve()));
 });
 
-const execQuery = (sql) => new Promise((resolve, reject) => {
+// `data->>'a.b.c'` のような「ドット区切りのネストキー省略記法」を
+// `json_extract_string(data, '$.a.b.c')` に書き換える（セクション15参照）。
+// - 対象は「識別子 `->>` 'ドット付きキー'」の形のみ。
+// - フラットキー（`->>'stage'`）や `$` 付き JSONPath（`->>'$.a.b'`）はそのまま残す。
+export const rewriteNestedArrow = (sql) => {
+  return String(sql).replace(
+    /\b([A-Za-z_][A-Za-z0-9_]*)\s*->>\s*'([^']*[.][^']*)'/g,
+    (m, col, key) => (key.startsWith('$') ? m : `json_extract_string(${col}, '$.${key}')`)
+  );
+};
+
+export const execQuery = (sql) => new Promise((resolve, reject) => {
   const db = getDb();
-  db.all(sql, (err, rows) => {
+  db.all(rewriteNestedArrow(sql), (err, rows) => {
     if (err) return reject(err);
     if (!rows || rows.length === 0) {
       return resolve({ columns: [], rows: [], rowCount: 0 });

@@ -70,7 +70,7 @@
         <button class="sql-tab-btn" class:active={tab === 'chart'} onclick={() => tab = 'chart'}>{t('chart')}</button>
       </div>
       {#if tab === 'table'}
-        <ResultTable data={result.data} />
+        <ResultTable data={result.data} executedAt={result.executedAt} />
       {:else if autoOption}
         <div class="sql-chart-container"><EChart option={autoOption} /></div>
       {:else}

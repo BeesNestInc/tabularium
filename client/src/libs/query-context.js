@@ -79,7 +79,7 @@ export const createQueryContext = (meta = null) => {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Unknown error');
-      results.update((r) => ({ ...r, [name]: { status: 'done', data } }));
+      results.update((r) => ({ ...r, [name]: { status: 'done', data, executedAt: new Date().toISOString() } }));
       return data;
     } catch (err) {
       results.update((r) => ({ ...r, [name]: { status: 'error', error: err.message } }));

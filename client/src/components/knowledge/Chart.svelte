@@ -16,6 +16,16 @@
   $: resultData = result?.data;
   $: option = resultData ? buildOption({ type, x, y, y2, fill }, resultData) : null;
 
+  const fmtTime = (iso) => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return iso;
+    return d.toLocaleString('ja-JP', {
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+    });
+  };
+
   const buildOption = (cfg, d) => {
     const xCol = cfg.x || d.columns.find((c) => ['string', 'varchar', 'text'].includes(c.type))?.name;
     const yCol = cfg.y || d.columns.find((c) => ['number', 'integer', 'bigint'].includes(c.type))?.name;
@@ -50,6 +60,9 @@
 
 {#if option}
   <EChart {option} />
+  {#if result?.executedAt}
+    <p class="mdx-refresh-time">集計時刻: {fmtTime(result.executedAt)}</p>
+  {/if}
 {:else if result?.status === 'error'}
   <p class="text-danger">✘ {result.error}</p>
 {:else if resultData}
